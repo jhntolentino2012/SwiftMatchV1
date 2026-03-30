@@ -41,39 +41,39 @@
 }
 
 :root {
-  /* Clean, professional Navy & Teal Palette */
-  --background: 210 40% 98%; /* slate-50 */
-  --foreground: 222 47% 11%; /* slate-900 */
-  
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  
-  /* Primary: Navy Blue */
-  --primary: 222 47% 11%;
-  --primary-foreground: 210 40% 98%;
-  
-  /* Secondary: Slate */
-  --secondary: 214 32% 91%;
-  --secondary-foreground: 222 47% 11%;
-  
-  /* Muted */
-  --muted: 214 32% 91%;
-  --muted-foreground: 215 16% 47%;
-  
-  /* Accent: Vibrant Teal */
-  --accent: 171 77% 36%;
-  --accent-foreground: 0 0% 100%;
-  
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
+  /* SwiftMatch — Professional Blue & Orange Palette */
+  --background: 210 30% 97%;
+  --foreground: 214 60% 12%;
 
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 171 77% 36%; /* Teal focus ring */
-  
+  --card: 0 0% 100%;
+  --card-foreground: 214 60% 12%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 214 60% 12%;
+
+  /* Primary: Bold Corporate Blue */
+  --primary: 214 80% 34%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary: Light Blue tint */
+  --secondary: 210 40% 92%;
+  --secondary-foreground: 214 60% 20%;
+
+  /* Muted */
+  --muted: 210 35% 93%;
+  --muted-foreground: 215 20% 48%;
+
+  /* Accent: Energetic Orange */
+  --accent: 24 95% 52%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 214 30% 88%;
+  --input: 214 30% 88%;
+  --ring: 24 95% 52%;
+
   --radius: 0.75rem;
 }
 
@@ -96,15 +96,15 @@
   --muted: 217.2 32.6% 17.5%;
   --muted-foreground: 215 20.2% 65.1%;
   
-  --accent: 171 77% 36%;
-  --accent-foreground: 210 40% 98%;
-  
+  --accent: 24 95% 52%;
+  --accent-foreground: 0 0% 100%;
+
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
-  
+
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
-  --ring: 171 77% 36%;
+  --ring: 24 95% 52%;
 }
 
 @layer base {
