@@ -5,6 +5,7 @@ import assessmentsRouter from "./assessments";
 import jobsRouter from "./jobs";
 import coursesRouter from "./courses";
 import skillsRouter from "./skills";
+import resumeRouter from "./resume";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use("/applicants", (req, res, next) => {
 router.use("/jobs", jobsRouter);
 router.use("/courses", coursesRouter);
 router.use("/skills", skillsRouter);
+router.use("/resume", resumeRouter);
 
 export default router;

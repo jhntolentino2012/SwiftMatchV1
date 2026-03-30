@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navigation } from "@/components/Navigation";
 import { 
   ChevronRight, ChevronLeft, User, MapPin, 
   Briefcase, GraduationCap, Users, Share2, 
-  Settings, CheckCircle, Video, ListChecks
+  Settings, CheckCircle, Video, ListChecks,
+  Upload, FileText, X, Sparkles, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -54,6 +55,35 @@ export default function ApplicationFlow() {
   });
 
   const [assessmentAnswers, setAssessmentAnswers] = useState<Record<number, any[]>>({});
+  const [resumeUploaderOpen, setResumeUploaderOpen] = useState(true);
+  const [resumeParsed, setResumeParsed] = useState(false);
+
+  const handleResumeData = (parsed: Record<string, any>) => {
+    setFormData(prev => ({
+      ...prev,
+      ...(parsed.firstName    && { firstName: parsed.firstName }),
+      ...(parsed.lastName     && { lastName: parsed.lastName }),
+      ...(parsed.middleName   && { middleName: parsed.middleName }),
+      ...(parsed.suffix       && { suffix: parsed.suffix }),
+      ...(parsed.nickname     && { nickname: parsed.nickname }),
+      ...(parsed.pronoun      && { pronoun: parsed.pronoun }),
+      ...(parsed.email        && { email: parsed.email }),
+      ...(parsed.phoneAreaCode && { phoneAreaCode: parsed.phoneAreaCode }),
+      ...(parsed.phoneNumber  && { phoneNumber: parsed.phoneNumber }),
+      ...(parsed.permanentAddress && { permanentAddress: parsed.permanentAddress }),
+      ...(parsed.currentAddress   && { currentAddress: parsed.currentAddress }),
+      ...(parsed.facebookUrl  && { facebookUrl: parsed.facebookUrl }),
+      ...(parsed.linkedinUrl  && { linkedinUrl: parsed.linkedinUrl }),
+      ...(parsed.expectedSalary   && { expectedSalary: parsed.expectedSalary }),
+      ...(parsed.availabilityDate && { availabilityDate: parsed.availabilityDate }),
+      salaryNegotiable: parsed.salaryNegotiable !== false,
+      ...(Array.isArray(parsed.skills) && parsed.skills.length > 0 && { skills: parsed.skills }),
+      ...(Array.isArray(parsed.employmentHistory) && parsed.employmentHistory.length > 0 && { employmentHistory: parsed.employmentHistory }),
+      ...(Array.isArray(parsed.certificates) && parsed.certificates.length > 0 && { certificates: parsed.certificates }),
+    }));
+    setResumeParsed(true);
+    setResumeUploaderOpen(false);
+  };
 
   const handleNext = () => {
     if (currentStep < STEPS.length) {
@@ -157,7 +187,40 @@ export default function ApplicationFlow() {
         </aside>
 
         {/* Main Form Content */}
-        <div className="flex-1 w-full max-w-3xl">
+        <div className="flex-1 w-full max-w-3xl space-y-4">
+
+          {/* Resume Upload Banner */}
+          <AnimatePresence>
+            {resumeUploaderOpen && !resumeParsed && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+              >
+                <ResumeUploader
+                  onData={handleResumeData}
+                  onDismiss={() => setResumeUploaderOpen(false)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Resume Parsed Success Pill */}
+          {resumeParsed && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-2.5 px-4 py-2.5 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700 font-medium"
+            >
+              <CheckCircle className="w-4 h-4 shrink-0" />
+              Resume auto-filled — review each step and make any adjustments.
+              <button onClick={() => setResumeUploaderOpen(true)} className="ml-auto text-green-600 hover:underline text-xs">
+                Upload different file
+              </button>
+            </motion.div>
+          )}
+
           <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col min-h-[600px]">
             
             <div className="p-8 border-b border-slate-100 bg-slate-50/50">
@@ -201,8 +264,123 @@ export default function ApplicationFlow() {
             </div>
 
           </div>
-        </div>
+        </div>  {/* end main form column */}
       </main>
+    </div>
+  );
+}
+
+// ─── RESUME UPLOADER COMPONENT ────────────────────────────────────────────────
+
+function ResumeUploader({ onData, onDismiss }: { onData: (d: Record<string, any>) => void; onDismiss: () => void }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const processFile = useCallback(async (file: File) => {
+    setFileName(file.name);
+    setError(null);
+    setIsParsing(true);
+    try {
+      const form = new FormData();
+      form.append("resume", file);
+      const res = await fetch("/api/resume/parse", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Parsing failed");
+      onData(json.data);
+    } catch (err: any) {
+      setError(err.message || "Could not parse the file. Please try again.");
+      setIsParsing(false);
+    }
+  }, [onData]);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-accent/30 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-accent/5 to-primary/5 border-b border-accent/20">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-accent" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-primary">Auto-fill from Resume</p>
+            <p className="text-xs text-slate-500">Upload your CV and we'll fill in the details for you</p>
+          </div>
+        </div>
+        <button onClick={onDismiss} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-100">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="p-5">
+        {isParsing ? (
+          <div className="flex flex-col items-center justify-center py-6 gap-3">
+            <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-accent animate-spin" />
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-sm text-primary">Analysing your resume…</p>
+              <p className="text-xs text-slate-500 mt-0.5">{fileName}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={onDrop}
+              onClick={() => inputRef.current?.click()}
+              className={cn(
+                "border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all",
+                isDragging
+                  ? "border-accent bg-accent/5 scale-[1.01]"
+                  : "border-slate-200 hover:border-accent/50 hover:bg-slate-50"
+              )}
+            >
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Upload className="w-5 h-5 text-primary" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-slate-700">
+                  {isDragging ? "Drop to upload" : "Drag & drop or click to browse"}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">PDF, Word (.docx / .doc), or plain text — up to 10MB</p>
+              </div>
+            </div>
+
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+              className="hidden"
+              onChange={onFileChange}
+            />
+
+            {error && (
+              <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-start gap-2">
+                <span className="shrink-0 mt-0.5">⚠</span> {error}
+              </p>
+            )}
+
+            <p className="mt-3 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5">
+              <FileText className="w-3 h-3" /> Fields will be pre-filled — you can review and edit them on each step.
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

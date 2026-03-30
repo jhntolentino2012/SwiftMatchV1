@@ -41,12 +41,22 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Assessment results
 - Recommended courses / training ("bench" for skill enhancement)
 
+### Resume / CV Auto-Fill
+- Resume upload card appears above the 10-step wizard on `/apply`
+- Accepts PDF, Word (.docx/.doc), and plain text files up to 10MB
+- Backend extracts raw text with `pdf-parse` (PDF) and `mammoth` (DOCX)
+- GPT (gpt-5-mini via Replit AI Integration) parses structured data from the text
+- Extracted fields: name, contact, address, skills, employment history, certificates, salary, availability date, social links
+- Uses OpenAI AI integration — no user API key required (billed to Replit credits)
+- Env vars: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY`
+
 ### API Features
 - Applicant CRUD
 - Pre-assessment system (seeded with 4 assessments)
 - Job postings (seeded with 6 sample jobs)
 - Course/training recommendations (seeded with 8 courses)
 - Skill suggestions autocomplete endpoint
+- Resume parsing: `POST /api/resume/parse` (multipart, field name: `resume`)
 
 ## Structure
 
@@ -85,6 +95,7 @@ artifacts-monorepo/
 - `GET /api/jobs/:id` — get job
 - `GET /api/courses` — list courses (auto-seeded)
 - `GET /api/skills/suggestions?q=` — autocomplete skill suggestions
+- `POST /api/resume/parse` — parse uploaded resume/CV and return structured applicant data
 
 ## TypeScript & Composite Projects
 
