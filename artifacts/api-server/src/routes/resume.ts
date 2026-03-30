@@ -31,12 +31,13 @@ async function extractTextFromBuffer(buffer: Buffer, mimetype: string): Promise<
 
   if (mimetype === "application/pdf") {
     try {
-      // Dynamic import to avoid ESM/CJS issues at build time
-      const pdfParse = (await import("pdf-parse")).default;
-      const data = await pdfParse(buffer);
-      return data.text;
-    } catch (err) {
-      throw new Error("Failed to parse PDF file. Please ensure it is not password-protected.");
+      // pdf-parse v2.x uses a class-based API with { data: Buffer }
+      const { PDFParse } = await import("pdf-parse");
+      const parser = new PDFParse({ data: buffer });
+      const result = await parser.getText();
+      return result.text;
+    } catch (err: any) {
+      throw new Error(`Failed to parse PDF: ${err?.message ?? String(err)}`);
     }
   }
 
