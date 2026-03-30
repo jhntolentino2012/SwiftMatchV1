@@ -1,0 +1,21 @@
+packages:
+  "framer-motion": "For smooth page transitions and step animations in the application flow"
+  "date-fns": "For robust date formatting and parsing in the dashboard and forms"
+  "lucide-react": "For beautiful, consistent iconography across the platform"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+
+images:
+  - path: "artifacts/swiftmatch/public/images/logo.png"
+    description: "A clean, modern, minimalist logo mark for a recruitment platform named SwiftMatch. Use navy blue and vibrant teal. Geometric, confident, and professional on a transparent background."
+    aspect_ratio: "1:1"
+  - path: "artifacts/swiftmatch/public/images/hero-bg.png"
+    description: "An elegant, corporate yet modern abstract background. Deep navy blue with soft teal light flares, mesh gradients, and subtle geometric overlays. High-end professional aesthetic."
+    aspect_ratio: "16:9"
+  - path: "artifacts/swiftmatch/public/images/pattern.png"
+    description: "Subtle dotted or grid geometric pattern in faint teal and slate, suitable for a professional background overlay."
+    aspect_ratio: "16:9"
+
+notes:
+  - API hooks are imported directly from @workspace/api-client-react as per the monorepo setup.
+  - Multi-step form state is managed locally and submitted sequentially (Profile -> Assessments) to satisfy relational dependencies.

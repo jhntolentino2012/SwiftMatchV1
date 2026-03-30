@@ -1,22 +1,28 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: SwiftMatch Recruitment Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: applicants
+    description: Applicant profile operations
+  - name: assessments
+    description: Pre-assessment operations
+  - name: jobs
+    description: Job postings
+  - name: courses
+    description: Recommended courses and training
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +30,249 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /applicants:
+    get:
+      operationId: listApplicants
+      tags: [applicants]
+      summary: List all applicants
+      responses:
+        "200":
+          description: List of applicants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Applicant"
+    post:
+      operationId: createApplicant
+      tags: [applicants]
+      summary: Create applicant profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApplicantRequest"
+      responses:
+        "201":
+          description: Applicant created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Applicant"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /applicants/{id}:
+    get:
+      operationId: getApplicant
+      tags: [applicants]
+      summary: Get applicant by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Applicant details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Applicant"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateApplicant
+      tags: [applicants]
+      summary: Update applicant profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApplicantRequest"
+      responses:
+        "200":
+          description: Applicant updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Applicant"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /assessments:
+    get:
+      operationId: listAssessments
+      tags: [assessments]
+      summary: List available assessments
+      responses:
+        "200":
+          description: List of assessments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assessment"
+
+  /assessments/{id}:
+    get:
+      operationId: getAssessment
+      tags: [assessments]
+      summary: Get assessment by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Assessment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assessment"
+
+  /assessments/{id}/submit:
+    post:
+      operationId: submitAssessment
+      tags: [assessments]
+      summary: Submit assessment answers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssessmentSubmission"
+      responses:
+        "200":
+          description: Assessment result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssessmentResult"
+
+  /applicants/{id}/assessment-results:
+    get:
+      operationId: getApplicantAssessmentResults
+      tags: [assessments]
+      summary: Get all assessment results for an applicant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Assessment results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssessmentResult"
+
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List job postings
+      responses:
+        "200":
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+
+  /jobs/{id}:
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get job by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+
+  /courses:
+    get:
+      operationId: listCourses
+      tags: [courses]
+      summary: List recommended courses and training
+      responses:
+        "200":
+          description: List of courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+
+  /skills/suggestions:
+    get:
+      operationId: getSkillSuggestions
+      tags: [applicants]
+      summary: Get skill keyword suggestions
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Skill suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +283,436 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    EmploymentHistory:
+      type: object
+      properties:
+        companyName:
+          type: string
+        position:
+          type: string
+        yearsStayed:
+          type: string
+        reasonForLeaving:
+          type: string
+      required:
+        - companyName
+        - position
+        - yearsStayed
+        - reasonForLeaving
+
+    Certificate:
+      type: object
+      properties:
+        name:
+          type: string
+        issuingOrg:
+          type: string
+        year:
+          type: string
+      required:
+        - name
+        - issuingOrg
+        - year
+
+    CharacterReference:
+      type: object
+      properties:
+        name:
+          type: string
+        relationship:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+      required:
+        - name
+        - relationship
+        - phone
+        - email
+
+    CreateApplicantRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        middleName:
+          type: ["string", "null"]
+        suffix:
+          type: ["string", "null"]
+        pronoun:
+          type: ["string", "null"]
+        nickname:
+          type: ["string", "null"]
+        permanentAddress:
+          type: string
+        currentAddress:
+          type: string
+        phoneAreaCode:
+          type: string
+        phoneNumber:
+          type: string
+        homePhone:
+          type: ["string", "null"]
+        email:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+          maxItems: 5
+        employmentHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentHistory"
+        certificates:
+          type: array
+          items:
+            $ref: "#/components/schemas/Certificate"
+          maxItems: 3
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterReference"
+        facebookUrl:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        expectedSalary:
+          type: ["string", "null"]
+        salaryNegotiable:
+          type: boolean
+        availabilityDate:
+          type: string
+        status:
+          type: string
+          enum: [active, pending, shortlisted, failed, hired]
+      required:
+        - firstName
+        - lastName
+        - permanentAddress
+        - currentAddress
+        - phoneAreaCode
+        - phoneNumber
+        - email
+        - skills
+        - employmentHistory
+        - certificates
+        - references
+        - salaryNegotiable
+        - availabilityDate
+        - status
+
+    UpdateApplicantRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        middleName:
+          type: ["string", "null"]
+        suffix:
+          type: ["string", "null"]
+        pronoun:
+          type: ["string", "null"]
+        nickname:
+          type: ["string", "null"]
+        permanentAddress:
+          type: string
+        currentAddress:
+          type: string
+        phoneAreaCode:
+          type: string
+        phoneNumber:
+          type: string
+        homePhone:
+          type: ["string", "null"]
+        email:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        employmentHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentHistory"
+        certificates:
+          type: array
+          items:
+            $ref: "#/components/schemas/Certificate"
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterReference"
+        facebookUrl:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        expectedSalary:
+          type: ["string", "null"]
+        salaryNegotiable:
+          type: boolean
+        availabilityDate:
+          type: string
+        status:
+          type: string
+          enum: [active, pending, shortlisted, failed, hired]
+
+    Applicant:
+      type: object
+      properties:
+        id:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        middleName:
+          type: ["string", "null"]
+        suffix:
+          type: ["string", "null"]
+        pronoun:
+          type: ["string", "null"]
+        nickname:
+          type: ["string", "null"]
+        permanentAddress:
+          type: string
+        currentAddress:
+          type: string
+        phoneAreaCode:
+          type: string
+        phoneNumber:
+          type: string
+        homePhone:
+          type: ["string", "null"]
+        email:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        employmentHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmploymentHistory"
+        certificates:
+          type: array
+          items:
+            $ref: "#/components/schemas/Certificate"
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterReference"
+        facebookUrl:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        expectedSalary:
+          type: ["string", "null"]
+        salaryNegotiable:
+          type: boolean
+        availabilityDate:
+          type: string
+        status:
+          type: string
+          enum: [active, pending, shortlisted, failed, hired]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - firstName
+        - lastName
+        - permanentAddress
+        - currentAddress
+        - phoneAreaCode
+        - phoneNumber
+        - email
+        - skills
+        - employmentHistory
+        - certificates
+        - references
+        - salaryNegotiable
+        - availabilityDate
+        - status
+        - createdAt
+        - updatedAt
+
+    AssessmentQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        type:
+          type: string
+          enum: [multiple_choice, text, rating]
+        options:
+          type: ["array", "null"]
+          items:
+            type: string
+      required:
+        - id
+        - text
+        - type
+
+    Assessment:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        category:
+          type: string
+          enum: [knowledge, personality, commitment, situational]
+        description:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssessmentQuestion"
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - category
+        - description
+        - questions
+        - createdAt
+
+    AssessmentAnswer:
+      type: object
+      properties:
+        questionId:
+          type: integer
+        answer:
+          type: string
+      required:
+        - questionId
+        - answer
+
+    AssessmentSubmission:
+      type: object
+      properties:
+        applicantId:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssessmentAnswer"
+      required:
+        - applicantId
+        - answers
+
+    AssessmentResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        applicantId:
+          type: integer
+        assessmentId:
+          type: integer
+        assessmentTitle:
+          type: string
+        score:
+          type: number
+        passed:
+          type: boolean
+        feedback:
+          type: string
+        completedAt:
+          type: string
+      required:
+        - id
+        - applicantId
+        - assessmentId
+        - assessmentTitle
+        - score
+        - passed
+        - feedback
+        - completedAt
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        company:
+          type: string
+        location:
+          type: string
+        description:
+          type: string
+        requirements:
+          type: array
+          items:
+            type: string
+        salaryRange:
+          type: string
+        industry:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - company
+        - location
+        - description
+        - requirements
+        - salaryRange
+        - industry
+        - createdAt
+
+    Course:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        provider:
+          type: string
+        description:
+          type: string
+        duration:
+          type: string
+        category:
+          type: string
+        skillsGained:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [available, coming_soon, sponsored]
+        url:
+          type: ["string", "null"]
+      required:
+        - id
+        - title
+        - provider
+        - description
+        - duration
+        - category
+        - skillsGained
+        - status

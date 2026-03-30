@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "SwiftMatch"
+version = "1.0.0"
+id = "artifacts/swiftmatch"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22416
+
+[services.development]
+run = "pnpm --filter @workspace/swiftmatch run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/swiftmatch", "run", "build" ]
+publicDir = "artifacts/swiftmatch/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22416"
+BASE_PATH = "/"
