@@ -7,6 +7,8 @@ import LandingPage from "./pages/Landing";
 import ApplicationFlow from "./pages/ApplicationFlow";
 import ApplicantDashboard from "./pages/Dashboard";
 import EmployerPortal from "./pages/EmployerPortal";
+import AssessmentCenter from "./pages/Assessment";
+import ResultsPage from "./pages/Results";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/apply" component={ApplicationFlow} />
       <Route path="/dashboard" component={ApplicantDashboard} />
       <Route path="/employer" component={EmployerPortal} />
+      <Route path="/assessment" component={AssessmentCenter} />
+      <Route path="/results" component={ResultsPage} />
       <Route component={NotFound} />
     </Switch>
   );

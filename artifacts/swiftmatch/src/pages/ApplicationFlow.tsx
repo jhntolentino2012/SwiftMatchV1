@@ -3,17 +3,13 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navigation } from "@/components/Navigation";
 import { 
-  ChevronRight, ChevronLeft, User, MapPin, 
+  ChevronRight, User, MapPin, 
   Briefcase, GraduationCap, Users, Share2, 
-  Settings, CheckCircle, Video, ListChecks,
+  Settings, CheckCircle, ListChecks,
   Upload, FileText, X, Sparkles, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { 
-  useCreateApplicant, 
-  useListAssessments, 
-  useSubmitAssessment 
-} from "@workspace/api-client-react";
+import { useCreateApplicant } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
 const STEPS = [
@@ -25,8 +21,6 @@ const STEPS = [
   { id: 6, title: "References", icon: Users },
   { id: 7, title: "Social Links", icon: Share2 },
   { id: 8, title: "Preferences", icon: Settings },
-  { id: 9, title: "Assessments", icon: CheckCircle },
-  { id: 10, title: "Intro Video", icon: Video },
 ];
 
 export default function ApplicationFlow() {
@@ -35,10 +29,7 @@ export default function ApplicationFlow() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Data Mutations
   const { mutateAsync: createApplicant } = useCreateApplicant();
-  const { mutateAsync: submitAssessment } = useSubmitAssessment();
-  const { data: assessments } = useListAssessments();
 
   // Unified State
   const [formData, setFormData] = useState({
@@ -54,7 +45,6 @@ export default function ApplicationFlow() {
     status: "pending" as const
   });
 
-  const [assessmentAnswers, setAssessmentAnswers] = useState<Record<number, any[]>>({});
   const [resumeUploaderOpen, setResumeUploaderOpen] = useState(true);
   const [resumeParsed, setResumeParsed] = useState(false);
 
@@ -105,22 +95,11 @@ export default function ApplicationFlow() {
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      
-      // 1. Create Applicant
       const applicant = await createApplicant({ data: formData as any });
-      
-      // 2. Submit saved assessments
-      for (const [assessmentId, answers] of Object.entries(assessmentAnswers)) {
-        if (answers && answers.length > 0) {
-          await submitAssessment({
-            id: Number(assessmentId),
-            data: { applicantId: applicant.id, answers }
-          });
-        }
-      }
-
-      toast({ title: "Profile Created!", description: "You are now on the radar of top employers." });
-      setLocation("/dashboard");
+      // Persist applicant ID so the Assessment page can use it
+      localStorage.setItem("sm_applicant_id", String(applicant.id));
+      toast({ title: "Profile Created!", description: "Next — complete your assessments to boost your match score." });
+      setLocation("/assessment");
 
     } catch (error: any) {
       console.error(error);
@@ -140,11 +119,6 @@ export default function ApplicationFlow() {
       case 6: return <StepReferences data={formData} update={updateField} />;
       case 7: return <StepSocial data={formData} update={updateField} />;
       case 8: return <StepPreferences data={formData} update={updateField} />;
-      case 9: return <StepAssessments 
-                      assessments={assessments || []} 
-                      answers={assessmentAnswers} 
-                      setAnswers={setAssessmentAnswers} />;
-      case 10: return <StepVideo />;
       default: return null;
     }
   };
@@ -648,120 +622,3 @@ function StepPreferences({ data, update }: any) {
   );
 }
 
-function StepAssessments({ assessments, answers, setAnswers }: any) {
-  // Simplified Assessment flow for UX demo purposes
-  const [activeTest, setActiveTest] = useState<any>(null);
-
-  if (activeTest) {
-    const isCompleted = answers[activeTest.id]?.length === activeTest.questions.length;
-    return (
-      <div className="space-y-6 animate-slide-up">
-        <button onClick={()=>setActiveTest(null)} className="text-sm text-accent hover:underline mb-4">&larr; Back to list</button>
-        <h3 className="text-xl font-bold">{activeTest.title}</h3>
-        <p className="text-slate-500 mb-6">{activeTest.description}</p>
-
-        {activeTest.questions?.map((q:any, idx:number) => (
-          <div key={q.id} className="p-5 border border-slate-200 rounded-xl mb-4 bg-slate-50">
-            <p className="font-medium text-slate-900 mb-3">{idx+1}. {q.text}</p>
-            {q.type === 'multiple_choice' ? (
-              <div className="space-y-2">
-                {q.options?.map((opt:string) => (
-                  <label key={opt} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-accent">
-                    <input type="radio" name={`q-${q.id}`} value={opt} 
-                           checked={(answers[activeTest.id]||[]).find((a:any)=>a.questionId===q.id)?.answer === opt}
-                           onChange={() => {
-                             const newAns = [...(answers[activeTest.id]||[]).filter((a:any)=>a.questionId!==q.id), { questionId: q.id, answer: opt }];
-                             setAnswers({...answers, [activeTest.id]: newAns});
-                           }}
-                           className="text-accent" />
-                    <span>{opt}</span>
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <textarea className="w-full p-3 rounded-lg border border-slate-200 focus:ring-accent" rows={3} placeholder="Your answer..."
-                 value={(answers[activeTest.id]||[]).find((a:any)=>a.questionId===q.id)?.answer || ''}
-                 onChange={(e) => {
-                   const newAns = [...(answers[activeTest.id]||[]).filter((a:any)=>a.questionId!==q.id), { questionId: q.id, answer: e.target.value }];
-                   setAnswers({...answers, [activeTest.id]: newAns});
-                 }}
-              />
-            )}
-          </div>
-        ))}
-        {isCompleted && (
-          <div className="bg-green-50 text-green-700 p-4 rounded-xl flex items-center gap-2 border border-green-200">
-            <CheckCircle className="w-5 h-5" /> Saved locally. Will submit with profile.
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <p className="text-slate-600">Taking pre-assessments boosts your matching score significantly. You can take them now or from your dashboard later.</p>
-      
-      <div className="grid gap-4">
-        {assessments?.map((test:any) => {
-          const isDone = answers[test.id]?.length === test.questions?.length;
-          return (
-            <div key={test.id} className="flex items-center justify-between p-5 rounded-xl border border-slate-200 bg-white hover:border-accent transition-colors">
-              <div>
-                <h4 className="font-bold text-primary">{test.title}</h4>
-                <p className="text-sm text-slate-500 capitalize">{test.category} • {test.questions?.length || 0} questions</p>
-              </div>
-              <button 
-                onClick={() => setActiveTest(test)}
-                className={cn(
-                  "px-4 py-2 rounded-lg font-medium text-sm transition-colors",
-                  isDone ? "bg-green-100 text-green-700" : "bg-accent/10 text-accent hover:bg-accent hover:text-white"
-                )}
-              >
-                {isDone ? 'Completed' : 'Start Test'}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function StepVideo() {
-  const [file, setFile] = useState<File|null>(null);
-
-  return (
-    <div className="space-y-6">
-      <p className="text-slate-600">Introduce yourself in a short 1-minute video. Highlight your skills and why you're a great fit.</p>
-      
-      <div className="border-2 border-dashed border-slate-300 rounded-2xl p-10 flex flex-col items-center justify-center text-center bg-slate-50">
-        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <Video className="h-8 w-8 text-primary" />
-        </div>
-        <h4 className="font-bold text-lg mb-2">Upload Introduction Video</h4>
-        <p className="text-sm text-slate-500 mb-6">MP4, WebM up to 50MB</p>
-        
-        <input 
-          type="file" 
-          id="video-upload" 
-          accept="video/*" 
-          className="hidden" 
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-        />
-        <label 
-          htmlFor="video-upload"
-          className="px-6 py-2.5 bg-primary text-white rounded-xl font-medium cursor-pointer hover:bg-primary/90 transition-colors"
-        >
-          Select File
-        </label>
-        
-        {file && (
-          <p className="mt-4 text-sm font-medium text-accent flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" /> {file.name} ready for upload
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}

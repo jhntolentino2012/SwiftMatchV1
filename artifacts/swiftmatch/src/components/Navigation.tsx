@@ -1,6 +1,13 @@
 import { Link, useLocation } from "wouter";
-import { Building, ChevronRight, LogIn } from "lucide-react";
+import { ChevronRight, LogIn, ClipboardList, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const NAV_LINKS = [
+  { label: "For Applicants", href: "/" },
+  { label: "For Employers",  href: "/employer" },
+  { label: "Assessment",     href: "/assessment", icon: ClipboardList },
+  { label: "Results",        href: "/results",    icon: BarChart2 },
+];
 
 export function Navigation() {
   const [location] = useLocation();
@@ -15,8 +22,7 @@ export function Navigation() {
         <div className="flex justify-between items-center h-20">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            {/* Edgy hexagonal / diamond-cut logo frame */}
+          <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="relative w-11 h-11 flex-shrink-0" style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}>
               <img
                 src="/images/swiftmatch-logo.png"
@@ -30,17 +36,29 @@ export function Navigation() {
           </Link>
 
           {/* Nav links */}
-          <nav className="hidden md:flex items-center gap-8 font-medium text-sm">
-            <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
-              For Applicants
-            </Link>
-            <Link href="/employer" className="text-muted-foreground hover:text-primary transition-colors">
-              For Employers
-            </Link>
+          <nav className="hidden md:flex items-center gap-1 font-medium text-sm">
+            {NAV_LINKS.map(({ label, href, icon: Icon }) => {
+              const isActive = location === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-2 rounded-lg transition-colors",
+                    isActive
+                      ? "text-primary bg-primary/8 font-semibold"
+                      : "text-muted-foreground hover:text-primary hover:bg-slate-100"
+                  )}
+                >
+                  {Icon && <Icon className="w-3.5 h-3.5" />}
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 shrink-0">
             <Link
               href="/employer"
               className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
