@@ -12,7 +12,7 @@ const router: IRouter = Router();
 
 const SEED_ASSESSMENTS = [
   {
-    title: "Knowledge & Expertise Assessment",
+    title: "Knowledge & Expertise",
     category: "knowledge",
     description: "Test your industry knowledge and professional expertise to showcase your qualifications.",
     questions: [
@@ -24,7 +24,7 @@ const SEED_ASSESSMENTS = [
     ],
   },
   {
-    title: "Personality & Work Style Assessment",
+    title: "Personality & Work Style",
     category: "personality",
     description: "Discover your work personality and how you collaborate, communicate, and lead in professional settings.",
     questions: [
@@ -36,34 +36,50 @@ const SEED_ASSESSMENTS = [
     ],
   },
   {
-    title: "Work Commitment Assessment",
-    category: "commitment",
-    description: "Evaluate your dedication, reliability, and long-term commitment to your professional role.",
+    title: "Cultural Fit",
+    category: "cultural_fit",
+    description: "Discover how your values, communication style, and work ethics align with company culture.",
     questions: [
-      { id: 1, text: "What is your preferred work arrangement?", type: "multiple_choice", options: ["Full-time onsite", "Full-time remote", "Hybrid (mix of both)", "Part-time", "Freelance/Contract"] },
-      { id: 2, text: "Are you willing to work overtime or on weekends when required?", type: "multiple_choice", options: ["Yes, regularly", "Yes, occasionally", "Only with advance notice", "No, I prefer strict work hours"] },
-      { id: 3, text: "What is your expected length of commitment to a new role?", type: "multiple_choice", options: ["Less than 1 year", "1-2 years", "3-5 years", "Long-term (5+ years)", "Depends on the role"] },
-      { id: 4, text: "How soon can you start if selected?", type: "multiple_choice", options: ["Immediately", "Within 2 weeks", "1 month", "More than 1 month"] },
-      { id: 5, text: "What motivates you most in a job?", type: "multiple_choice", options: ["Salary and benefits", "Career growth opportunities", "Work-life balance", "Company culture and values", "Making a meaningful impact"] },
+      { id: 1, text: "Which workplace environment brings out your best performance?", type: "multiple_choice", options: ["Fast-paced and dynamic", "Structured with clear processes", "Collaborative and team-driven", "Independent with minimal supervision"] },
+      { id: 2, text: "How do you handle disagreements with a team member?", type: "multiple_choice", options: ["Address it privately and respectfully", "Escalate to a manager immediately", "Avoid the conflict until it resolves", "Discuss openly in a group setting"] },
+      { id: 3, text: "What company value matters most to you?", type: "multiple_choice", options: ["Innovation and creativity", "Integrity and transparency", "Collaboration and teamwork", "Work-life balance and well-being"] },
+      { id: 4, text: "How do you typically respond to changes in company direction or priorities?", type: "multiple_choice", options: ["Embrace change and adapt quickly", "Need time to understand before adjusting", "Prefer stability and clear long-term plans", "Proactively help others navigate the change"] },
+      { id: 5, text: "Describe what a positive team culture looks like to you.", type: "text", options: null },
     ],
   },
   {
-    title: "Situational Judgement Assessment",
-    category: "situational",
-    description: "Test how you respond to real-world workplace scenarios to evaluate your decision-making and professionalism.",
+    title: "Critical Thinking Ability",
+    category: "critical_thinking",
+    description: "Assess your capacity for logical analysis, structured reasoning, and informed decision-making.",
     questions: [
-      { id: 1, text: "Your manager assigns you a task with an unrealistic deadline. You would:", type: "multiple_choice", options: ["Attempt to complete it no matter what", "Immediately communicate concerns and negotiate", "Complete what's possible and report the rest", "Ask a colleague to help without telling the manager"] },
-      { id: 2, text: "A coworker consistently takes credit for your ideas in team meetings. You would:", type: "multiple_choice", options: ["Confront them publicly in the next meeting", "Speak to them privately about the issue", "Report the behavior to HR or management", "Start documenting your ideas and sharing them proactively"] },
-      { id: 3, text: "You discover a colleague is violating company policy. You would:", type: "multiple_choice", options: ["Ignore it as it is not your responsibility", "Confront the colleague directly", "Report it anonymously through proper channels", "Discuss it with other colleagues first"] },
-      { id: 4, text: "You are given a task outside your area of expertise. You would:", type: "multiple_choice", options: ["Decline and explain your limitations", "Accept and figure it out as you go", "Accept and proactively seek guidance or training", "Complete it to the best of your ability then review with a mentor"] },
-      { id: 5, text: "Your team is behind schedule on a critical project. You would:", type: "multiple_choice", options: ["Work overtime until it's complete", "Immediately reassess priorities and communicate the delay", "Ask for additional resources", "Propose a revised timeline to stakeholders"] },
+      { id: 1, text: "When presented with conflicting data, you would:", type: "multiple_choice", options: ["Go with the majority view", "Identify the most reliable source and investigate further", "Defer to your manager's judgment", "Present both perspectives and ask for a decision"] },
+      { id: 2, text: "A proposed solution has a short-term benefit but a long-term risk. You would:", type: "multiple_choice", options: ["Accept the short-term win immediately", "Reject it outright due to the risk", "Analyse the trade-off and recommend a modified approach", "Wait for others to decide first"] },
+      { id: 3, text: "How do you typically approach a problem you have not faced before?", type: "multiple_choice", options: ["Apply the solution that worked last time", "Break the problem into smaller parts and research each", "Ask a colleague who has faced it before", "Experiment with multiple solutions simultaneously"] },
+      { id: 4, text: "You notice a flaw in a plan that has already been approved. You would:", type: "multiple_choice", options: ["Say nothing to avoid conflict", "Quietly fix it without informing anyone", "Raise the concern with clear evidence and suggest an alternative", "Wait and see if the flaw causes a real problem first"] },
+      { id: 5, text: "Describe a time you used data or evidence to challenge an assumption or change a decision.", type: "text", options: null },
+    ],
+  },
+  {
+    title: "AI Readiness",
+    category: "ai_readiness",
+    description: "Evaluate your comfort level, adaptability, and practical experience working with AI-powered tools.",
+    questions: [
+      { id: 1, text: "How often do you use AI tools (e.g. ChatGPT, Copilot, Gemini) in your current or previous work?", type: "multiple_choice", options: ["Daily — it is core to my workflow", "A few times a week", "Occasionally for specific tasks", "Rarely or never"] },
+      { id: 2, text: "How do you view AI in the context of your role?", type: "multiple_choice", options: ["A threat to my job security", "A powerful tool that enhances my output", "Useful but not relevant to my field", "Something I am still learning about"] },
+      { id: 3, text: "If your employer required you to learn a new AI tool within 30 days, you would:", type: "multiple_choice", options: ["Embrace it and dive in immediately", "Complete only the required training", "Express concerns and request more time", "Ask if the tool is really necessary"] },
+      { id: 4, text: "Which best describes your experience with AI-assisted workflows?", type: "multiple_choice", options: ["I design and implement AI workflows", "I regularly use AI to automate or augment tasks", "I have experimented with AI on personal projects", "I have no hands-on AI experience yet"] },
+      { id: 5, text: "Describe how you have used or plan to use AI to improve your productivity or the quality of your work.", type: "text", options: null },
     ],
   },
 ];
 
+const SEED_SIGNATURE = SEED_ASSESSMENTS.map(s => `${s.category}:${s.title}`).sort().join("|");
+
 async function ensureAssessmentsSeededed() {
   const existing = await db.select().from(assessmentsTable);
-  if (existing.length === 0) {
+  const actualSig = existing.map((r: any) => `${r.category}:${r.title}`).sort().join("|");
+  if (actualSig !== SEED_SIGNATURE) {
+    await db.delete(assessmentsTable);
     for (const seed of SEED_ASSESSMENTS) {
       await db.insert(assessmentsTable).values(seed);
     }

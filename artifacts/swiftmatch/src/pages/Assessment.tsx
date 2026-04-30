@@ -6,14 +6,15 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, ChevronRight, Video, ClipboardList, Brain,
-  Heart, Flame, Lightbulb, ArrowLeft, Upload, Lock
+  Heart, Users, Lightbulb, Bot, ArrowLeft, Upload, Lock
 } from "lucide-react";
 
 const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> = {
-  knowledge:    { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",   desc: "Test your domain knowledge and technical skills." },
-  personality:  { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",   desc: "Understand your work style and interpersonal traits." },
-  commitment:   { icon: Flame,    color: "text-orange-600 bg-orange-50 border-orange-200", desc: "Show your dedication and long-term career goals." },
-  situational:  { icon: Lightbulb,color: "text-yellow-600 bg-yellow-50 border-yellow-200", desc: "Handle real workplace scenarios and make decisions." },
+  knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",    desc: "Test your domain knowledge and technical skills." },
+  personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",    desc: "Understand your work style and interpersonal traits." },
+  cultural_fit:     { icon: Users,    color: "text-orange-600 bg-orange-50 border-orange-200", desc: "See how your values and work style align with company culture." },
+  critical_thinking:{ icon: Lightbulb,color: "text-yellow-600 bg-yellow-50 border-yellow-200", desc: "Demonstrate logical reasoning and sound decision-making." },
+  ai_readiness:     { icon: Bot,      color: "text-violet-600 bg-violet-50 border-violet-200", desc: "Show how you adapt to and work alongside AI tools." },
 };
 
 export default function AssessmentCenter() {
@@ -79,8 +80,8 @@ export default function AssessmentCenter() {
               <ClipboardList className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-display font-bold text-primary">Assessment Center</h1>
-              <p className="text-sm text-muted-foreground">Complete all 4 assessments and your intro video to maximise your match score.</p>
+              <h1 className="text-2xl font-display font-bold text-primary">Skills & Readiness Center</h1>
+              <p className="text-sm text-muted-foreground">Complete all 5 evaluations and your intro video to maximise your match score.</p>
             </div>
           </div>
 
@@ -89,7 +90,7 @@ export default function AssessmentCenter() {
             <div className="mt-4 bg-white rounded-xl border border-border p-4 flex items-center gap-4">
               <div className="flex-1">
                 <div className="flex justify-between text-xs font-medium text-slate-600 mb-1.5">
-                  <span>{completedCount} of {totalCount} assessments done</span>
+                  <span>{completedCount} of {totalCount} completed</span>
                   <span>{Math.round((completedCount / totalCount) * 100)}%</span>
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -111,7 +112,7 @@ export default function AssessmentCenter() {
         {/* Tabs */}
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-6 w-fit">
           {[
-            { id: "assessments", label: "Assessments", icon: ClipboardList },
+            { id: "assessments", label: "Evaluations", icon: ClipboardList },
             { id: "video",       label: "Intro Video", icon: Video },
           ].map(tab => (
             <button
@@ -229,7 +230,7 @@ export default function AssessmentCenter() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-primary">{test.title}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5 capitalize">{test.category} · {test.questions?.length || 0} questions</p>
+                        <p className="text-xs text-slate-500 mt-0.5 capitalize">{test.category.replace(/_/g, " ")} · {test.questions?.length || 0} questions</p>
                         <p className="text-xs text-slate-400 mt-0.5">{meta.desc}</p>
                       </div>
                       {isDone ? (
