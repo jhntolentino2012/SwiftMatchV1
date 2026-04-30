@@ -6,6 +6,7 @@ import jobsRouter from "./jobs";
 import coursesRouter from "./courses";
 import skillsRouter from "./skills";
 import resumeRouter from "./resume";
+import statsRouter from "./stats";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use("/jobs", jobsRouter);
 router.use("/courses", coursesRouter);
 router.use("/skills", skillsRouter);
 router.use("/resume", resumeRouter);
+router.use("/stats", statsRouter);
 
 export default router;

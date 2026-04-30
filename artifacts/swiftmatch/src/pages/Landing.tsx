@@ -110,6 +110,68 @@ const badgeVariants = {
   exit: { opacity: 0, scale: 0.85, transition: { duration: 0.2 } },
 };
 
+function useCountUp(target: number, duration = 1200) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (target === 0) return;
+    let start: number | null = null;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.floor(eased * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [target, duration]);
+  return value;
+}
+
+function StatItem({ label, value, suffix = "" }: { label: string; value: number | string; suffix?: string }) {
+  const isNumeric = typeof value === "number";
+  const animated = useCountUp(isNumeric ? value : 0);
+  const display = isNumeric
+    ? animated.toLocaleString() + suffix
+    : value;
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-2xl font-extrabold" style={{ color: "hsl(214 80% 34%)" }}>
+        {display}
+      </span>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function LiveStatsStrip() {
+  const [stats, setStats] = useState<{ applicantsCount: number; companiesCount: number } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then(r => r.json())
+      .then(setStats)
+      .catch(() => {/* silently fall back to static display */});
+  }, []);
+
+  const applicants = stats?.applicantsCount ?? 0;
+  const companies  = stats?.companiesCount ?? 0;
+
+  return (
+    <div className="border-y border-border bg-white py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm font-semibold text-muted-foreground">
+          <StatItem label="Active Applicants"   value={applicants} suffix="+" />
+          <StatItem label="Partner Companies"   value={companies}  suffix="+" />
+          <StatItem label="Successful Placements" value="18,000+" />
+          <StatItem label="Avg. Time to Hire"   value="7 Days" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HeroSlideshow() {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -325,23 +387,7 @@ export default function LandingPage() {
       </section>
 
       {/* Social proof strip */}
-      <div className="border-y border-border bg-white py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap justify-center gap-x-12 gap-y-4 text-sm font-semibold text-muted-foreground">
-            {[
-              { label: "Active Applicants", value: "50,000+" },
-              { label: "Partner Companies", value: "1,200+" },
-              { label: "Successful Placements", value: "18,000+" },
-              { label: "Avg. Time to Hire", value: "7 Days" },
-            ].map(s => (
-              <div key={s.label} className="flex items-center gap-3">
-                <span className="text-2xl font-extrabold" style={{ color: "hsl(214 80% 34%)" }}>{s.value}</span>
-                <span>{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <LiveStatsStrip />
 
       {/* Features Section */}
       <section className="py-24 bg-white">
