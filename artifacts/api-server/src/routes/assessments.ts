@@ -150,6 +150,30 @@ router.post("/ke-quiz/submit", async (req, res) => {
   }
 });
 
+// Personality quiz result
+router.post("/personality/submit", async (req, res) => {
+  const { applicantId, positionLabel, tier, result } = req.body;
+  if (!applicantId || !result) {
+    res.status(400).json({ error: "Missing required fields" });
+    return;
+  }
+  try {
+    const framework = tier === "leadership" ? "Myers-Briggs (MBTI)" : "DOPE Bird Test";
+    const [saved] = await db.insert(assessmentResultsTable).values({
+      applicantId,
+      assessmentId: 2,
+      assessmentTitle: `Personality & Work Style — ${framework}`,
+      score: 100,
+      passed: true,
+      feedback: `Personality type: ${result}. Position level: ${positionLabel ?? "Not specified"}.`,
+    }).returning();
+    res.json({ ...saved, completedAt: saved.completedAt.toISOString() });
+  } catch (err) {
+    req.log.error({ err }, "Failed to save personality result");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   const params = GetAssessmentParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {

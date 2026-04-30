@@ -9,10 +9,11 @@ import {
   Heart, Users, Lightbulb, Bot, ArrowLeft, Upload, Lock
 } from "lucide-react";
 import KnowledgeQuiz from "./KnowledgeQuiz";
+import PersonalityQuiz from "./PersonalityQuiz";
 
 const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> = {
   knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",       desc: "Role-specific quiz — select your industry and target role, then answer 10 adaptive questions across 3 difficulty levels." },
-  personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",       desc: "Understand your work style and interpersonal traits." },
+  personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",       desc: "Entry-level roles use the DOPE Bird Test. Team leaders and above use the Myers-Briggs (MBTI) framework." },
   cultural_fit:     { icon: Users,    color: "text-orange-600 bg-orange-50 border-orange-200", desc: "See how your values and work style align with company culture." },
   critical_thinking:{ icon: Lightbulb,color: "text-yellow-600 bg-yellow-50 border-yellow-200",desc: "Demonstrate logical reasoning and sound decision-making." },
   ai_readiness:     { icon: Bot,      color: "text-violet-600 bg-violet-50 border-violet-200", desc: "Show how you adapt to and work alongside AI tools." },
@@ -24,14 +25,18 @@ export default function AssessmentCenter() {
   const { mutateAsync: submitAssessment } = useSubmitAssessment();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab]     = useState<"assessments" | "video">("assessments");
-  const [activeTest, setActiveTest]   = useState<any>(null);
-  const [showKEQuiz, setShowKEQuiz]   = useState(false);
-  const [answers, setAnswers]         = useState<Record<number, any[]>>({});
-  const [submitting, setSubmitting]   = useState<number | null>(null);
-  const [submitted, setSubmitted]     = useState<Set<number>>(new Set());
-  const [keCompleted, setKECompleted] = useState<boolean>(
+  const [activeTab, setActiveTab]           = useState<"assessments" | "video">("assessments");
+  const [activeTest, setActiveTest]         = useState<any>(null);
+  const [showKEQuiz, setShowKEQuiz]         = useState(false);
+  const [showPersonalityQuiz, setShowPersonalityQuiz] = useState(false);
+  const [answers, setAnswers]               = useState<Record<number, any[]>>({});
+  const [submitting, setSubmitting]         = useState<number | null>(null);
+  const [submitted, setSubmitted]           = useState<Set<number>>(new Set());
+  const [keCompleted, setKECompleted]       = useState<boolean>(
     () => !!localStorage.getItem(`sm_ke_industry_${applicantId ?? "guest"}`)
+  );
+  const [personalityCompleted, setPersonalityCompleted] = useState<boolean>(
+    () => !!localStorage.getItem(`sm_personality_level_${applicantId ?? "guest"}`)
   );
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const videoRef = useRef<HTMLInputElement>(null);
@@ -69,7 +74,7 @@ export default function AssessmentCenter() {
     }
   };
 
-  const completedCount = submitted.size + (keCompleted ? 1 : 0);
+  const completedCount = submitted.size + (keCompleted ? 1 : 0) + (personalityCompleted ? 1 : 0);
   const totalCount     = assessments.length;
 
   // ── Knowledge & Expertise adaptive quiz view ──
@@ -85,6 +90,25 @@ export default function AssessmentCenter() {
               toast({ title: "Knowledge quiz complete!", description: "Your results have been saved." });
             }}
             onBack={() => setShowKEQuiz(false)}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ── Personality & Work Style quiz view ──
+  if (showPersonalityQuiz) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navigation />
+        <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+          <PersonalityQuiz
+            applicantId={applicantId}
+            onComplete={() => {
+              setPersonalityCompleted(true);
+              toast({ title: "Personality assessment complete!", description: "Your personality profile has been saved." });
+            }}
+            onBack={() => setShowPersonalityQuiz(false)}
           />
         </main>
       </div>
@@ -239,8 +263,9 @@ export default function AssessmentCenter() {
                 ) : assessments.map((test: any) => {
                   const meta = CATEGORY_META[test.category] || CATEGORY_META.knowledge;
                   const Icon = meta.icon;
-                  const isKE   = test.category === "knowledge";
-                  const isDone = isKE ? keCompleted : submitted.has(test.id);
+                  const isKE          = test.category === "knowledge";
+                  const isPersonality = test.category === "personality";
+                  const isDone = isKE ? keCompleted : isPersonality ? personalityCompleted : submitted.has(test.id);
 
                   return (
                     <div
@@ -256,7 +281,7 @@ export default function AssessmentCenter() {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-primary">{test.title}</h3>
                         <p className="text-xs text-slate-500 mt-0.5 capitalize">
-                          {test.category.replace(/_/g, " ")} · {isKE ? "10 questions" : `${test.questions?.length || 0} questions`}
+                          {test.category.replace(/_/g, " ")} · {isKE ? "10 questions" : isPersonality ? "12–20 questions" : `${test.questions?.length || 0} questions`}
                         </p>
                         <p className="text-xs text-slate-400 mt-0.5">{meta.desc}</p>
                       </div>
@@ -266,17 +291,23 @@ export default function AssessmentCenter() {
                             <CheckCircle className="w-5 h-5" /> Completed
                           </div>
                           {isKE && (
-                            <button
-                              onClick={() => setShowKEQuiz(true)}
-                              className="text-xs text-primary underline underline-offset-2"
-                            >
+                            <button onClick={() => setShowKEQuiz(true)} className="text-xs text-primary underline underline-offset-2">
                               Retry with new questions
+                            </button>
+                          )}
+                          {isPersonality && (
+                            <button onClick={() => setShowPersonalityQuiz(true)} className="text-xs text-primary underline underline-offset-2">
+                              Retake assessment
                             </button>
                           )}
                         </div>
                       ) : (
                         <button
-                          onClick={() => isKE ? setShowKEQuiz(true) : setActiveTest(test)}
+                          onClick={() => {
+                            if (isKE) setShowKEQuiz(true);
+                            else if (isPersonality) setShowPersonalityQuiz(true);
+                            else setActiveTest(test);
+                          }}
                           className="px-5 py-2.5 bg-accent text-white rounded-xl font-semibold text-sm hover:bg-accent/90 transition-colors shrink-0"
                         >
                           Start
