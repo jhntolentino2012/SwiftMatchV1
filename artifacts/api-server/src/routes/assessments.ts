@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, assessmentsTable, assessmentResultsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { pickQuiz, INDUSTRY_QUESTIONS } from "../lib/industry-questions.js";
 import {
   GetAssessmentParams,
   SubmitAssessmentParams,
@@ -96,6 +97,51 @@ router.get("/", async (req, res) => {
     })));
   } catch (err) {
     req.log.error({ err }, "Failed to list assessments");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Knowledge & Expertise — industry-adaptive quiz (must be before /:id)
+router.get("/ke-quiz", (req, res) => {
+  const industry = String(req.query.industry ?? "");
+  const excludeParam = String(req.query.exclude ?? "");
+  const excludeIds = excludeParam ? excludeParam.split(",").filter(Boolean) : [];
+
+  const validIndustry = Object.keys(INDUSTRY_QUESTIONS).includes(industry);
+  if (!validIndustry) {
+    res.status(400).json({ error: "Invalid or missing industry" });
+    return;
+  }
+
+  const questions = pickQuiz(industry, excludeIds);
+  res.json(questions);
+});
+
+// Save K&E quiz result
+router.post("/ke-quiz/submit", async (req, res) => {
+  const { applicantId, industry, score } = req.body;
+  if (!applicantId || !industry || score === undefined) {
+    res.status(400).json({ error: "Missing required fields" });
+    return;
+  }
+  try {
+    const passed = score >= 60;
+    const feedback = passed
+      ? `Strong performance in ${industry}! Your domain knowledge is well above the baseline.`
+      : `Keep studying ${industry} concepts — review key topics and retry for a better score.`;
+
+    const [result] = await db.insert(assessmentResultsTable).values({
+      applicantId,
+      assessmentId: 1,
+      assessmentTitle: `Knowledge & Expertise — ${industry}`,
+      score,
+      passed,
+      feedback,
+    }).returning();
+
+    res.json({ ...result, completedAt: result.completedAt.toISOString() });
+  } catch (err) {
+    req.log.error({ err }, "Failed to save ke-quiz result");
     res.status(500).json({ error: "Internal server error" });
   }
 });

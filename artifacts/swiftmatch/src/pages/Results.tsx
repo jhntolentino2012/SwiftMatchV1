@@ -10,12 +10,13 @@ import {
 type Audience = "applicant" | "employer";
 
 const APPLICANT_PREVIEWS = [
-  { label: "Overall Match Score",     value: "—",    blur: true,  note: "Your fit across all active job postings" },
-  { label: "Knowledge Score",         value: "—",    blur: true,  note: "Based on your knowledge assessment" },
-  { label: "Personality Fit",         value: "—",    blur: true,  note: "Alignment with top employer profiles" },
-  { label: "Commitment Index",        value: "—",    blur: true,  note: "Long-term retention prediction" },
-  { label: "Situational Score",       value: "—",    blur: true,  note: "Decision-making in real scenarios" },
-  { label: "Employer Views (30d)",    value: "—",    blur: true,  note: "How many employers viewed your profile" },
+  { label: "Overall Match Score",        value: "—", blur: true, note: "Your fit across all active job postings" },
+  { label: "Knowledge & Expertise",      value: "—", blur: true, note: "Industry-specific domain knowledge score" },
+  { label: "Personality & Work Style",   value: "—", blur: true, note: "Alignment with top employer work-style profiles" },
+  { label: "Cultural Fit",               value: "—", blur: true, note: "How your values align with company cultures" },
+  { label: "Critical Thinking Ability",  value: "—", blur: true, note: "Logical reasoning and decision-making score" },
+  { label: "AI Readiness",               value: "—", blur: true, note: "Adaptability and experience with AI tools" },
+  { label: "Employer Views (30d)",       value: "—", blur: true, note: "How many employers viewed your profile" },
 ];
 
 const EMPLOYER_PREVIEWS = [

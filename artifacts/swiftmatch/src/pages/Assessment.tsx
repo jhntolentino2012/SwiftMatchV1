@@ -8,26 +8,31 @@ import {
   CheckCircle, ChevronRight, Video, ClipboardList, Brain,
   Heart, Users, Lightbulb, Bot, ArrowLeft, Upload, Lock
 } from "lucide-react";
+import KnowledgeQuiz from "./KnowledgeQuiz";
 
 const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> = {
-  knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",    desc: "Test your domain knowledge and technical skills." },
-  personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",    desc: "Understand your work style and interpersonal traits." },
+  knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",       desc: "Industry-specific quiz — 10 adaptive questions, 3 difficulty levels." },
+  personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",       desc: "Understand your work style and interpersonal traits." },
   cultural_fit:     { icon: Users,    color: "text-orange-600 bg-orange-50 border-orange-200", desc: "See how your values and work style align with company culture." },
-  critical_thinking:{ icon: Lightbulb,color: "text-yellow-600 bg-yellow-50 border-yellow-200", desc: "Demonstrate logical reasoning and sound decision-making." },
+  critical_thinking:{ icon: Lightbulb,color: "text-yellow-600 bg-yellow-50 border-yellow-200",desc: "Demonstrate logical reasoning and sound decision-making." },
   ai_readiness:     { icon: Bot,      color: "text-violet-600 bg-violet-50 border-violet-200", desc: "Show how you adapt to and work alongside AI tools." },
 };
 
 export default function AssessmentCenter() {
-  const applicantId = Number(localStorage.getItem("sm_applicant_id") || "0");
+  const applicantId = Number(localStorage.getItem("sm_applicant_id") || "0") || null;
   const { data: assessments = [], isLoading } = useListAssessments();
   const { mutateAsync: submitAssessment } = useSubmitAssessment();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<"assessments" | "video">("assessments");
-  const [activeTest, setActiveTest] = useState<any>(null);
-  const [answers, setAnswers] = useState<Record<number, any[]>>({});
-  const [submitting, setSubmitting] = useState<number | null>(null);
-  const [submitted, setSubmitted] = useState<Set<number>>(new Set());
+  const [activeTab, setActiveTab]     = useState<"assessments" | "video">("assessments");
+  const [activeTest, setActiveTest]   = useState<any>(null);
+  const [showKEQuiz, setShowKEQuiz]   = useState(false);
+  const [answers, setAnswers]         = useState<Record<number, any[]>>({});
+  const [submitting, setSubmitting]   = useState<number | null>(null);
+  const [submitted, setSubmitted]     = useState<Set<number>>(new Set());
+  const [keCompleted, setKECompleted] = useState<boolean>(
+    () => !!localStorage.getItem(`sm_ke_industry_${applicantId ?? "guest"}`)
+  );
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const videoRef = useRef<HTMLInputElement>(null);
 
@@ -56,7 +61,7 @@ export default function AssessmentCenter() {
       await submitAssessment({ id: test.id, data: { applicantId, answers: testAnswers } });
       setSubmitted(prev => new Set([...prev, test.id]));
       setActiveTest(null);
-      toast({ title: "Assessment submitted!", description: `${test.title} results saved.` });
+      toast({ title: "Evaluation submitted!", description: `${test.title} results saved.` });
     } catch {
       toast({ title: "Submission failed", description: "Please try again.", variant: "destructive" });
     } finally {
@@ -64,8 +69,27 @@ export default function AssessmentCenter() {
     }
   };
 
-  const completedCount = submitted.size;
-  const totalCount = assessments.length;
+  const completedCount = submitted.size + (keCompleted ? 1 : 0);
+  const totalCount     = assessments.length;
+
+  // ── Knowledge & Expertise adaptive quiz view ──
+  if (showKEQuiz) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navigation />
+        <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+          <KnowledgeQuiz
+            applicantId={applicantId}
+            onComplete={() => {
+              setKECompleted(true);
+              toast({ title: "Knowledge quiz complete!", description: "Your results have been saved." });
+            }}
+            onBack={() => setShowKEQuiz(false)}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -85,7 +109,6 @@ export default function AssessmentCenter() {
             </div>
           </div>
 
-          {/* Progress bar */}
           {totalCount > 0 && (
             <div className="mt-4 bg-white rounded-xl border border-border p-4 flex items-center gap-4">
               <div className="flex-1">
@@ -131,11 +154,11 @@ export default function AssessmentCenter() {
           ))}
         </div>
 
-        {/* ── Assessment Tab ── */}
+        {/* ── Evaluations Tab ── */}
         {activeTab === "assessments" && (
           <>
-            {/* Active test */}
             {activeTest ? (
+              /* Active generic test form */
               <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                   <button
@@ -203,20 +226,22 @@ export default function AssessmentCenter() {
                     disabled={submitting === activeTest.id}
                     className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 disabled:opacity-50 transition-all"
                   >
-                    {submitting === activeTest.id ? "Submitting…" : "Submit Assessment"}
+                    {submitting === activeTest.id ? "Submitting…" : "Submit"}
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             ) : (
-              /* Assessment list */
+              /* Evaluation list */
               <div className="space-y-4">
                 {isLoading ? (
                   [1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-200 rounded-2xl animate-pulse" />)
                 ) : assessments.map((test: any) => {
                   const meta = CATEGORY_META[test.category] || CATEGORY_META.knowledge;
                   const Icon = meta.icon;
-                  const isDone = submitted.has(test.id);
+                  const isKE   = test.category === "knowledge";
+                  const isDone = isKE ? keCompleted : submitted.has(test.id);
+
                   return (
                     <div
                       key={test.id}
@@ -230,16 +255,28 @@ export default function AssessmentCenter() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-primary">{test.title}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5 capitalize">{test.category.replace(/_/g, " ")} · {test.questions?.length || 0} questions</p>
+                        <p className="text-xs text-slate-500 mt-0.5 capitalize">
+                          {test.category.replace(/_/g, " ")} · {isKE ? "10 questions" : `${test.questions?.length || 0} questions`}
+                        </p>
                         <p className="text-xs text-slate-400 mt-0.5">{meta.desc}</p>
                       </div>
                       {isDone ? (
-                        <div className="flex items-center gap-2 text-green-600 font-semibold text-sm shrink-0">
-                          <CheckCircle className="w-5 h-5" /> Completed
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <div className="flex items-center gap-2 text-green-600 font-semibold text-sm">
+                            <CheckCircle className="w-5 h-5" /> Completed
+                          </div>
+                          {isKE && (
+                            <button
+                              onClick={() => setShowKEQuiz(true)}
+                              className="text-xs text-primary underline underline-offset-2"
+                            >
+                              Retry with new questions
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <button
-                          onClick={() => setActiveTest(test)}
+                          onClick={() => isKE ? setShowKEQuiz(true) : setActiveTest(test)}
                           className="px-5 py-2.5 bg-accent text-white rounded-xl font-semibold text-sm hover:bg-accent/90 transition-colors shrink-0"
                         >
                           Start
@@ -256,7 +293,7 @@ export default function AssessmentCenter() {
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-primary text-sm">Create your profile first</p>
-                      <p className="text-xs text-slate-500 mt-0.5">Assessment results are tied to your applicant profile.</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Evaluation results are tied to your applicant profile.</p>
                     </div>
                     <Link href="/apply" className="px-4 py-2 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors shrink-0">
                       Create Profile
@@ -326,8 +363,8 @@ export default function AssessmentCenter() {
             <div className="mt-6 grid sm:grid-cols-3 gap-3">
               {[
                 { label: "Keep it under 60s", tip: "Employers are busy — get to the point quickly." },
-                { label: "Good lighting", tip: "Natural light or a ring light works best." },
-                { label: "Speak clearly", tip: "No background noise, confident tone." },
+                { label: "Good lighting",      tip: "Natural light or a ring light works best." },
+                { label: "Speak clearly",      tip: "No background noise, confident tone." },
               ].map(h => (
                 <div key={h.label} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <p className="text-xs font-semibold text-primary mb-0.5">{h.label}</p>
