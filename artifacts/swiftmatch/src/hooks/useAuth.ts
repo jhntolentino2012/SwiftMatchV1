@@ -1,0 +1,50 @@
+import { useState, useEffect } from "react";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+export interface AuthUser {
+  id: number;
+  email: string;
+  phone: string;
+}
+
+function getToken() {
+  return localStorage.getItem("sm_auth_token");
+}
+
+export function useAuth() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) { setLoading(false); return; }
+    fetch(`${BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setUser(data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function logout() {
+    localStorage.removeItem("sm_auth_token");
+    setUser(null);
+  }
+
+  return { user, loading, logout };
+}
+
+export async function apiPost(path: string, body: unknown) {
+  const BASE_PATH = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+  const token = getToken();
+  const res = await fetch(`${BASE_PATH}/api/auth${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Something went wrong");
+  return data;
+}

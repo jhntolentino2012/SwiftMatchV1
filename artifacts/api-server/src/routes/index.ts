@@ -7,10 +7,12 @@ import coursesRouter from "./courses";
 import skillsRouter from "./skills";
 import resumeRouter from "./resume";
 import statsRouter from "./stats";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/auth", authRouter);
 router.use("/applicants", applicantsRouter);
 router.use("/assessments", assessmentsRouter);
 router.use("/applicants", (req, res, next) => {

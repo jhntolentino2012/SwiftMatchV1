@@ -1,9 +1,9 @@
 import { Link, useLocation } from "wouter";
-import { ChevronRight, LogIn, ClipboardList, BarChart2 } from "lucide-react";
+import { ChevronRight, LogIn, ClipboardList, BarChart2, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { label: "For Applicants", href: "/" },
+  { label: "For Applicants", href: "/apply" },
   { label: "For Employers",  href: "/employer" },
   { label: "Assessment",     href: "/assessment", icon: ClipboardList },
   { label: "Results",        href: "/results",    icon: BarChart2 },
@@ -38,7 +38,7 @@ export function Navigation() {
           {/* Nav links */}
           <nav className="hidden md:flex items-center gap-1 font-medium text-sm">
             {NAV_LINKS.map(({ label, href, icon: Icon }) => {
-              const isActive = location === href;
+              const isActive = location === href || (href === "/apply" && location === "/");
               return (
                 <Link
                   key={href}
@@ -58,27 +58,27 @@ export function Navigation() {
           </nav>
 
           {/* Right actions */}
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <Link
-              href="/employer"
-              className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              href="/signin"
+              className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-slate-100"
             >
               <LogIn className="h-4 w-4" />
-              Sign in
+              Sign In
             </Link>
             <Link
-              href="/apply"
+              href="/signup"
               className="inline-flex items-center gap-2 px-5 py-2.5 font-semibold text-sm text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all"
               style={{
-                background: "linear-gradient(135deg, hsl(214 80% 34%), hsl(214 80% 28%))",
+                background: "linear-gradient(135deg, hsl(24 95% 52%), hsl(24 95% 44%))",
                 clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
                 paddingLeft: "1.5rem",
                 paddingRight: "1.5rem",
-                boxShadow: "0 4px 14px hsl(214 80% 34% / 0.35)",
+                boxShadow: "0 4px 14px hsl(24 95% 52% / 0.35)",
               }}
             >
-              Create Profile
-              <ChevronRight className="h-4 w-4" />
+              <UserPlus className="h-4 w-4" />
+              Sign Up
             </Link>
           </div>
         </div>
