@@ -11,7 +11,7 @@ import {
 import KnowledgeQuiz from "./KnowledgeQuiz";
 
 const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> = {
-  knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",       desc: "Industry-specific quiz — 10 adaptive questions, 3 difficulty levels." },
+  knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",       desc: "Role-specific quiz — select your industry and target role, then answer 10 adaptive questions across 3 difficulty levels." },
   personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",       desc: "Understand your work style and interpersonal traits." },
   cultural_fit:     { icon: Users,    color: "text-orange-600 bg-orange-50 border-orange-200", desc: "See how your values and work style align with company culture." },
   critical_thinking:{ icon: Lightbulb,color: "text-yellow-600 bg-yellow-50 border-yellow-200",desc: "Demonstrate logical reasoning and sound decision-making." },

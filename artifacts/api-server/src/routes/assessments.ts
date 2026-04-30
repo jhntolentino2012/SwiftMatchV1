@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, assessmentsTable, assessmentResultsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { pickQuiz, INDUSTRY_QUESTIONS } from "../lib/industry-questions.js";
+import { pickQuiz, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
 import {
   GetAssessmentParams,
   SubmitAssessmentParams,
@@ -104,6 +104,7 @@ router.get("/", async (req, res) => {
 // Knowledge & Expertise — industry-adaptive quiz (must be before /:id)
 router.get("/ke-quiz", (req, res) => {
   const industry = String(req.query.industry ?? "");
+  const role = req.query.role ? String(req.query.role) : undefined;
   const excludeParam = String(req.query.exclude ?? "");
   const excludeIds = excludeParam ? excludeParam.split(",").filter(Boolean) : [];
 
@@ -113,7 +114,10 @@ router.get("/ke-quiz", (req, res) => {
     return;
   }
 
-  const questions = pickQuiz(industry, excludeIds);
+  // Validate role if provided
+  const validRole = role && (INDUSTRY_ROLES[industry] ?? []).includes(role) ? role : undefined;
+
+  const questions = pickQuiz(industry, excludeIds, validRole);
   res.json(questions);
 });
 

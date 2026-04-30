@@ -561,17 +561,367 @@ export const INDUSTRY_QUESTIONS: Record<string, QuizQuestion[]> = {
   "Architecture & Urban Planning": architecture,
 };
 
+/* ─── ROLES PER INDUSTRY ─── */
+export const INDUSTRY_ROLES: Record<string, string[]> = {
+  "Technology / IT": [
+    "Software Developer / Engineer",
+    "Data Analyst / Engineer",
+    "IT Manager / Project Lead",
+    "System / Network Administrator",
+    "QA / Test Engineer",
+    "DevOps / Cloud Engineer",
+    "Cybersecurity Analyst",
+  ],
+  "BPO / Call Center": [
+    "Customer Service Agent",
+    "Team Leader / Supervisor",
+    "Quality Analyst",
+    "Workforce Manager",
+    "Trainer / L&D Specialist",
+    "Operations Manager",
+  ],
+  "Healthcare / Medical": [
+    "Staff Nurse / RN",
+    "Medical Doctor / Physician",
+    "Medical Technologist",
+    "Hospital Administrator",
+    "Pharmacist",
+    "Radiologic Technologist",
+  ],
+  "Finance / Banking": [
+    "Credit / Loan Analyst",
+    "Bank Teller / Branch Staff",
+    "Compliance Officer",
+    "Treasury / Investment Analyst",
+    "Financial Advisor",
+    "Risk Manager",
+    "Accounting / Finance Officer",
+  ],
+  "Marketing / Advertising": [
+    "Digital Marketing Specialist",
+    "Brand Manager",
+    "Content Creator / Copywriter",
+    "Media Buyer / Planner",
+    "SEO / SEM Specialist",
+    "Marketing Manager",
+  ],
+  "Real Estate & Construction": [
+    "Licensed Real Estate Broker",
+    "Civil / Structural Engineer",
+    "Project Manager",
+    "Quantity Surveyor",
+    "Property Appraiser",
+    "Site Safety Officer",
+  ],
+  "Manufacturing & Engineering": [
+    "Production / Plant Engineer",
+    "Quality Control Inspector",
+    "Safety Officer",
+    "Industrial / Process Engineer",
+    "Maintenance Engineer",
+    "Production Supervisor",
+  ],
+  "Retail & E-commerce": [
+    "Store Manager / Supervisor",
+    "Merchandiser / Buyer",
+    "E-commerce Manager",
+    "Supply Chain / Inventory Analyst",
+    "Customer Service Representative",
+    "Sales Associate",
+  ],
+  "Education & Training": [
+    "Teacher / Instructor",
+    "School Administrator",
+    "Curriculum Developer",
+    "Corporate Trainer / L&D Specialist",
+    "Special Education Teacher",
+    "Academic Coordinator",
+  ],
+  "Hospitality & Tourism": [
+    "Front Office / Guest Relations",
+    "Food & Beverage Manager",
+    "Hotel General Manager",
+    "Events Coordinator",
+    "Revenue Manager",
+    "Tour Operations Specialist",
+  ],
+  "Food & Beverage": [
+    "Chef / Cook",
+    "Restaurant Manager",
+    "Food Safety Officer",
+    "Purchasing / Supply Officer",
+    "Barista / Bartender",
+    "F&B Supervisor",
+  ],
+  "Creative Arts & Design": [
+    "Graphic Designer",
+    "UI / UX Designer",
+    "Art Director",
+    "Video / Motion Designer",
+    "Copywriter / Content Strategist",
+    "Brand / Visual Identity Designer",
+  ],
+  "Logistics & Transportation": [
+    "Logistics Coordinator",
+    "Customs Broker / Compliance Officer",
+    "Supply Chain Manager",
+    "Warehouse Supervisor",
+    "Freight Forwarder",
+    "Fleet / Transport Manager",
+  ],
+  "Telecommunications": [
+    "Network Engineer",
+    "RF / Transmission Engineer",
+    "Customer Solutions Specialist",
+    "Telco Sales Account Manager",
+    "Network Operations Analyst",
+    "Product / Service Manager",
+  ],
+  "Media & Entertainment": [
+    "Journalist / Reporter",
+    "Content Producer / Editor",
+    "Broadcast Engineer",
+    "Social Media Manager",
+    "Advertising / Media Sales Executive",
+    "Public Relations Specialist",
+  ],
+  "Human Resources": [
+    "HR Generalist",
+    "Recruiter / Talent Acquisition Specialist",
+    "Compensation & Benefits Specialist",
+    "Learning & Development Officer",
+    "HR Business Partner",
+    "HR Manager / Director",
+  ],
+  "Government & Public Sector": [
+    "Government Project Officer",
+    "Public Health Officer",
+    "Procurement / Bids & Awards Officer",
+    "Policy Analyst / Researcher",
+    "Local Government Officer",
+    "Administrative Officer",
+  ],
+  "Agriculture & Environment": [
+    "Agricultural Extension Officer",
+    "Agronomist / Crop Scientist",
+    "Environmental Compliance Officer",
+    "Farm Manager / Supervisor",
+    "Veterinarian / Animal Health Officer",
+    "Fisheries / Aquaculture Officer",
+  ],
+  "Legal & Compliance": [
+    "Associate Lawyer / Attorney",
+    "Paralegal / Legal Assistant",
+    "Compliance Officer",
+    "Corporate / In-house Counsel",
+    "Legal Researcher",
+    "Contracts Specialist",
+  ],
+  "Architecture & Urban Planning": [
+    "Licensed Architect",
+    "Urban / Land Use Planner",
+    "Interior Designer",
+    "Landscape Architect",
+    "Heritage Conservation Specialist",
+    "Building / Construction Project Manager",
+  ],
+};
+
+/* ─── ROLE → QUESTION PRIORITY MAP ─── */
+// For each role, list question IDs (from the bank) that are highest priority.
+// pickQuiz will serve these first; remaining slots filled with general industry questions.
+export const ROLE_QUESTION_MAP: Record<string, Record<string, string[]>> = {
+  "Technology / IT": {
+    "Software Developer / Engineer":    ["tech_e01","tech_e02","tech_e03","tech_e04","tech_m01","tech_m02","tech_m03","tech_m06","tech_m08","tech_h01","tech_h02","tech_h04"],
+    "Data Analyst / Engineer":          ["tech_e05","tech_e06","tech_m01","tech_m05","tech_m08","tech_h03","tech_h04","tech_h06"],
+    "IT Manager / Project Lead":        ["tech_m04","tech_m07","tech_m08","tech_h01","tech_h05","tech_h06"],
+    "System / Network Administrator":   ["tech_e05","tech_e06","tech_m05","tech_m07","tech_h03","tech_h05","tech_h06"],
+    "QA / Test Engineer":               ["tech_e03","tech_m02","tech_m04","tech_m08","tech_h02","tech_h05"],
+    "DevOps / Cloud Engineer":          ["tech_e06","tech_m07","tech_m08","tech_h01","tech_h03","tech_h05","tech_h06"],
+    "Cybersecurity Analyst":            ["tech_e06","tech_m07","tech_m08","tech_h03","tech_h04","tech_h06"],
+  },
+  "BPO / Call Center": {
+    "Customer Service Agent":           ["bpo_e01","bpo_e02","bpo_e04","bpo_e05","bpo_m01","bpo_m02","bpo_m03","bpo_m05","bpo_h05"],
+    "Team Leader / Supervisor":         ["bpo_e03","bpo_e06","bpo_m04","bpo_m07","bpo_m08","bpo_h01","bpo_h05"],
+    "Quality Analyst":                  ["bpo_e02","bpo_e03","bpo_e06","bpo_m04","bpo_m08","bpo_h01","bpo_h06"],
+    "Workforce Manager":                ["bpo_e01","bpo_e03","bpo_e06","bpo_m04","bpo_m08","bpo_h03","bpo_h06"],
+    "Trainer / L&D Specialist":         ["bpo_e02","bpo_e04","bpo_e05","bpo_m02","bpo_m03","bpo_m05","bpo_h01"],
+    "Operations Manager":               ["bpo_e03","bpo_e06","bpo_m04","bpo_m07","bpo_m08","bpo_h01","bpo_h03","bpo_h05","bpo_h06"],
+  },
+  "Healthcare / Medical": {
+    "Staff Nurse / RN":                 ["hc_e01","hc_e02","hc_e03","hc_e05","hc_m01","hc_m02","hc_m04","hc_m05","hc_m06","hc_m07","hc_h02"],
+    "Medical Doctor / Physician":       ["hc_e01","hc_e02","hc_e04","hc_m02","hc_m03","hc_m08","hc_h01","hc_h02","hc_h04"],
+    "Medical Technologist":             ["hc_e02","hc_e04","hc_e06","hc_m02","hc_m04","hc_h01","hc_h03"],
+    "Hospital Administrator":           ["hc_m03","hc_m06","hc_h04","hc_h05"],
+    "Pharmacist":                       ["hc_e03","hc_e06","hc_m05","hc_m07","hc_h03","hc_h05","hc_h06"],
+    "Radiologic Technologist":          ["hc_e01","hc_e02","hc_e03","hc_m02","hc_m04","hc_h03"],
+  },
+  "Finance / Banking": {
+    "Credit / Loan Analyst":            ["fin_e01","fin_e04","fin_e06","fin_m01","fin_m05","fin_m07","fin_h01","fin_h05"],
+    "Bank Teller / Branch Staff":       ["fin_e01","fin_e02","fin_e03","fin_e06","fin_m08","fin_h02"],
+    "Compliance Officer":               ["fin_e06","fin_m07","fin_m08","fin_h02","fin_h05"],
+    "Treasury / Investment Analyst":    ["fin_e01","fin_e03","fin_e04","fin_m02","fin_m04","fin_h01","fin_h03","fin_h06"],
+    "Financial Advisor":                ["fin_e01","fin_e03","fin_e04","fin_m02","fin_m03","fin_h01","fin_h03","fin_h04"],
+    "Risk Manager":                     ["fin_e04","fin_m01","fin_m02","fin_m06","fin_m07","fin_h02","fin_h05","fin_h06"],
+    "Accounting / Finance Officer":     ["fin_e02","fin_e03","fin_e06","fin_m01","fin_m04","fin_h04"],
+  },
+  "Marketing / Advertising": {
+    "Digital Marketing Specialist":     ["mkt_e01","mkt_e02","mkt_e05","mkt_e06","mkt_m01","mkt_m03","mkt_m04","mkt_h03","mkt_h04"],
+    "Brand Manager":                    ["mkt_e03","mkt_e04","mkt_e06","mkt_m02","mkt_m06","mkt_h02","mkt_h05"],
+    "Content Creator / Copywriter":     ["mkt_e04","mkt_e06","mkt_m08","mkt_m07","mkt_h04","mkt_h05"],
+    "Media Buyer / Planner":            ["mkt_e01","mkt_e05","mkt_m01","mkt_m04","mkt_h03","mkt_h04"],
+    "SEO / SEM Specialist":             ["mkt_e01","mkt_e02","mkt_e05","mkt_m01","mkt_m03","mkt_m04","mkt_h03"],
+    "Marketing Manager":                ["mkt_e03","mkt_e04","mkt_m02","mkt_m05","mkt_m06","mkt_h01","mkt_h02","mkt_h05"],
+  },
+  "Real Estate & Construction": {
+    "Licensed Real Estate Broker":      ["re_e01","re_e02","re_e03","re_e04","re_m02","re_m03","re_m07","re_m08","re_h01","re_h04"],
+    "Civil / Structural Engineer":      ["re_e05","re_e06","re_m04","re_m05","re_m06","re_h02","re_h03","re_h05","re_h06"],
+    "Project Manager":                  ["re_e05","re_e06","re_m04","re_m06","re_h03","re_h05","re_h06"],
+    "Quantity Surveyor":                ["re_e01","re_e05","re_m04","re_m05","re_h01","re_h05"],
+    "Property Appraiser":               ["re_e01","re_e02","re_e03","re_e04","re_m02","re_m07","re_m08","re_h01","re_h04"],
+    "Site Safety Officer":              ["re_e06","re_m06","re_h03","re_h02"],
+  },
+  "Manufacturing & Engineering": {
+    "Production / Plant Engineer":      ["mfg_e01","mfg_e03","mfg_e04","mfg_m01","mfg_m03","mfg_m05","mfg_m06","mfg_m08","mfg_h01","mfg_h04"],
+    "Quality Control Inspector":        ["mfg_e01","mfg_e03","mfg_m01","mfg_m03","mfg_m04","mfg_h01","mfg_h02","mfg_h04"],
+    "Safety Officer":                   ["mfg_e03","mfg_m04","mfg_m07","mfg_h01","mfg_h02"],
+    "Industrial / Process Engineer":    ["mfg_e01","mfg_e04","mfg_m01","mfg_m05","mfg_m08","mfg_h04","mfg_h05","mfg_h06"],
+    "Maintenance Engineer":             ["mfg_e01","mfg_e04","mfg_m02","mfg_m04","mfg_m07","mfg_h04"],
+    "Production Supervisor":            ["mfg_e01","mfg_e03","mfg_e06","mfg_m01","mfg_m03","mfg_m07","mfg_h01","mfg_h02"],
+  },
+  "Retail & E-commerce": {
+    "Store Manager / Supervisor":       ["ret_e01","ret_e02","ret_e03","ret_e04","ret_e05","ret_m02","ret_m04","ret_h04"],
+    "Merchandiser / Buyer":             ["ret_e02","ret_e03","ret_e04","ret_m04","ret_m07","ret_h02","ret_h04"],
+    "E-commerce Manager":               ["ret_e01","ret_e05","ret_e06","ret_m01","ret_m08","ret_h01","ret_h03","ret_h05"],
+    "Supply Chain / Inventory Analyst": ["ret_e03","ret_e04","ret_m04","ret_m06","ret_h02","ret_h04","ret_h06"],
+    "Customer Service Representative":  ["ret_e05","ret_e06","ret_m01","ret_h05"],
+    "Sales Associate":                  ["ret_e05","ret_e06","ret_m02","ret_m07"],
+  },
+  "Education & Training": {
+    "Teacher / Instructor":             ["edu_e01","edu_e02","edu_e03","edu_e05","edu_e06","edu_m01","edu_m03","edu_m04","edu_h03","edu_h05"],
+    "School Administrator":             ["edu_e02","edu_e04","edu_m02","edu_m05","edu_h01","edu_h02","edu_h04"],
+    "Curriculum Developer":             ["edu_e02","edu_e03","edu_e05","edu_e06","edu_m03","edu_m04","edu_m08","edu_h01","edu_h03"],
+    "Corporate Trainer / L&D Specialist":["edu_e03","edu_e05","edu_e06","edu_m07","edu_m08","edu_h04"],
+    "Special Education Teacher":        ["edu_e01","edu_e05","edu_e06","edu_m01","edu_m03","edu_h03","edu_h05"],
+    "Academic Coordinator":             ["edu_e02","edu_e04","edu_m02","edu_m05","edu_m06","edu_h01","edu_h02"],
+  },
+  "Hospitality & Tourism": {
+    "Front Office / Guest Relations":   ["hosp_e01","hosp_e02","hosp_e05","hosp_m01","hosp_m08","hosp_h01","hosp_h06"],
+    "Food & Beverage Manager":          ["hosp_e03","hosp_e06","hosp_m01","hosp_m04","hosp_m07","hosp_h03","hosp_h04"],
+    "Hotel General Manager":            ["hosp_e01","hosp_e04","hosp_m02","hosp_m03","hosp_m06","hosp_h01","hosp_h02","hosp_h04"],
+    "Events Coordinator":               ["hosp_e02","hosp_e05","hosp_m01","hosp_m03","hosp_h05"],
+    "Revenue Manager":                  ["hosp_e01","hosp_e04","hosp_m02","hosp_m07","hosp_h01","hosp_h04","hosp_h06"],
+    "Tour Operations Specialist":       ["hosp_e04","hosp_e05","hosp_m03","hosp_m05","hosp_h02","hosp_h03"],
+  },
+  "Food & Beverage": {
+    "Chef / Cook":                      ["fb_e01","fb_e02","fb_e03","fb_e04","fb_e05","fb_m02","fb_m05","fb_h03","fb_h06"],
+    "Restaurant Manager":               ["fb_e01","fb_e02","fb_e04","fb_e06","fb_m01","fb_m03","fb_m06","fb_m07","fb_h01","fb_h04","fb_h05"],
+    "Food Safety Officer":              ["fb_e01","fb_e02","fb_e06","fb_m02","fb_m05","fb_h02","fb_h03"],
+    "Purchasing / Supply Officer":      ["fb_e04","fb_m03","fb_m07","fb_h01","fb_h04"],
+    "Barista / Bartender":              ["fb_e01","fb_e02","fb_e03","fb_e05","fb_m02","fb_m08"],
+    "F&B Supervisor":                   ["fb_e01","fb_e04","fb_e06","fb_m01","fb_m03","fb_m06","fb_h01","fb_h04"],
+  },
+  "Creative Arts & Design": {
+    "Graphic Designer":                 ["cre_e01","cre_e02","cre_e03","cre_e04","cre_e05","cre_e06","cre_m03","cre_m04","cre_m05","cre_h01"],
+    "UI / UX Designer":                 ["cre_e02","cre_e04","cre_e05","cre_m01","cre_m03","cre_m04","cre_m06","cre_m08","cre_h03","cre_h04"],
+    "Art Director":                     ["cre_e02","cre_e03","cre_m02","cre_m03","cre_m07","cre_h01","cre_h02"],
+    "Video / Motion Designer":          ["cre_e01","cre_e05","cre_m07","cre_h06"],
+    "Copywriter / Content Strategist":  ["cre_m02","cre_m07","cre_m08","cre_h01","cre_h02","cre_h04"],
+    "Brand / Visual Identity Designer": ["cre_e02","cre_e03","cre_e06","cre_m02","cre_m03","cre_h01","cre_h02","cre_h03"],
+  },
+  "Logistics & Transportation": {
+    "Logistics Coordinator":            ["log_e01","log_e02","log_e05","log_e06","log_m02","log_m04","log_m07","log_h01"],
+    "Customs Broker / Compliance Officer":["log_e03","log_e04","log_e05","log_m05","log_m08","log_h02","log_h03","log_h04"],
+    "Supply Chain Manager":             ["log_e01","log_e02","log_e06","log_m03","log_m04","log_m06","log_h01","log_h05","log_h06"],
+    "Warehouse Supervisor":             ["log_e04","log_e06","log_m02","log_m06","log_h01"],
+    "Freight Forwarder":                ["log_e03","log_e04","log_e05","log_m08","log_h02","log_h03","log_h04"],
+    "Fleet / Transport Manager":        ["log_e02","log_e04","log_m01","log_m02","log_h01","log_h05"],
+  },
+  "Telecommunications": {
+    "Network Engineer":                 ["tel_e01","tel_e02","tel_e04","tel_e06","tel_m01","tel_m06","tel_m07","tel_h01","tel_h02","tel_h03","tel_h04"],
+    "RF / Transmission Engineer":       ["tel_e01","tel_e02","tel_e04","tel_m01","tel_m03","tel_m06","tel_h03","tel_h04"],
+    "Customer Solutions Specialist":    ["tel_e03","tel_e05","tel_m02","tel_m08","tel_h05"],
+    "Telco Sales Account Manager":      ["tel_e03","tel_e05","tel_e06","tel_m04","tel_m08"],
+    "Network Operations Analyst":       ["tel_e01","tel_e04","tel_m06","tel_m07","tel_h02","tel_h03"],
+    "Product / Service Manager":        ["tel_e03","tel_e06","tel_m04","tel_m05","tel_m08","tel_h01","tel_h04"],
+  },
+  "Media & Entertainment": {
+    "Journalist / Reporter":            ["med_e01","med_e02","med_e05","med_m01","med_m04","med_m05","med_h01","med_h03","med_h05"],
+    "Content Producer / Editor":        ["med_e03","med_e06","med_m02","med_m03","med_m07","med_h04"],
+    "Broadcast Engineer":               ["med_e03","med_e04","med_e06","med_m03","med_m08","med_h04"],
+    "Social Media Manager":             ["med_e03","med_e05","med_e06","med_m06","med_m07","med_h05"],
+    "Advertising / Media Sales Executive":["med_e03","med_m06","med_m07","med_h01","med_h02","med_h03"],
+    "Public Relations Specialist":      ["med_e01","med_e05","med_m05","med_m06","med_h02","med_h05"],
+  },
+  "Human Resources": {
+    "HR Generalist":                    ["hr_e01","hr_e02","hr_e03","hr_e04","hr_e05","hr_m01","hr_m02","hr_m06","hr_m07","hr_h01"],
+    "Recruiter / Talent Acquisition Specialist":["hr_e02","hr_e03","hr_e05","hr_e06","hr_m03","hr_m04","hr_m08","hr_h01","hr_h05"],
+    "Compensation & Benefits Specialist":["hr_e03","hr_e06","hr_m07","hr_h01","hr_h04"],
+    "Learning & Development Officer":   ["hr_e05","hr_m03","hr_m04","hr_h01","hr_h04"],
+    "HR Business Partner":              ["hr_e04","hr_m01","hr_m02","hr_m05","hr_m06","hr_h01","hr_h02","hr_h05"],
+    "HR Manager / Director":            ["hr_e01","hr_e04","hr_e06","hr_m01","hr_m02","hr_m05","hr_m06","hr_h01","hr_h02","hr_h03","hr_h04","hr_h05","hr_h06"],
+  },
+  "Government & Public Sector": {
+    "Government Project Officer":           ["gov_e02","gov_e03","gov_m01","gov_m05","gov_h01","gov_h04","gov_h05"],
+    "Public Health Officer":                ["gov_e01","gov_m02","gov_m03","gov_h01"],
+    "Procurement / Bids & Awards Officer":  ["gov_e02","gov_m01","gov_m08","gov_h05"],
+    "Policy Analyst / Researcher":          ["gov_e04","gov_m06","gov_m07","gov_m08","gov_h02","gov_h04","gov_h06"],
+    "Local Government Officer":             ["gov_e01","gov_e05","gov_m02","gov_m03","gov_m06","gov_h01"],
+    "Administrative Officer":               ["gov_e01","gov_e02","gov_e03","gov_m04","gov_m08","gov_h03"],
+  },
+  "Agriculture & Environment": {
+    "Agricultural Extension Officer":   ["agr_e01","agr_e02","agr_e04","agr_e05","agr_m01","agr_m03","agr_m04","agr_h01"],
+    "Agronomist / Crop Scientist":      ["agr_e01","agr_e02","agr_e05","agr_m03","agr_m06","agr_h01"],
+    "Environmental Compliance Officer": ["agr_e03","agr_e06","agr_m04","agr_m05","agr_h03","agr_h04"],
+    "Farm Manager / Supervisor":        ["agr_e01","agr_e04","agr_e05","agr_m01","agr_m03","agr_m08","agr_h01"],
+    "Veterinarian / Animal Health Officer":["agr_e01","agr_e02","agr_e05","agr_m03","agr_h01"],
+    "Fisheries / Aquaculture Officer":  ["agr_e02","agr_e06","agr_m04","agr_m07","agr_h04"],
+  },
+  "Legal & Compliance": {
+    "Associate Lawyer / Attorney":      ["leg_e01","leg_e02","leg_e04","leg_e05","leg_m02","leg_m03","leg_m07","leg_h01","leg_h02","leg_h03","leg_h04"],
+    "Paralegal / Legal Assistant":      ["leg_e01","leg_e03","leg_e05","leg_e06","leg_m02","leg_m06","leg_h02"],
+    "Compliance Officer":               ["leg_e03","leg_e05","leg_m04","leg_m05","leg_h02","leg_h03","leg_h06"],
+    "Corporate / In-house Counsel":     ["leg_e02","leg_m02","leg_m03","leg_m05","leg_m07","leg_m08","leg_h01","leg_h02","leg_h04"],
+    "Legal Researcher":                 ["leg_e04","leg_e06","leg_m02","leg_m06","leg_h01","leg_h03","leg_h04"],
+    "Contracts Specialist":             ["leg_e05","leg_m01","leg_m02","leg_m03","leg_m05","leg_h04"],
+  },
+  "Architecture & Urban Planning": {
+    "Licensed Architect":               ["arc_e01","arc_e02","arc_e04","arc_e05","arc_m01","arc_m03","arc_m05","arc_m07","arc_h01","arc_h03","arc_h04"],
+    "Urban / Land Use Planner":         ["arc_e02","arc_e05","arc_m02","arc_m06","arc_m08","arc_h01","arc_h04","arc_h05"],
+    "Interior Designer":                ["arc_e03","arc_e04","arc_m07","arc_h01"],
+    "Landscape Architect":              ["arc_e01","arc_e02","arc_e05","arc_m07","arc_h01","arc_h05"],
+    "Heritage Conservation Specialist": ["arc_e05","arc_m08","arc_h01","arc_h02","arc_h04"],
+    "Building / Construction Project Manager":["arc_e01","arc_e06","arc_m01","arc_m05","arc_m06","arc_h03","arc_h04","arc_h06"],
+  },
+};
+
+
 export function pickQuiz(
   industry: string,
   excludeIds: string[] = [],
+  role?: string,
 ): QuizQuestion[] {
   const bank = INDUSTRY_QUESTIONS[industry] ?? tech;
   const excluded = new Set(excludeIds);
 
+  // Build set of role-priority question IDs
+  const roleIds: Set<string> = role
+    ? new Set((ROLE_QUESTION_MAP[industry] as Record<string, string[]>)?.[role] ?? [])
+    : new Set();
+
   const pick = (difficulty: QuizQuestion["difficulty"], count: number): QuizQuestion[] => {
     const pool = bank.filter(q => q.difficulty === difficulty && !excluded.has(q.id));
-    const fallback = bank.filter(q => q.difficulty === difficulty); // allow repeats if exhausted
+    const fallback = bank.filter(q => q.difficulty === difficulty);
     const source = pool.length >= count ? pool : fallback;
+
+    if (roleIds.size > 0) {
+      // Sort: role-priority questions first, then general
+      const prioritised = source.filter(q => roleIds.has(q.id));
+      const general     = source.filter(q => !roleIds.has(q.id));
+      const combined = [...shuffle([...prioritised]), ...shuffle([...general])];
+      return combined.slice(0, count);
+    }
+
     return shuffle([...source]).slice(0, count);
   };
 
