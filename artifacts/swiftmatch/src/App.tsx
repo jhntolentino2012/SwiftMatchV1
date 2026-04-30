@@ -9,6 +9,7 @@ import ApplicantDashboard from "./pages/Dashboard";
 import EmployerPortal from "./pages/EmployerPortal";
 import AssessmentCenter from "./pages/Assessment";
 import ResultsPage from "./pages/Results";
+import JobsPage from "./pages/Jobs";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/apply" component={ApplicationFlow} />
       <Route path="/dashboard" component={ApplicantDashboard} />
       <Route path="/employer" component={EmployerPortal} />
+      <Route path="/jobs" component={JobsPage} />
       <Route path="/assessment" component={AssessmentCenter} />
       <Route path="/results" component={ResultsPage} />
       <Route path="/signup" component={SignUp} />

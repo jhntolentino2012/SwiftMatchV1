@@ -352,7 +352,22 @@ export default function LandingPage() {
                 Build your comprehensive profile once. Complete our smart pre-assessments. Let the best employers in the industry come directly to you.
               </p>
 
-              <JobSearchWidget />
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/apply"
+                  className="inline-flex justify-center items-center gap-2 px-8 py-4 rounded-xl font-semibold text-lg text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                  style={{ background: "hsl(24 95% 52%)", boxShadow: "0 8px 24px hsl(24 95% 52% / 0.3)" }}
+                >
+                  Create Applicant Profile
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link
+                  href="/employer"
+                  className="inline-flex justify-center items-center gap-2 px-8 py-4 rounded-xl font-semibold text-lg bg-white text-primary border-2 border-border shadow-sm hover:border-primary/20 hover:bg-slate-50 transition-all"
+                >
+                  I'm an Employer
+                </Link>
+              </div>
 
               <div className="mt-10 flex items-center gap-6 text-sm font-medium text-muted-foreground">
                 {["Smart matching", "Privacy first"].map(t => (
@@ -372,8 +387,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Social proof strip — hidden until real data is available */}
-      {/* <LiveStatsStrip /> */}
+      {/* ── Job Search Section ── */}
+      <section className="bg-white border-y border-slate-100 py-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-6">
+            <p className="text-xs font-bold text-primary/50 uppercase tracking-widest mb-1">Browse Opportunities</p>
+            <h2 className="text-xl font-display font-bold text-primary">Find jobs by industry & location in the Philippines</h2>
+          </div>
+          <JobSearchWidget />
+        </div>
+      </section>
 
       {/* Features Section */}
       <section className="py-24 bg-white">
