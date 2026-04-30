@@ -174,8 +174,8 @@ export function JobSearchWidget() {
 
         <AutocompleteField
           icon={MapPin}
-          label="Location in Philippines"
-          placeholder="e.g. Makati City, Cebu, Remote…"
+          label="Location"
+          placeholder="e.g. Makati, Cebu, Remote…"
           value={locationText}
           suggestions={locationSuggestions}
           onChange={v => { setLocationText(v); if (!v) setSelLocation(""); }}

@@ -325,7 +325,7 @@ export default function LandingPage() {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+      <section className="relative pt-28 pb-16 lg:pt-36 lg:pb-24">
         {/* Background glow blobs */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-accent/8 to-transparent blur-3xl" />
@@ -340,39 +340,45 @@ export default function LandingPage() {
 
             {/* Left: copy */}
             <div className="max-w-2xl animate-slide-up">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 text-accent font-medium text-sm mb-6 border border-accent/20">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 text-accent font-medium text-sm mb-4 border border-accent/20">
                 <Sparkles className="h-4 w-4" />
-                The Future of Recruitment
+                The Future of Recruitment in the Philippines
               </div>
-              <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-primary leading-tight mb-6">
+              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary leading-tight mb-3">
                 Don't search.<br />
                 <span className="text-gradient">Get spotted.</span>
               </h1>
-              <p className="text-lg lg:text-xl text-muted-foreground mb-8 leading-relaxed">
-                Build your comprehensive profile once. Complete our smart pre-assessments. Let the best employers in the industry come directly to you.
+              <p className="text-base text-muted-foreground mb-5 leading-relaxed">
+                Build your profile once, complete smart assessments, and let top Philippine employers come directly to you.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search widget — right under the headline / logo */}
+              <div className="mb-5">
+                <JobSearchWidget />
+              </div>
+
+              {/* Secondary CTAs */}
+              <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href="/apply"
-                  className="inline-flex justify-center items-center gap-2 px-8 py-4 rounded-xl font-semibold text-lg text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all"
-                  style={{ background: "hsl(24 95% 52%)", boxShadow: "0 8px 24px hsl(24 95% 52% / 0.3)" }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  style={{ background: "hsl(24 95% 52%)", boxShadow: "0 6px 18px hsl(24 95% 52% / 0.3)" }}
                 >
                   Create Applicant Profile
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/employer"
-                  className="inline-flex justify-center items-center gap-2 px-8 py-4 rounded-xl font-semibold text-lg bg-white text-primary border-2 border-border shadow-sm hover:border-primary/20 hover:bg-slate-50 transition-all"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm bg-white text-primary border border-border shadow-sm hover:border-primary/30 hover:bg-slate-50 transition-all"
                 >
                   I'm an Employer
                 </Link>
               </div>
 
-              <div className="mt-10 flex items-center gap-6 text-sm font-medium text-muted-foreground">
+              <div className="mt-5 flex items-center gap-6 text-sm font-medium text-muted-foreground">
                 {["Smart matching", "Privacy first"].map(t => (
                   <div key={t} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-accent" />
+                    <CheckCircle2 className="h-4 w-4 text-accent" />
                     {t}
                   </div>
                 ))}
@@ -384,17 +390,6 @@ export default function LandingPage() {
               <HeroSlideshow />
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ── Job Search Section ── */}
-      <section className="bg-white border-y border-slate-100 py-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-6">
-            <p className="text-xs font-bold text-primary/50 uppercase tracking-widest mb-1">Browse Opportunities</p>
-            <h2 className="text-xl font-display font-bold text-primary">Find jobs by industry & location in the Philippines</h2>
-          </div>
-          <JobSearchWidget />
         </div>
       </section>
 
