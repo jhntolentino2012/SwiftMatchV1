@@ -17,7 +17,7 @@ const SEED_ASSESSMENTS = [
     description: "Test your industry knowledge and professional expertise to showcase your qualifications.",
     questions: [
       { id: 1, text: "How many years of professional experience do you have in your primary field?", type: "multiple_choice", options: ["Less than 1 year", "1-2 years", "3-5 years", "6-10 years", "More than 10 years"] },
-      { id: 2, text: "Which of the following best describes your highest level of education?", type: "multiple_choice", options: ["High School Diploma", "Vocational/Technical Certificate", "Bachelor's Degree", "Master's Degree", "Doctorate or Higher"] },
+      { id: 2, text: "Which of the following best describes your highest level of education?", type: "multiple_choice", options: ["High School Diploma", "Vocational/Technical Certificate", "College Undergrad", "Bachelor's Degree", "Master's Degree", "Doctorate or Higher"] },
       { id: 3, text: "How would you rate your proficiency in your top skill?", type: "multiple_choice", options: ["Beginner", "Intermediate", "Advanced", "Expert"] },
       { id: 4, text: "Describe a major project or achievement in your career that demonstrates your expertise.", type: "text", options: null },
       { id: 5, text: "How do you stay updated with industry trends and developments?", type: "multiple_choice", options: ["Online courses & certifications", "Industry publications & journals", "Professional networking events", "Mentorship & peer learning", "All of the above"] },
