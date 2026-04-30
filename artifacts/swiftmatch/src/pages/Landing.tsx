@@ -336,10 +336,17 @@ export default function LandingPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+
+          {/* ── Full-width search bar at top of hero ── */}
+          <div className="mb-10 animate-slide-up">
+            <JobSearchWidget />
+          </div>
+
+          {/* ── Two-column: copy left / slideshow right ── */}
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-start">
 
             {/* Left: copy */}
-            <div className="max-w-2xl animate-slide-up">
+            <div className="max-w-2xl animate-slide-up stagger-1">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 text-accent font-medium text-sm mb-4 border border-accent/20">
                 <Sparkles className="h-4 w-4" />
                 The Future of Recruitment in the Philippines
@@ -348,20 +355,15 @@ export default function LandingPage() {
                 Don't search.<br />
                 <span className="text-gradient">Get spotted.</span>
               </h1>
-              <p className="text-base text-muted-foreground mb-5 leading-relaxed">
+              <p className="text-base text-muted-foreground mb-6 leading-relaxed">
                 Build your profile once, complete smart assessments, and let top Philippine employers come directly to you.
               </p>
 
-              {/* Search widget — right under the headline / logo */}
-              <div className="mb-5">
-                <JobSearchWidget />
-              </div>
-
-              {/* Secondary CTAs */}
-              <div className="flex flex-wrap items-center gap-3">
+              {/* CTAs */}
+              <div className="flex flex-wrap items-center gap-3 mb-5">
                 <Link
                   href="/apply"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
                   style={{ background: "hsl(24 95% 52%)", boxShadow: "0 6px 18px hsl(24 95% 52% / 0.3)" }}
                 >
                   Create Applicant Profile
@@ -369,13 +371,13 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/employer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm bg-white text-primary border border-border shadow-sm hover:border-primary/30 hover:bg-slate-50 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-white text-primary border border-border shadow-sm hover:border-primary/30 hover:bg-slate-50 transition-all"
                 >
                   I'm an Employer
                 </Link>
               </div>
 
-              <div className="mt-5 flex items-center gap-6 text-sm font-medium text-muted-foreground">
+              <div className="flex items-center gap-6 text-sm font-medium text-muted-foreground">
                 {["Smart matching", "Privacy first"].map(t => (
                   <div key={t} className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-accent" />
@@ -385,8 +387,8 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right: slideshow */}
-            <div className="relative animate-slide-up stagger-2 hidden lg:block">
+            {/* Right: slideshow — lowered with top offset to fit viewport */}
+            <div className="relative animate-slide-up stagger-2 hidden lg:block lg:mt-8">
               <HeroSlideshow />
             </div>
           </div>
