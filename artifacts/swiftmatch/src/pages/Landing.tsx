@@ -369,7 +369,7 @@ export default function LandingPage() {
               </div>
 
               <div className="mt-10 flex items-center gap-6 text-sm font-medium text-muted-foreground">
-                {["Free forever", "Smart matching", "Privacy first"].map(t => (
+                {["Smart matching", "Privacy first"].map(t => (
                   <div key={t} className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-accent" />
                     {t}
@@ -386,8 +386,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Social proof strip */}
-      <LiveStatsStrip />
+      {/* Social proof strip — hidden until real data is available */}
+      {/* <LiveStatsStrip /> */}
 
       {/* Features Section */}
       <section className="py-24 bg-white">
