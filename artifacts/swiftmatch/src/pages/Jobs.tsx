@@ -121,15 +121,15 @@ export default function JobsPage() {
                       )}
                     </div>
                     <p className="text-sm text-slate-500 mt-3 line-clamp-2">{job.description}</p>
-                  </div>
-
-                  <div className="flex flex-col gap-2 shrink-0">
                     <button
                       onClick={() => setSelectedJob(job)}
-                      className="flex items-center gap-1.5 px-4 py-2 border border-primary text-primary rounded-xl text-sm font-semibold hover:bg-primary/5 transition-colors"
+                      className="mt-2 text-sm font-semibold text-accent hover:text-accent/80 transition-colors text-left"
                     >
-                      View More
+                      View more
                     </button>
+                  </div>
+
+                  <div className="shrink-0">
                     <Link
                       href="/signup"
                       className="flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
