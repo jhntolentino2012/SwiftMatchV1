@@ -397,6 +397,11 @@ export const ListJobsResponseItem = zod.object({
   requirements: zod.array(zod.string()),
   salaryRange: zod.string(),
   industry: zod.string(),
+  isDemo: zod
+    .boolean()
+    .describe(
+      "True if this is a sample\/placeholder listing — auto-hidden once real employer jobs exist.",
+    ),
   createdAt: zod.string(),
 });
 export const ListJobsResponse = zod.array(ListJobsResponseItem);
@@ -417,6 +422,11 @@ export const GetJobResponse = zod.object({
   requirements: zod.array(zod.string()),
   salaryRange: zod.string(),
   industry: zod.string(),
+  isDemo: zod
+    .boolean()
+    .describe(
+      "True if this is a sample\/placeholder listing — auto-hidden once real employer jobs exist.",
+    ),
   createdAt: zod.string(),
 });
 

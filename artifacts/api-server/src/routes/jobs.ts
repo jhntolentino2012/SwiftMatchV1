@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, jobsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { GetJobParams } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -14,6 +14,7 @@ const SEED_JOBS = [
     requirements: ["5+ years of software development experience", "Proficiency in TypeScript/JavaScript", "Experience with React and Node.js", "Strong understanding of databases", "Excellent communication skills"],
     salaryRange: "PHP 80,000 - 120,000/month",
     industry: "Technology",
+    isDemo: true,
   },
   {
     title: "Digital Marketing Specialist",
@@ -23,6 +24,7 @@ const SEED_JOBS = [
     requirements: ["3+ years in digital marketing", "Experience with Google Ads and Meta Ads", "Strong analytical skills", "Content creation abilities", "Knowledge of SEO/SEM"],
     salaryRange: "PHP 35,000 - 55,000/month",
     industry: "Marketing",
+    isDemo: true,
   },
   {
     title: "Registered Nurse",
@@ -32,6 +34,7 @@ const SEED_JOBS = [
     requirements: ["Active PRC nursing license", "BLS/ACLS certified", "Strong patient care skills", "Experience in clinical settings", "Excellent interpersonal skills"],
     salaryRange: "PHP 25,000 - 40,000/month",
     industry: "Healthcare",
+    isDemo: true,
   },
   {
     title: "Financial Analyst",
@@ -41,6 +44,7 @@ const SEED_JOBS = [
     requirements: ["Bachelor's degree in Finance or Accounting", "CPA or CFA certification preferred", "Advanced Excel skills", "Knowledge of financial modeling", "Strong attention to detail"],
     salaryRange: "PHP 50,000 - 80,000/month",
     industry: "Finance",
+    isDemo: true,
   },
   {
     title: "Customer Success Manager",
@@ -50,6 +54,7 @@ const SEED_JOBS = [
     requirements: ["3+ years in customer success or account management", "Experience with SaaS products", "Strong problem-solving skills", "Excellent verbal and written communication", "Data-driven mindset"],
     salaryRange: "PHP 45,000 - 70,000/month",
     industry: "Technology",
+    isDemo: true,
   },
   {
     title: "Graphic Designer",
@@ -59,6 +64,7 @@ const SEED_JOBS = [
     requirements: ["Portfolio demonstrating design skills", "Proficiency in Adobe Creative Suite", "Understanding of branding principles", "3+ years professional design experience", "Ability to meet deadlines"],
     salaryRange: "PHP 28,000 - 45,000/month",
     industry: "Creative Arts",
+    isDemo: true,
   },
 ];
 
@@ -74,7 +80,12 @@ async function ensureJobsSeeded() {
 router.get("/", async (req, res) => {
   try {
     await ensureJobsSeeded();
-    const jobs = await db.select().from(jobsTable);
+    // If any real employer jobs exist, hide all demo jobs.
+    // Otherwise show demo jobs as placeholder content until the platform launches.
+    const realJobs = await db.select().from(jobsTable).where(eq(jobsTable.isDemo, false)).orderBy(desc(jobsTable.createdAt));
+    const jobs = realJobs.length > 0
+      ? realJobs
+      : await db.select().from(jobsTable).orderBy(desc(jobsTable.createdAt));
     res.json(jobs.map(j => ({ ...j, createdAt: j.createdAt.toISOString() })));
   } catch (err) {
     req.log.error({ err }, "Failed to list jobs");

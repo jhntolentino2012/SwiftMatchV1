@@ -15,5 +15,7 @@ export interface Job {
   requirements: string[];
   salaryRange: string;
   industry: string;
+  /** True if this is a sample/placeholder listing — auto-hidden once real employer jobs exist. */
+  isDemo: boolean;
   createdAt: string;
 }

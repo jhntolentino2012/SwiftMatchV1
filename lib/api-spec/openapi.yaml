@@ -682,6 +682,9 @@ components:
           type: string
         industry:
           type: string
+        isDemo:
+          type: boolean
+          description: "True if this is a sample/placeholder listing — auto-hidden once real employer jobs exist."
         createdAt:
           type: string
       required:
@@ -693,6 +696,7 @@ components:
         - requirements
         - salaryRange
         - industry
+        - isDemo
         - createdAt
 
     Course:
