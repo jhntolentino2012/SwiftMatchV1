@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useListAssessments, useSubmitAssessment } from "@workspace/api-client-react";
@@ -6,10 +6,23 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, ChevronRight, Video, ClipboardList, Brain,
-  Heart, Users, Lightbulb, Bot, ArrowLeft, Upload, Lock
+  Heart, Users, Lightbulb, Bot, ArrowLeft, Upload, Lock,
+  RotateCcw, TrendingUp,
 } from "lucide-react";
 import KnowledgeQuiz from "./KnowledgeQuiz";
 import PersonalityQuiz from "./PersonalityQuiz";
+
+const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+
+type AssessmentResult = {
+  id: number;
+  applicantId: number;
+  assessmentId: number | null;
+  assessmentTitle: string;
+  score: number;
+  passed: boolean;
+  completedAt: string;
+};
 
 const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> = {
   knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",       desc: "Role-specific quiz — select your industry and target role, then answer 10 adaptive questions across 3 difficulty levels." },
@@ -29,17 +42,47 @@ export default function AssessmentCenter() {
   const { mutateAsync: submitAssessment } = useSubmitAssessment();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab]           = useState<"assessments" | "video">("assessments");
-  const [activeTest, setActiveTest]         = useState<any>(null);
-  const [showKEQuiz, setShowKEQuiz]         = useState(false);
+  const [activeTab, setActiveTab]   = useState<"assessments" | "video">("assessments");
+  const [activeTest, setActiveTest] = useState<any>(null);
+  const [showKEQuiz, setShowKEQuiz] = useState(false);
   const [showPersonalityQuiz, setShowPersonalityQuiz] = useState(false);
-  const [answers, setAnswers]               = useState<Record<number, any[]>>({});
-  const [submitting, setSubmitting]         = useState<number | null>(null);
-  const [submitted, setSubmitted]           = useState<Set<number>>(new Set());
-  const [keCompleted, setKECompleted]                   = useState(false);
-  const [personalityCompleted, setPersonalityCompleted] = useState(false);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [answers, setAnswers]       = useState<Record<number, any[]>>({});
+  const [submitting, setSubmitting] = useState<number | null>(null);
+  const [videoFile, setVideoFile]   = useState<File | null>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+
+  // ── Real results from server ──
+  const [completedResults, setCompletedResults] = useState<Record<number, AssessmentResult>>({});
+  const [keResult, setKeResult]                 = useState<AssessmentResult | null>(null);
+  const [personalityResult, setPersonalityResult] = useState<AssessmentResult | null>(null);
+  const [loadingResults, setLoadingResults]     = useState(true);
+
+  const fetchResults = useCallback(async () => {
+    if (!applicantId) { setLoadingResults(false); return; }
+    const token = localStorage.getItem("sm_auth_token");
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    try {
+      const res = await fetch(`${BASE_URL}/api/assessments/applicant/${applicantId}/results`, { headers });
+      if (!res.ok) return;
+      const results: AssessmentResult[] = await res.json();
+      const map: Record<number, AssessmentResult> = {};
+      let ke: AssessmentResult | null = null;
+      let personality: AssessmentResult | null = null;
+      results.forEach(r => {
+        if (r.assessmentId) map[r.assessmentId] = r;
+        const title = r.assessmentTitle?.toLowerCase() ?? "";
+        if (title.includes("knowledge")) ke = r;
+        if (title.includes("personality")) personality = r;
+      });
+      setCompletedResults(map);
+      setKeResult(ke);
+      setPersonalityResult(personality);
+    } catch { /* silent */ } finally {
+      setLoadingResults(false);
+    }
+  }, [applicantId]);
+
+  useEffect(() => { fetchResults(); }, [fetchResults]);
 
   const handleAnswer = (testId: number, questionId: number, answer: string) => {
     setAnswers(prev => ({
@@ -63,10 +106,17 @@ export default function AssessmentCenter() {
     }
     try {
       setSubmitting(test.id);
-      await submitAssessment({ id: test.id, data: { applicantId, answers: testAnswers } });
-      setSubmitted(prev => new Set([...prev, test.id]));
+      const result = await submitAssessment({ id: test.id, data: { applicantId, answers: testAnswers } });
+      await fetchResults();
       setActiveTest(null);
-      toast({ title: "Evaluation submitted!", description: `${test.title} results saved.` });
+      const score = (result as any)?.score;
+      const passed = (result as any)?.passed;
+      toast({
+        title: passed ? "✓ Evaluation submitted!" : "Evaluation submitted",
+        description: score != null
+          ? `${test.title}: ${score}% — ${passed ? "Passed" : "Try again to improve your score"}`
+          : `${test.title} results saved.`,
+      });
     } catch {
       toast({ title: "Submission failed", description: "Please try again.", variant: "destructive" });
     } finally {
@@ -74,8 +124,12 @@ export default function AssessmentCenter() {
     }
   };
 
-  const completedCount = submitted.size + (keCompleted ? 1 : 0) + (personalityCompleted ? 1 : 0);
-  const totalCount     = assessments.length;
+  // Completion counts (de-duplicated)
+  const genericCompleted = (assessments as any[]).filter(a =>
+    a.category !== "knowledge" && a.category !== "personality" && completedResults[a.id]
+  ).length;
+  const completedCount = (keResult ? 1 : 0) + (personalityResult ? 1 : 0) + genericCompleted;
+  const totalCount = assessments.length;
 
   // ── Knowledge & Expertise adaptive quiz view ──
   if (showKEQuiz) {
@@ -87,9 +141,10 @@ export default function AssessmentCenter() {
             applicantId={applicantId}
             initialIndustry={storedIndustry || undefined}
             initialRole={storedRole || undefined}
-            onComplete={() => {
-              setKECompleted(true);
-              toast({ title: "Knowledge quiz complete!", description: "Your results have been saved." });
+            onComplete={async (score: number) => {
+              await fetchResults();
+              setShowKEQuiz(false);
+              toast({ title: "Knowledge quiz complete!", description: `You scored ${score}%. Results saved to your profile.` });
             }}
             onBack={() => setShowKEQuiz(false)}
           />
@@ -106,8 +161,9 @@ export default function AssessmentCenter() {
         <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
           <PersonalityQuiz
             applicantId={applicantId}
-            onComplete={() => {
-              setPersonalityCompleted(true);
+            onComplete={async () => {
+              await fetchResults();
+              setShowPersonalityQuiz(false);
               toast({ title: "Personality assessment complete!", description: "Your personality profile has been saved." });
             }}
             onBack={() => setShowPersonalityQuiz(false)}
@@ -260,48 +316,76 @@ export default function AssessmentCenter() {
             ) : (
               /* Evaluation list */
               <div className="space-y-4">
-                {isLoading ? (
+                {isLoading || loadingResults ? (
                   [1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-200 rounded-2xl animate-pulse" />)
-                ) : assessments.map((test: any) => {
-                  const meta = CATEGORY_META[test.category] || CATEGORY_META.knowledge;
-                  const Icon = meta.icon;
-                  const isKE          = test.category === "knowledge";
+                ) : (assessments as any[]).map((test: any) => {
+                  const meta        = CATEGORY_META[test.category] || CATEGORY_META.knowledge;
+                  const Icon        = meta.icon;
+                  const isKE        = test.category === "knowledge";
                   const isPersonality = test.category === "personality";
-                  const isDone = isKE ? keCompleted : isPersonality ? personalityCompleted : submitted.has(test.id);
+                  const result: AssessmentResult | null =
+                    isKE ? keResult : isPersonality ? personalityResult : (completedResults[test.id] ?? null);
+                  const isDone = !!result;
 
                   return (
                     <div
                       key={test.id}
                       className={cn(
                         "bg-white rounded-2xl border shadow-sm p-5 flex items-center gap-5 transition-all",
-                        isDone ? "border-green-200" : "border-border hover:border-accent/40 hover:shadow-md"
+                        isDone ? "border-green-200 bg-green-50/30" : "border-border hover:border-accent/40 hover:shadow-md"
                       )}
                     >
                       <div className={cn("w-12 h-12 rounded-xl border flex items-center justify-center shrink-0", meta.color)}>
                         <Icon className="w-6 h-6" />
                       </div>
+
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-primary">{test.title}</h3>
                         <p className="text-xs text-slate-500 mt-0.5 capitalize">
                           {test.category.replace(/_/g, " ")} · {isKE ? "10 questions" : isPersonality ? "12–20 questions" : `${test.questions?.length || 0} questions`}
                         </p>
-                        <p className="text-xs text-slate-400 mt-0.5">{meta.desc}</p>
-                      </div>
-                      {isDone ? (
-                        <div className="flex flex-col items-end gap-1.5 shrink-0">
-                          <div className="flex items-center gap-2 text-green-600 font-semibold text-sm">
-                            <CheckCircle className="w-5 h-5" /> Completed
+                        {isDone && result ? (
+                          /* Score row */
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className={cn(
+                              "text-xs font-bold px-2.5 py-0.5 rounded-full border",
+                              result.passed
+                                ? "text-green-700 bg-green-50 border-green-200"
+                                : "text-amber-700 bg-amber-50 border-amber-200"
+                            )}>
+                              {result.score}%
+                            </span>
+                            <span className={cn(
+                              "text-xs font-semibold",
+                              result.passed ? "text-green-600" : "text-amber-600"
+                            )}>
+                              {result.passed ? "Passed" : "Did not pass"}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              · {new Date(result.completedAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
                           </div>
-                          {isKE && (
-                            <button onClick={() => setShowKEQuiz(true)} className="text-xs text-primary underline underline-offset-2">
-                              Retry with new questions
-                            </button>
-                          )}
-                          {isPersonality && (
-                            <button onClick={() => setShowPersonalityQuiz(true)} className="text-xs text-primary underline underline-offset-2">
-                              Retake assessment
-                            </button>
-                          )}
+                        ) : (
+                          <p className="text-xs text-slate-400 mt-0.5">{meta.desc}</p>
+                        )}
+                      </div>
+
+                      {isDone ? (
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 text-green-600 font-semibold text-sm">
+                            <CheckCircle className="w-4 h-4" /> Done
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (isKE) setShowKEQuiz(true);
+                              else if (isPersonality) setShowPersonalityQuiz(true);
+                              else setActiveTest(test);
+                            }}
+                            className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            {result && !result.passed ? "Retake to improve" : "Retake"}
+                          </button>
                         </div>
                       ) : (
                         <button
@@ -310,7 +394,8 @@ export default function AssessmentCenter() {
                             else if (isPersonality) setShowPersonalityQuiz(true);
                             else setActiveTest(test);
                           }}
-                          className="px-5 py-2.5 bg-accent text-white rounded-xl font-semibold text-sm hover:bg-accent/90 transition-colors shrink-0"
+                          disabled={!applicantId}
+                          className="px-5 py-2.5 bg-accent text-white rounded-xl font-semibold text-sm hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
                         >
                           Start
                         </button>
