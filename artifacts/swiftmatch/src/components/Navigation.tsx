@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
-import { ChevronRight, LogIn, ClipboardList, BarChart2, UserPlus } from "lucide-react";
+import { ChevronRight, LogIn, ClipboardList, BarChart2, UserPlus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
+  { label: "Browse Jobs",    href: "/jobs",       icon: Search },
   { label: "For Applicants", href: "/apply" },
   { label: "For Employers",  href: "/employer" },
   { label: "Assessment",     href: "/assessment", icon: ClipboardList },

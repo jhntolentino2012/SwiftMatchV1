@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, CheckCircle2, Sparkles, Target, Zap, FileText, ChevronLeft, ChevronRight, Users, Award } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
-import { JobSearchWidget } from "@/components/JobSearchWidget";
 import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -337,11 +336,6 @@ export default function LandingPage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
-          {/* ── Full-width search bar at top of hero ── */}
-          <div className="mb-10 animate-slide-up relative z-50">
-            <JobSearchWidget />
-          </div>
-
           {/* ── Two-column: copy left / slideshow right ── */}
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-start">
 
@@ -367,6 +361,13 @@ export default function LandingPage() {
                   style={{ background: "hsl(24 95% 52%)", boxShadow: "0 6px 18px hsl(24 95% 52% / 0.3)" }}
                 >
                   Create Applicant Profile
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/jobs"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-white text-primary border border-border shadow-sm hover:border-primary/30 hover:bg-slate-50 transition-all"
+                >
+                  Browse Jobs
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
