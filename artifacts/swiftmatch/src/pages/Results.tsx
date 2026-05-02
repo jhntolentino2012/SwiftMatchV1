@@ -4,7 +4,7 @@ import { Navigation } from "@/components/Navigation";
 import { cn } from "@/lib/utils";
 import {
   Lock, Crown, ChevronRight, User, Building2,
-  FileText, Award, TrendingUp, Calendar, Download,
+  FileText, Award, TrendingUp, Calendar, Download, Compass,
 } from "lucide-react";
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis,
@@ -55,6 +55,150 @@ const EMPLOYER_DIST_DATA = [
   { range: "50–59",  count: 22 },
   { range: "<50",    count: 9 },
 ];
+
+/* ══════════════════════════════════════════════════════
+   CAREER EXPANSION DATA
+══════════════════════════════════════════════════════ */
+type ExpansionEntry = {
+  industry: string; emoji: string; baseMatch: number;
+  scoreDriver: string; reason: string; keyStrength: string; roles: string[];
+};
+
+const CAREER_EXPANSION: Record<string, ExpansionEntry[]> = {
+  "Technology / IT": [
+    { industry: "Telecommunications",    emoji: "📡", baseMatch: 86, scoreDriver: "ke",  reason: "Your technical depth translates directly to network engineering, telco infrastructure, and digital product management.",           keyStrength: "Technical depth",             roles: ["Network Engineer", "Telco Product Manager", "Systems Architect"] },
+    { industry: "Finance / Banking",     emoji: "🏦", baseMatch: 83, scoreDriver: "ct",  reason: "Strong analytical thinking opens doors in fintech development, algorithmic systems, and digital banking platforms.",               keyStrength: "Analytical rigour",           roles: ["FinTech Developer", "Data Analyst", "Banking Systems Engineer"] },
+    { industry: "Media & Entertainment", emoji: "🎬", baseMatch: 79, scoreDriver: "air", reason: "AI readiness and systems thinking position you well for streaming platforms, content tech, and digital production pipelines.",     keyStrength: "Digital innovation",          roles: ["Platform Engineer", "Digital Product Manager", "Streaming Tech Lead"] },
+    { industry: "Human Resources",       emoji: "👥", baseMatch: 75, scoreDriver: "pw",  reason: "High interpersonal skills make you effective as an HR Technology specialist or People Analytics lead.",                          keyStrength: "People orientation",          roles: ["HR Tech Specialist", "People Analytics Lead", "Workforce Systems Manager"] },
+  ],
+  "BPO / Call Center": [
+    { industry: "Human Resources",       emoji: "👥", baseMatch: 88, scoreDriver: "pw",  reason: "Communication, conflict resolution, and people focus translate directly to talent management and employee relations.",             keyStrength: "Communication excellence",    roles: ["HR Generalist", "Employee Relations Specialist", "Talent Acquisition Officer"] },
+    { industry: "Retail & E-commerce",   emoji: "🛒", baseMatch: 84, scoreDriver: "cf",  reason: "Customer interaction expertise and service recovery skills are core competencies in retail ops and CX management.",               keyStrength: "Customer focus",              roles: ["Customer Experience Manager", "Store Operations Supervisor", "E-commerce Support Lead"] },
+    { industry: "Hospitality & Tourism", emoji: "🏨", baseMatch: 82, scoreDriver: "cf",  reason: "Service orientation, empathy, and handling difficult situations are highly valued in guest experience and hotel operations.",     keyStrength: "Service orientation",         roles: ["Guest Relations Officer", "Front Office Supervisor", "Hospitality Operations Manager"] },
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 78, scoreDriver: "pw",  reason: "Coaching and communication skills from BPO team leadership translate well to corporate training and instructional design.",       keyStrength: "Coaching and facilitation",   roles: ["Corporate Trainer", "L&D Specialist", "Instructional Designer"] },
+  ],
+  "Healthcare / Medical": [
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 86, scoreDriver: "pw",  reason: "Subject matter expertise and patient communication skills position you as a health sciences educator or clinical trainer.",       keyStrength: "Knowledge transfer",          roles: ["Health Sciences Educator", "Clinical Trainer", "Nursing Instructor"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 82, scoreDriver: "cf", reason: "Public health knowledge and community service commitment align with public health officer and policy analyst roles.",         keyStrength: "Public service commitment",   roles: ["Public Health Officer", "Health Policy Analyst", "DOH Programme Officer"] },
+    { industry: "Human Resources",       emoji: "👥", baseMatch: 79, scoreDriver: "pw",  reason: "Healthcare professionals excel in occupational health, corporate wellness programmes, and employee assistance roles.",            keyStrength: "Wellness and wellbeing",      roles: ["Occupational Health Officer", "Corporate Wellness Manager", "HR Generalist"] },
+    { industry: "Legal & Compliance",    emoji: "⚖️", baseMatch: 76, scoreDriver: "ct",  reason: "Clinical judgment and documentation skills transfer to healthcare compliance, medical-legal consulting, and regulatory affairs.", keyStrength: "Regulatory knowledge",        roles: ["Healthcare Compliance Officer", "Medical-Legal Consultant", "Regulatory Affairs Specialist"] },
+  ],
+  "Finance / Banking": [
+    { industry: "Legal & Compliance",    emoji: "⚖️", baseMatch: 89, scoreDriver: "ct",  reason: "Financial compliance knowledge and analytical precision are directly transferable to corporate law and regulatory advisory.",       keyStrength: "Regulatory precision",        roles: ["Compliance Officer", "Legal Analyst", "Contracts Specialist"] },
+    { industry: "Real Estate & Construction", emoji: "🏗️", baseMatch: 84, scoreDriver: "ke", reason: "Property valuation and mortgage analysis are natural extensions of your financial modelling and credit assessment skills.",   keyStrength: "Valuation expertise",         roles: ["Property Investment Analyst", "Mortgage Specialist", "Real Estate Finance Manager"] },
+    { industry: "Technology / IT",       emoji: "💻", baseMatch: 81, scoreDriver: "air", reason: "FinTech is booming — your domain knowledge combined with AI readiness makes you a strong fit for digital banking roles.",         keyStrength: "Domain + digital skills",     roles: ["FinTech Product Manager", "Digital Banking Analyst", "Financial Systems Consultant"] },
+    { industry: "Human Resources",       emoji: "👥", baseMatch: 77, scoreDriver: "pw",  reason: "Compensation design, payroll systems, and workforce cost modelling draw heavily on financial analysis skills.",                  keyStrength: "Analytical application",      roles: ["Compensation & Benefits Specialist", "Payroll Manager", "HR Finance Partner"] },
+  ],
+  "Marketing / Advertising": [
+    { industry: "Media & Entertainment", emoji: "🎬", baseMatch: 91, scoreDriver: "pw",  reason: "Storytelling, audience analysis, and creative campaign skills are core competencies in content production and entertainment marketing.", keyStrength: "Creative storytelling",    roles: ["Content Producer", "Media Planner", "Entertainment Marketing Manager"] },
+    { industry: "Retail & E-commerce",   emoji: "🛒", baseMatch: 87, scoreDriver: "ke",  reason: "Performance marketing, growth hacking, and conversion optimisation are direct applications of your digital marketing skills.",    keyStrength: "Performance marketing",       roles: ["E-commerce Growth Manager", "Performance Marketing Lead", "Category Manager"] },
+    { industry: "Human Resources",       emoji: "👥", baseMatch: 79, scoreDriver: "pw",  reason: "Employer branding, recruitment marketing, and internal communications are HR functions that leverage marketing expertise.",        keyStrength: "Brand communication",         roles: ["Employer Brand Specialist", "Recruitment Marketing Manager", "Internal Comms Lead"] },
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 76, scoreDriver: "cf",  reason: "Curriculum design, e-learning content creation, and learning experience design draw on the same audience-centric thinking.",     keyStrength: "Audience engagement",         roles: ["E-Learning Content Developer", "Training Programme Designer", "EdTech Product Manager"] },
+  ],
+  "Real Estate & Construction": [
+    { industry: "Finance / Banking",     emoji: "🏦", baseMatch: 87, scoreDriver: "ke",  reason: "Real estate finance, property-backed lending, and investment fund management leverage your project valuation and risk skills.",    keyStrength: "Asset valuation",             roles: ["Real Estate Investment Analyst", "Mortgage Specialist", "REIT Fund Manager"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 83, scoreDriver: "cf", reason: "Urban planning, infrastructure development, and housing regulatory bodies seek professionals with property development backgrounds.", keyStrength: "Infrastructure knowledge", roles: ["Urban Planner", "Infrastructure Programme Officer", "Housing Regulatory Officer"] },
+    { industry: "Architecture & Urban Planning", emoji: "🏙️", baseMatch: 81, scoreDriver: "ke", reason: "Construction project management and technical expertise complement architecture firms seeking business-savvy professionals.", keyStrength: "Technical project management", roles: ["Project Manager", "Construction Consultant", "BIM Coordinator"] },
+    { industry: "Logistics & Transportation", emoji: "🚚", baseMatch: 75, scoreDriver: "ct", reason: "Supply chain coordination, procurement, and facility management draw on similar analytical and operational skills.", keyStrength: "Operations management",        roles: ["Facilities Manager", "Procurement Manager", "Supply Chain Coordinator"] },
+  ],
+  "Manufacturing & Engineering": [
+    { industry: "Logistics & Transportation", emoji: "🚚", baseMatch: 88, scoreDriver: "ke", reason: "Supply chain management, warehouse operations, and production planning are direct extensions of your manufacturing expertise.", keyStrength: "Process engineering",         roles: ["Supply Chain Manager", "Production Planning Manager", "Warehouse Operations Lead"] },
+    { industry: "Real Estate & Construction", emoji: "🏗️", baseMatch: 84, scoreDriver: "ke", reason: "Civil, structural, and mechanical engineering skills translate well to construction project management and technical advisory.", keyStrength: "Engineering fundamentals",    roles: ["Construction Engineer", "Project Manager", "Technical Consultant"] },
+    { industry: "Technology / IT",       emoji: "💻", baseMatch: 80, scoreDriver: "air", reason: "Industrial automation, IoT, and smart manufacturing create demand for engineers who bridge physical operations and digital systems.", keyStrength: "Systems integration",        roles: ["IoT Engineer", "Automation Specialist", "Industrial Data Analyst"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 75, scoreDriver: "cf", reason: "Government agencies in energy, water, and infrastructure regularly recruit experienced manufacturing and industrial engineers.",  keyStrength: "Public infrastructure",      roles: ["Infrastructure Programme Engineer", "Government Technical Officer", "Utilities Engineer"] },
+  ],
+  "Retail & E-commerce": [
+    { industry: "Hospitality & Tourism", emoji: "🏨", baseMatch: 86, scoreDriver: "cf",  reason: "Customer experience leadership, service standards, and revenue optimisation transfer directly to hotel and tourism operations.",    keyStrength: "Customer experience",         roles: ["Guest Experience Manager", "Revenue Manager", "Hospitality Operations Supervisor"] },
+    { industry: "Marketing / Advertising", emoji: "📣", baseMatch: 84, scoreDriver: "pw", reason: "Commercial instincts, consumer behaviour insights, and campaign execution are core skills for brand and digital marketing.",      keyStrength: "Commercial acumen",           roles: ["Brand Manager", "Category Marketing Manager", "Digital Commerce Specialist"] },
+    { industry: "Logistics & Transportation", emoji: "🚚", baseMatch: 82, scoreDriver: "ke", reason: "Supply chain, inventory management, and last-mile delivery are areas where retail expertise creates immediate value.",          keyStrength: "Supply chain operations",     roles: ["Supply Chain Analyst", "Inventory Manager", "Logistics Operations Lead"] },
+    { industry: "Food & Beverage",       emoji: "🍽️", baseMatch: 78, scoreDriver: "cf",  reason: "Multi-unit retail management, franchise operations, and category buying are highly valued in F&B chains and FMCG companies.",    keyStrength: "Multi-unit operations",       roles: ["F&B Operations Manager", "FMCG Category Manager", "Franchise Operations Lead"] },
+  ],
+  "Education & Training": [
+    { industry: "Human Resources",       emoji: "👥", baseMatch: 90, scoreDriver: "pw",  reason: "Learning and development, organisational capability building, and talent programmes extend naturally from your facilitation expertise.", keyStrength: "Learning facilitation",     roles: ["L&D Manager", "Organisational Development Specialist", "Training Programme Manager"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 83, scoreDriver: "cf", reason: "Public education policy, curriculum reform, and government training programmes are areas where educators create systemic impact.", keyStrength: "Educational policy",         roles: ["Education Programme Officer", "Curriculum Policy Analyst", "Government Training Coordinator"] },
+    { industry: "Marketing / Advertising", emoji: "📣", baseMatch: 79, scoreDriver: "pw", reason: "Content creation, audience engagement, and communication skills are directly applicable to content marketing and brand storytelling.", keyStrength: "Content and communication", roles: ["Content Strategist", "Brand Communications Manager", "EdTech Marketing Specialist"] },
+    { industry: "Healthcare / Medical",  emoji: "🏥", baseMatch: 76, scoreDriver: "cf",  reason: "Health education, patient literacy programmes, and clinical staff training are areas where educational expertise drives health outcomes.", keyStrength: "Health communication",      roles: ["Health Educator", "Clinical Training Coordinator", "Patient Advocacy Officer"] },
+  ],
+  "Hospitality & Tourism": [
+    { industry: "Food & Beverage",       emoji: "🍽️", baseMatch: 90, scoreDriver: "ke",  reason: "F&B management, vendor relationships, and menu engineering skills are core competencies for restaurant groups and FMCG companies.", keyStrength: "F&B operations mastery",     roles: ["Restaurant Group Manager", "F&B Operations Director", "FMCG Trade Relations Manager"] },
+    { industry: "Retail & E-commerce",   emoji: "🛒", baseMatch: 85, scoreDriver: "cf",  reason: "Customer experience leadership and upselling expertise from hospitality translate to premium retail and luxury brand management.",  keyStrength: "Premium service delivery",    roles: ["Customer Experience Lead", "Luxury Retail Manager", "Brand Experience Specialist"] },
+    { industry: "Marketing / Advertising", emoji: "📣", baseMatch: 81, scoreDriver: "pw", reason: "Tourism marketing, destination branding, and event promotion leverage your knowledge of traveller motivations and guest experience.", keyStrength: "Destination marketing",      roles: ["Tourism Marketing Manager", "Events Marketing Specialist", "Brand Experience Designer"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 77, scoreDriver: "cf", reason: "The Department of Tourism and LGUs managing visitor economies value experienced hospitality professionals.",                   keyStrength: "Tourism policy",              roles: ["Tourism Development Officer", "Cultural Heritage Programme Manager", "MICE Coordinator"] },
+  ],
+  "Food & Beverage": [
+    { industry: "Hospitality & Tourism", emoji: "🏨", baseMatch: 89, scoreDriver: "ke",  reason: "F&B management and kitchen leadership skills are directly transferable to hotel dining, resort operations, and premium catering.",  keyStrength: "Culinary operations",         roles: ["Hotel F&B Manager", "Resort Executive Chef", "Catering Operations Lead"] },
+    { industry: "Retail & E-commerce",   emoji: "🛒", baseMatch: 82, scoreDriver: "ke",  reason: "FMCG product development and grocery category management benefit directly from your product and supply chain knowledge.",           keyStrength: "Product and supply knowledge", roles: ["FMCG Product Manager", "Category Buyer", "Food Retail Operations Manager"] },
+    { industry: "Agriculture & Environment", emoji: "🌱", baseMatch: 79, scoreDriver: "cf", reason: "Farm-to-table sourcing, sustainable ingredient procurement, and agri-food supply chains connect F&B to agricultural production.", keyStrength: "Supply chain and sourcing",   roles: ["Agri-food Supply Chain Manager", "Sustainable Sourcing Specialist", "Food Safety Coordinator"] },
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 75, scoreDriver: "pw",  reason: "Culinary arts education, food safety training, and hospitality curriculum development are growing fields for F&B professionals.",   keyStrength: "Knowledge transfer",          roles: ["Culinary Arts Instructor", "Food Safety Trainer", "Hospitality Academy Manager"] },
+  ],
+  "Creative Arts & Design": [
+    { industry: "Marketing / Advertising", emoji: "📣", baseMatch: 92, scoreDriver: "pw", reason: "Visual communication, brand identity, and audience engagement are the foundation of effective advertising and content campaigns.",  keyStrength: "Visual communication",        roles: ["Creative Director", "Brand Designer", "Art Director"] },
+    { industry: "Media & Entertainment", emoji: "🎬", baseMatch: 88, scoreDriver: "ke",  reason: "Motion design, digital storytelling, and production design translate to film, broadcast, gaming, and streaming content creation.",  keyStrength: "Digital storytelling",        roles: ["Motion Designer", "Production Designer", "Digital Content Creator"] },
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 80, scoreDriver: "cf",  reason: "E-learning design, visual curriculum development, and instructional media creation leverage your design skills to improve learning.", keyStrength: "Visual learning design",      roles: ["Instructional Designer", "E-Learning Media Developer", "Educational Content Creator"] },
+    { industry: "Architecture & Urban Planning", emoji: "🏙️", baseMatch: 77, scoreDriver: "ke", reason: "Spatial design thinking and 3D visualisation bridge design practice with interior design and urban design projects.",        keyStrength: "Spatial design thinking",     roles: ["Interior Designer", "Spatial Experience Designer", "Urban Design Consultant"] },
+  ],
+  "Logistics & Transportation": [
+    { industry: "Manufacturing & Engineering", emoji: "🏭", baseMatch: 87, scoreDriver: "ke", reason: "Supply chain coordination, materials management, and scheduling are tightly integrated with manufacturing and benefit from logistics expertise.", keyStrength: "Supply chain integration", roles: ["Production Planning Manager", "Materials Manager", "Operations Director"] },
+    { industry: "Retail & E-commerce",   emoji: "🛒", baseMatch: 84, scoreDriver: "ke",  reason: "Last-mile delivery, fulfilment centre operations, and inventory optimisation are critical retail functions logistics professionals lead.", keyStrength: "Fulfilment expertise",       roles: ["E-commerce Logistics Manager", "Fulfilment Operations Lead", "Inventory Optimisation Specialist"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 79, scoreDriver: "cf", reason: "Infrastructure programme management, port authority operations, and government procurement benefit from logistics professionals.", keyStrength: "Infrastructure operations",  roles: ["Infrastructure Programme Manager", "Port Operations Officer", "Government Procurement Specialist"] },
+    { industry: "Technology / IT",       emoji: "💻", baseMatch: 76, scoreDriver: "air", reason: "Logistics technology, route optimisation, and supply chain digitalisation create demand for tech-savvy operations professionals.",    keyStrength: "Operations technology",       roles: ["Logistics Tech Product Manager", "Supply Chain Systems Analyst", "TMS Implementation Specialist"] },
+  ],
+  "Telecommunications": [
+    { industry: "Technology / IT",       emoji: "💻", baseMatch: 91, scoreDriver: "ke",  reason: "Network engineering, cloud infrastructure, and systems architecture skills from telco apply broadly across the technology industry.", keyStrength: "Infrastructure expertise",   roles: ["Cloud Infrastructure Engineer", "Systems Architect", "Network Security Specialist"] },
+    { industry: "Media & Entertainment", emoji: "🎬", baseMatch: 83, scoreDriver: "air", reason: "Streaming infrastructure, content delivery networks, and digital platform management are natural extensions for telco professionals.", keyStrength: "Digital delivery platforms", roles: ["CDN Platform Engineer", "Streaming Operations Manager", "Digital Platform Product Manager"] },
+    { industry: "Finance / Banking",     emoji: "🏦", baseMatch: 79, scoreDriver: "ct",  reason: "Digital banking infrastructure, payment gateway systems, and financial data networks draw on your architecture and security expertise.", keyStrength: "Secure infrastructure",      roles: ["Digital Banking Infrastructure Lead", "Payment Systems Engineer", "FinTech Security Architect"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 75, scoreDriver: "cf", reason: "National broadband programmes, e-government digital infrastructure, and regulatory agencies seek experienced telco professionals.", keyStrength: "Regulatory and policy expertise", roles: ["ICT Programme Officer", "Digital Infrastructure Policy Analyst", "Regulatory Affairs Specialist"] },
+  ],
+  "Media & Entertainment": [
+    { industry: "Marketing / Advertising", emoji: "📣", baseMatch: 91, scoreDriver: "pw", reason: "Content production, audience analysis, and distribution strategy are core competencies in brand communications and digital marketing.", keyStrength: "Content and audience expertise", roles: ["Brand Content Manager", "Digital Marketing Director", "Influencer Marketing Lead"] },
+    { industry: "Creative Arts & Design", emoji: "🎨", baseMatch: 86, scoreDriver: "ke",  reason: "Visual storytelling, art direction, and digital content creation connect media professionals to creative studios and design agencies.", keyStrength: "Visual storytelling",        roles: ["Creative Director", "Art Director", "Content Studio Manager"] },
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 80, scoreDriver: "cf",  reason: "Media literacy education, digital communications training, and journalism schools value practitioners who transfer industry knowledge.", keyStrength: "Industry knowledge transfer", roles: ["Media Studies Educator", "Communications Trainer", "Digital Journalism Instructor"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 76, scoreDriver: "cf", reason: "Government communications offices, public information bureaus, and national broadcasters seek experienced media professionals.",   keyStrength: "Public communications",       roles: ["Government Communications Officer", "Public Affairs Specialist", "National Media Liaison"] },
+  ],
+  "Human Resources": [
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 90, scoreDriver: "pw",  reason: "Learning design, facilitation, and capability building are natural extensions of your L&D and talent development expertise.",         keyStrength: "Learning and facilitation",   roles: ["Corporate Learning Manager", "Instructional Designer", "Organisational Development Consultant"] },
+    { industry: "Finance / Banking",     emoji: "🏦", baseMatch: 82, scoreDriver: "ct",  reason: "Compensation analytics, workforce costing, and HR technology implementation benefit from strong analytical and data-driven approaches.", keyStrength: "HR analytics",               roles: ["Compensation & Benefits Manager", "Workforce Analytics Lead", "HR Technology Consultant"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 80, scoreDriver: "cf", reason: "Civil service HR, workforce planning for government agencies, and labour relations regulatory bodies value experienced HR professionals.", keyStrength: "Labour relations expertise", roles: ["Civil Service HR Manager", "Labour Relations Officer", "Workforce Planning Specialist"] },
+    { industry: "BPO / Call Center",     emoji: "📞", baseMatch: 78, scoreDriver: "pw",  reason: "People management at scale, performance coaching, and workforce optimisation in BPO require the same strategic HR skills you have.", keyStrength: "Large-scale people management", roles: ["HR Operations Manager", "Talent Management Lead", "Workforce Planning Manager"] },
+  ],
+  "Government & Public Sector": [
+    { industry: "Legal & Compliance",    emoji: "⚖️", baseMatch: 87, scoreDriver: "ct",  reason: "Government policy work, legislative drafting, and regulatory implementation align with corporate compliance and legal advisory roles.", keyStrength: "Policy and regulatory knowledge", roles: ["Compliance Manager", "Regulatory Affairs Specialist", "Policy Consultant"] },
+    { industry: "Human Resources",       emoji: "👥", baseMatch: 83, scoreDriver: "pw",  reason: "Civil service HR management, workforce planning, and public sector OD translate well to corporate HR leadership.",                    keyStrength: "Public sector HR expertise",  roles: ["HR Manager", "Organisational Development Lead", "Talent Strategy Consultant"] },
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 80, scoreDriver: "cf",  reason: "Programme development, community engagement, and training design skills from government are valued in education and non-profit sectors.", keyStrength: "Programme development",      roles: ["Programme Manager", "Community Development Officer", "Training Specialist"] },
+    { industry: "Finance / Banking",     emoji: "🏦", baseMatch: 76, scoreDriver: "ct",  reason: "Budget management, procurement oversight, and fiscal policy experience from government translate to financial planning and treasury roles.", keyStrength: "Budget and fiscal management", roles: ["Budget Planning Manager", "Treasury Analyst", "Financial Compliance Officer"] },
+  ],
+  "Agriculture & Environment": [
+    { industry: "Food & Beverage",       emoji: "🍽️", baseMatch: 88, scoreDriver: "ke",  reason: "Agricultural supply chains, food safety standards, and raw material sourcing are critical F&B functions that agronomists understand deeply.", keyStrength: "Agri-food supply expertise", roles: ["Agri-food Supply Manager", "Food Safety Officer", "Sustainable Sourcing Lead"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 84, scoreDriver: "cf", reason: "Environmental compliance, conservation programme management, and agricultural extension services are core government functions.",     keyStrength: "Conservation and policy",    roles: ["Environmental Programme Officer", "Agricultural Extension Specialist", "Conservation Policy Analyst"] },
+    { industry: "Real Estate & Construction", emoji: "🏗️", baseMatch: 79, scoreDriver: "ke", reason: "Environmental impact assessment, land use planning, and green building compliance draw on environmental science expertise.",          keyStrength: "Environmental assessment",   roles: ["Environmental Impact Assessor", "Land Use Planner", "Green Building Consultant"] },
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 75, scoreDriver: "pw",  reason: "Agricultural education, environmental awareness programmes, and sustainability training are growing areas where field expertise creates impact.", keyStrength: "Field expertise transfer",  roles: ["Agricultural Educator", "Environmental Trainer", "Sustainability Programme Manager"] },
+  ],
+  "Legal & Compliance": [
+    { industry: "Finance / Banking",     emoji: "🏦", baseMatch: 91, scoreDriver: "ke",  reason: "Financial compliance, AML/KYC frameworks, and banking legal advisory are the highest-demand legal specialisations in the PH market.", keyStrength: "Financial regulatory expertise", roles: ["Bank Compliance Manager", "AML Specialist", "Financial Legal Counsel"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 87, scoreDriver: "ct", reason: "Legislative and regulatory work, policy drafting, and government legal advisory are natural career paths for legal professionals.", keyStrength: "Regulatory and legislative expertise", roles: ["Government Legal Officer", "Policy Analyst", "Legislative Consultant"] },
+    { industry: "Human Resources",       emoji: "👥", baseMatch: 83, scoreDriver: "pw",  reason: "Labour law expertise, employment compliance, and HR legal advisory are critical HR functions where legal professionals create value.",   keyStrength: "Labour law expertise",        roles: ["HR Legal Advisor", "Employment Compliance Manager", "Labour Relations Specialist"] },
+    { industry: "Real Estate & Construction", emoji: "🏗️", baseMatch: 79, scoreDriver: "ke", reason: "Property law, contract negotiation, and real estate transaction advisory are specialised legal areas with strong PH demand.",       keyStrength: "Property and contract law",   roles: ["Real Estate Lawyer", "Contract Specialist", "Property Transactions Advisor"] },
+  ],
+  "Architecture & Urban Planning": [
+    { industry: "Real Estate & Construction", emoji: "🏗️", baseMatch: 93, scoreDriver: "ke", reason: "Design and planning expertise is directly applicable to property development, construction project management, and technical advisory.", keyStrength: "Design and construction expertise", roles: ["Project Manager", "Development Consultant", "Construction Manager"] },
+    { industry: "Government & Public Sector", emoji: "🏛️", baseMatch: 87, scoreDriver: "cf", reason: "Urban planning, housing policy, and city infrastructure development are core government functions that rely on licensed architects.", keyStrength: "Urban policy expertise",      roles: ["Urban Planner", "Housing Programme Officer", "City Infrastructure Lead"] },
+    { industry: "Creative Arts & Design", emoji: "🎨", baseMatch: 82, scoreDriver: "pw",  reason: "Spatial design thinking and visualisation skills bridge architecture with interior design, brand environments, and experiential design.", keyStrength: "Spatial design thinking",    roles: ["Interior Designer", "Brand Environment Designer", "Experiential Design Lead"] },
+    { industry: "Education & Training",  emoji: "📚", baseMatch: 78, scoreDriver: "pw",  reason: "Architecture education and urban design studios benefit from licensed practitioners who bring real-world project experience.",            keyStrength: "Professional practice knowledge", roles: ["Architecture Instructor", "Urban Design Educator", "Built Environment Programme Coordinator"] },
+  ],
+};
+
+function getExpansionSuggestions(scores: typeof SAMPLE_SCORES, industry: string) {
+  const entries = CAREER_EXPANSION[industry] ?? CAREER_EXPANSION["Technology / IT"];
+  const scoreMap: Record<string, number> = {};
+  scores.forEach(s => { scoreMap[s.key] = s.score; });
+  return entries
+    .map(e => {
+      const driverScore = scoreMap[e.scoreDriver] ?? 70;
+      const adj = driverScore >= 80 ? 6 : driverScore >= 65 ? 0 : -6;
+      return { ...e, match: Math.min(99, Math.max(60, e.baseMatch + adj)) };
+    })
+    .sort((a, b) => b.match - a.match);
+}
 
 /* ══════════════════════════════════════════════════════
    HELPERS
@@ -326,6 +470,85 @@ function ApplicantReport({ locked }: { locked: boolean }) {
           </div>
         </div>
       </LockOverlay>
+
+      {/* ── Career Expansion ── */}
+      {(() => {
+        const suggestions = getExpansionSuggestions(SAMPLE_SCORES, app.industry);
+        return (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 pt-4 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 mb-0.5">
+                <Compass className="w-4 h-4 text-accent" />
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Career Expansion</p>
+              </div>
+              <p className="text-sm font-bold text-primary">Other Industries You Could Thrive In</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Based on your assessment profile — your strongest scores and transferable skills point to strong crossover in these industries.
+              </p>
+            </div>
+            <div className="p-5 grid sm:grid-cols-2 gap-4">
+              {suggestions.map(s => (
+                <div
+                  key={s.industry}
+                  className="border border-slate-200 rounded-xl p-4 space-y-3 hover:border-primary/30 hover:bg-primary/[0.02] transition-all"
+                >
+                  {/* Header row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl leading-none">{s.emoji}</span>
+                      <div>
+                        <p className="font-bold text-slate-800 text-sm leading-tight">{s.industry}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{s.keyStrength}</p>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "shrink-0 text-xs font-bold px-2.5 py-1 rounded-full",
+                      s.match >= 88 ? "bg-emerald-100 text-emerald-700" :
+                      s.match >= 78 ? "bg-blue-100 text-blue-700" :
+                                      "bg-amber-100 text-amber-700"
+                    )}>
+                      {s.match}% match
+                    </span>
+                  </div>
+
+                  {/* Reason */}
+                  <p className="text-xs text-slate-600 leading-relaxed">{s.reason}</p>
+
+                  {/* Score driver pill */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Driven by</span>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide",
+                      s.scoreDriver === "ke"  ? "bg-blue-100 text-blue-700" :
+                      s.scoreDriver === "pw"  ? "bg-violet-100 text-violet-700" :
+                      s.scoreDriver === "cf"  ? "bg-orange-100 text-orange-700" :
+                      s.scoreDriver === "ct"  ? "bg-cyan-100 text-cyan-700" :
+                                                "bg-green-100 text-green-700"
+                    )}>
+                      {s.scoreDriver === "ke" ? "Knowledge & Expertise" :
+                       s.scoreDriver === "pw" ? "Personality & Work Style" :
+                       s.scoreDriver === "cf" ? "Cultural Fit" :
+                       s.scoreDriver === "ct" ? "Critical Thinking" : "AI Readiness"}
+                    </span>
+                  </div>
+
+                  {/* Roles to explore */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Roles to explore</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {s.roles.map(r => (
+                        <span key={r} className="text-[11px] px-2.5 py-0.5 bg-primary/8 text-primary rounded-full font-medium">
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
