@@ -93,6 +93,60 @@ router.get("/", async (req, res) => {
   }
 });
 
+/* ── DELETE /jobs/demo  (admin only) ──────────────────
+ * Wipes all sample/placeholder job listings.
+ * Auth: header  x-admin-token: <SM_ADMIN_TOKEN>
+ *
+ * The auto-hide logic in GET /jobs already removes demos from public view
+ * once any real employer posts a job, so this endpoint is only needed if
+ * you want to permanently remove the placeholders from the database.
+ */
+router.delete("/demo", async (req, res) => {
+  const adminToken = process.env["SM_ADMIN_TOKEN"];
+  if (!adminToken) {
+    res.status(503).json({ error: "Admin token not configured. Set SM_ADMIN_TOKEN in your environment secrets." });
+    return;
+  }
+  const provided = req.headers["x-admin-token"];
+  if (provided !== adminToken) {
+    res.status(401).json({ error: "Unauthorized." });
+    return;
+  }
+  try {
+    const deleted = await db.delete(jobsTable).where(eq(jobsTable.isDemo, true)).returning({ id: jobsTable.id });
+    req.log.info({ count: deleted.length }, "Demo jobs deleted by admin");
+    res.json({ deleted: deleted.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete demo jobs");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/* ── GET /jobs/demo/count  (admin only) ───────────────
+ * Returns how many demo (sample) listings remain. Useful for the admin
+ * dashboard or to confirm cleanup before/after calling DELETE /jobs/demo.
+ */
+router.get("/demo/count", async (req, res) => {
+  const adminToken = process.env["SM_ADMIN_TOKEN"];
+  if (!adminToken) {
+    res.status(503).json({ error: "Admin token not configured. Set SM_ADMIN_TOKEN in your environment secrets." });
+    return;
+  }
+  const provided = req.headers["x-admin-token"];
+  if (provided !== adminToken) {
+    res.status(401).json({ error: "Unauthorized." });
+    return;
+  }
+  try {
+    const demos = await db.select({ id: jobsTable.id }).from(jobsTable).where(eq(jobsTable.isDemo, true));
+    const reals = await db.select({ id: jobsTable.id }).from(jobsTable).where(eq(jobsTable.isDemo, false));
+    res.json({ demoCount: demos.length, realCount: reals.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to count demo jobs");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   const params = GetJobParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
