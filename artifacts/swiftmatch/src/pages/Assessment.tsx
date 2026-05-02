@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useListAssessments, useSubmitAssessment } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { isOwnerEmail } from "@/lib/owner";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, ChevronRight, Video, ClipboardList, Brain,
@@ -43,6 +45,8 @@ const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> 
 };
 
 export default function AssessmentCenter() {
+  const { user } = useAuth();
+  const cooldownBypassed = isOwnerEmail(user?.email);
   const applicantId = Number(localStorage.getItem("sm_applicant_id") || "0") || null;
   const storedIndustry = applicantId ? localStorage.getItem(`sm_ke_industry_${applicantId}`) ?? "" : "";
   const storedRole = storedIndustry && applicantId
@@ -385,7 +389,7 @@ export default function AssessmentCenter() {
                           <div className="flex items-center gap-1.5 text-green-600 font-semibold text-sm">
                             <CheckCircle className="w-4 h-4" /> Done
                           </div>
-                          {result && canRetake(result) ? (
+                          {result && (cooldownBypassed || canRetake(result)) ? (
                             <button
                               onClick={() => {
                                 if (isKE) setShowKEQuiz(true);

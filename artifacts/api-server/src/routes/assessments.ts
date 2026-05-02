@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, assessmentsTable, assessmentResultsTable } from "@workspace/db";
+import { db, assessmentsTable, assessmentResultsTable, applicantsTable } from "@workspace/db";
 import { eq, asc, and, desc } from "drizzle-orm";
 import { pickQuiz, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
 import {
@@ -10,6 +10,21 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+// ── Emails that are never subject to the retake cooldown ──
+const BYPASS_COOLDOWN_EMAILS = new Set([
+  "jhn.tolentino2012@gmail.com",
+]);
+
+async function isApplicantCooldownBypassed(applicantId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ email: applicantsTable.email })
+    .from(applicantsTable)
+    .where(eq(applicantsTable.id, applicantId))
+    .limit(1);
+  if (!row) return false;
+  return BYPASS_COOLDOWN_EMAILS.has(row.email.trim().toLowerCase());
+}
 
 // ── Retake cooldown helpers ──
 async function getLatestResult(applicantId: number, assessmentId: number) {
@@ -153,10 +168,13 @@ router.post("/ke-quiz/submit", async (req, res) => {
     return;
   }
   try {
-    const latest = await getLatestResult(applicantId, 1);
-    if (latest && isTooSoon(latest.completedAt)) {
-      res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
-      return;
+    const bypassed = await isApplicantCooldownBypassed(applicantId);
+    if (!bypassed) {
+      const latest = await getLatestResult(applicantId, 1);
+      if (latest && isTooSoon(latest.completedAt)) {
+        res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
+        return;
+      }
     }
     const passed = score >= 60;
     const feedback = passed
@@ -187,10 +205,13 @@ router.post("/personality/submit", async (req, res) => {
     return;
   }
   try {
-    const latest = await getLatestResult(applicantId, 2);
-    if (latest && isTooSoon(latest.completedAt)) {
-      res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
-      return;
+    const bypassed = await isApplicantCooldownBypassed(applicantId);
+    if (!bypassed) {
+      const latest = await getLatestResult(applicantId, 2);
+      if (latest && isTooSoon(latest.completedAt)) {
+        res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
+        return;
+      }
     }
     const framework = tier === "leadership" ? "Myers-Briggs (MBTI)" : "DOPE Bird Test";
     const [saved] = await db.insert(assessmentResultsTable).values({
@@ -248,10 +269,13 @@ router.post("/:id/submit", async (req, res) => {
       return;
     }
 
-    const latest = await getLatestResult(parsed.data.applicantId, params.data.id);
-    if (latest && isTooSoon(latest.completedAt)) {
-      res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
-      return;
+    const bypassed = await isApplicantCooldownBypassed(parsed.data.applicantId);
+    if (!bypassed) {
+      const latest = await getLatestResult(parsed.data.applicantId, params.data.id);
+      if (latest && isTooSoon(latest.completedAt)) {
+        res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
+        return;
+      }
     }
 
     const questions = assessment.questions as Array<{ id: number; type: string }>;
