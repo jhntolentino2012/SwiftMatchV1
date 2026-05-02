@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { isOwnerEmail } from "@/lib/owner";
 import {
-  Lock, Crown, ChevronRight, User, Building2,
+  Lock, Crown, ChevronLeft, ChevronRight, User, Building2,
   FileText, Award, TrendingUp, Calendar, Download, Compass,
   ClipboardList, UserCircle,
 } from "lucide-react";
@@ -670,7 +670,93 @@ function ApplicantReport({
 /* ══════════════════════════════════════════════════════
    EMPLOYER REPORT
 ══════════════════════════════════════════════════════ */
-function EmployerReport({ locked }: { locked: boolean }) {
+interface CandidateRow {
+  id: number;
+  name: string; email: string; industry: string; role: string; level: string; date: string;
+  scores: ScoreItem[];
+  overall: number;
+}
+
+function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boolean }) {
+  const [candidates, setCandidates] = useState<CandidateRow[]>([]);
+  const [loadingPool, setLoadingPool] = useState(true);
+  const [selected, setSelected]       = useState<CandidateRow | null>(null);
+  const [loadingReport, setLoadingReport] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("sm_auth_token");
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+    fetch(`${BASE_URL}/api/applicants`, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(async (applicants: any[]) => {
+        const rows: CandidateRow[] = await Promise.all(
+          applicants.map(async (app) => {
+            const results: { assessmentTitle: string; score: number }[] =
+              await fetch(`${BASE_URL}/api/assessments/applicant/${app.id}/results`, { headers })
+                .then(r => r.ok ? r.json() : []).catch(() => []);
+            const scores = mapResultsToScores(results);
+            const taken  = scores.filter(s => s.taken && s.score > 0);
+            const overall = taken.length > 0
+              ? Math.round(taken.reduce((sum, s) => sum + s.score, 0) / taken.length)
+              : 0;
+            const fullName = [app.firstName, app.lastName].filter(Boolean).join(" ");
+            return {
+              id: app.id,
+              name: fullName || app.email,
+              email: app.email,
+              industry: app.targetIndustry ?? "—",
+              role: app.targetRole ?? "—",
+              level: app.careerLevel ?? "—",
+              date: new Date(app.createdAt).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" }),
+              scores,
+              overall,
+            };
+          })
+        );
+        rows.sort((a, b) => b.overall - a.overall);
+        setCandidates(rows);
+        setLoadingPool(false);
+      })
+      .catch(() => setLoadingPool(false));
+  }, []);
+
+  const scored   = candidates.filter(c => c.overall > 0);
+  const avgScore = scored.length > 0
+    ? Math.round(scored.reduce((s, c) => s + c.overall, 0) / scored.length)
+    : 0;
+
+  const COLORS = ["#1d4ed8","#7c3aed","#ea580c","#0891b2","#16a34a"];
+
+  /* ── Drill-down: selected applicant's full report ── */
+  if (selected) {
+    const hasResults = selected.scores.some(s => s.taken);
+    return (
+      <div className="space-y-5">
+        {/* Back bar */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSelected(null)}
+            className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" /> Back to Candidate Pool
+          </button>
+          <div className="flex-1 h-px bg-slate-200" />
+          <span className="text-xs text-slate-400">Viewing report for <strong className="text-slate-600">{selected.name}</strong></span>
+        </div>
+
+        <ApplicantReport
+          locked={!isPremium}
+          applicant={{ name: selected.name, email: selected.email, industry: selected.industry, role: selected.role, level: selected.level, date: selected.date }}
+          scores={selected.scores}
+          hasProfile={true}
+          hasResults={hasResults}
+        />
+      </div>
+    );
+  }
+
+  /* ── Pool view ── */
   return (
     <div className="space-y-5">
       {/* Report Header */}
@@ -682,178 +768,181 @@ function EmployerReport({ locked }: { locked: boolean }) {
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <Calendar className="w-3.5 h-3.5" />
-            May 1, 2026
-            <button className="ml-2 flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-medium text-slate-500 hover:border-primary/40 hover:text-primary transition-colors">
-              <Download className="w-3 h-3" /> Export PDF
-            </button>
+            {new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
           </div>
         </div>
-        <div className="px-6 py-4 flex items-center gap-6 border-b border-slate-100">
+        <div className="px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-slate-100">
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-primary">148</p>
+            <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : candidates.length}</p>
             <p className="text-xs text-slate-500">Total Applicants</p>
           </div>
-          <div className="w-px h-10 bg-slate-200" />
+          <div className="w-px h-10 bg-slate-200 hidden sm:block" />
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-primary">77%</p>
+            <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : (avgScore > 0 ? `${avgScore}%` : "—")}</p>
             <p className="text-xs text-slate-500">Avg Score</p>
           </div>
-          <div className="w-px h-10 bg-slate-200" />
+          <div className="w-px h-10 bg-slate-200 hidden sm:block" />
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-primary">12</p>
-            <p className="text-xs text-slate-500">Shortlisted</p>
+            <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : scored.length}</p>
+            <p className="text-xs text-slate-500">Assessed</p>
           </div>
-          <div className="w-px h-10 bg-slate-200" />
+          <div className="w-px h-10 bg-slate-200 hidden sm:block" />
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-primary">5.2d</p>
-            <p className="text-xs text-slate-500">Avg Time-to-Match</p>
-          </div>
-          <div className="w-px h-10 bg-slate-200" />
-          <div className="text-center">
-            <p className="text-2xl font-display font-bold text-primary">87%</p>
-            <p className="text-xs text-slate-500">Retention Forecast</p>
+            <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : (candidates.length - scored.length)}</p>
+            <p className="text-xs text-slate-500">Pending Assessment</p>
           </div>
         </div>
       </div>
 
-      <LockOverlay locked={locked}>
-        {/* Score Distribution Chart */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 pt-4 pb-3 border-b border-slate-100">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Score Distribution</p>
-            <p className="text-sm font-bold text-primary mt-0.5">Candidate Pool — Overall Score Buckets</p>
-          </div>
-          <div className="p-5">
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={EMPLOYER_DIST_DATA} margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="range" tick={{ fontSize: 10, fill: "#94a3b8" }} />
-                <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} allowDecimals={false} />
-                <Tooltip
-                  formatter={(v: any) => [`${v} candidates`, "Count"]}
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                  {EMPLOYER_DIST_DATA.map((entry, i) => (
-                    <Cell key={i} fill={i <= 1 ? "#1d4ed8" : i <= 3 ? "#60a5fa" : "#cbd5e1"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      {loadingPool ? (
+        <div className="flex items-center justify-center py-20 gap-3 text-slate-400 text-sm">
+          <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          Loading candidate pool…
         </div>
-
-        {/* Candidate Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 pt-4 pb-3 border-b border-slate-100">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Top Candidates</p>
-            <p className="text-sm font-bold text-primary mt-0.5">Ranked by Overall Assessment Score</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="text-center px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-12">Rank</th>
-                  <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Applicant</th>
-                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">K&E</th>
-                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">P&W</th>
-                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">C.Fit</th>
-                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">C.Think</th>
-                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">AI.R</th>
-                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Overall</th>
-                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Chart</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {SAMPLE_CANDIDATES.map((c) => {
-                  const scores = [c.ke, c.pw, c.cf, c.ct, c.air];
-                  const colors = ["#1d4ed8","#7c3aed","#ea580c","#0891b2","#16a34a"];
-                  return (
-                    <tr key={c.rank} className={cn("hover:bg-slate-50/50 transition-colors", c.rank === 1 && "bg-blue-50/40")}>
-                      <td className="text-center px-4 py-3.5">
-                        <span className={cn(
-                          "text-sm font-display font-bold",
-                          c.rank === 1 ? "text-primary" : c.rank <= 3 ? "text-slate-600" : "text-slate-400"
-                        )}>
-                          #{c.rank}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                            c.rank === 1 ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
-                          )}>
-                            {c.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-800 text-sm">{c.name}</p>
-                            <p className="text-[10px] text-slate-400">{c.role}</p>
-                          </div>
-                        </div>
-                      </td>
-                      {[c.ke, c.pw, c.cf, c.ct, c.air].map((score, i) => (
-                        <td key={i} className="text-center px-3 py-3.5">
-                          <ScoreBadge score={score} size="sm" />
+      ) : candidates.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 flex flex-col items-center gap-3 text-center">
+          <UserCircle className="w-10 h-10 text-slate-300" />
+          <p className="font-semibold text-slate-500">No applicants yet</p>
+          <p className="text-xs text-slate-400">Applicants who complete their profile will appear here.</p>
+        </div>
+      ) : (
+        <LockOverlay locked={locked}>
+          {/* Candidate Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 pt-4 pb-3 border-b border-slate-100">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Candidate Pool</p>
+              <p className="text-sm font-bold text-primary mt-0.5">Ranked by Overall Assessment Score · Click any row to view full report</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    <th className="text-center px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-12">Rank</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Applicant</th>
+                    <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">K&E</th>
+                    <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">P&W</th>
+                    <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">C.Fit</th>
+                    <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">C.Think</th>
+                    <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">AI.R</th>
+                    <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Overall</th>
+                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-32">Profile</th>
+                    <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-28"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {candidates.map((c, idx) => {
+                    const rank = idx + 1;
+                    const scoreVals = c.scores.map(s => s.score);
+                    return (
+                      <tr
+                        key={c.id}
+                        className={cn(
+                          "hover:bg-primary/[0.03] transition-colors cursor-pointer",
+                          rank === 1 && "bg-blue-50/40"
+                        )}
+                        onClick={() => { if (!locked) setSelected(c); }}
+                      >
+                        <td className="text-center px-4 py-3.5">
+                          <span className={cn(
+                            "text-sm font-display font-bold",
+                            rank === 1 ? "text-primary" : rank <= 3 ? "text-slate-600" : "text-slate-400"
+                          )}>#{rank}</span>
                         </td>
-                      ))}
-                      <td className="text-center px-3 py-3.5">
-                        <ScoreBadge score={c.overall} size="md" />
-                      </td>
-                      <td className="px-4 py-3.5 w-32">
-                        <div className="space-y-0.5">
-                          {scores.map((score, i) => (
-                            <div key={i} className="flex items-center gap-1">
-                              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{ width: `${score}%`, backgroundColor: colors[i] }}
-                                />
-                              </div>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                              rank === 1 ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
+                            )}>
+                              {c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                             </div>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            <div>
+                              <p className="font-semibold text-slate-800 text-sm leading-tight">{c.name}</p>
+                              <p className="text-[10px] text-slate-400 truncate max-w-[140px]">{c.role !== "—" ? c.role : c.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        {c.scores.map((s, i) => (
+                          <td key={i} className="text-center px-3 py-3.5">
+                            {s.taken ? <ScoreBadge score={s.score} size="sm" /> : <span className="text-xs text-slate-300">—</span>}
+                          </td>
+                        ))}
+                        <td className="text-center px-3 py-3.5">
+                          {c.overall > 0 ? <ScoreBadge score={c.overall} size="md" /> : <span className="text-xs text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3.5 w-32">
+                          <div className="space-y-0.5">
+                            {scoreVals.map((score, i) => (
+                              <div key={i} className="flex items-center gap-1">
+                                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ width: `${score}%`, backgroundColor: COLORS[i] }} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <button
+                            onClick={e => { e.stopPropagation(); if (!locked) setSelected(c); }}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                              locked
+                                ? "text-slate-300 border border-slate-100 cursor-not-allowed"
+                                : "text-primary border border-primary/30 hover:bg-primary/5"
+                            )}
+                          >
+                            <User className="w-3 h-3" /> View Report
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100">
+              <p className="text-xs text-slate-400">K&E = Knowledge & Expertise · P&W = Personality & Work Style · C.Fit = Cultural Fit · C.Think = Critical Thinking · AI.R = AI Readiness</p>
+            </div>
           </div>
-          <div className="px-5 py-3 bg-slate-50 border-t border-slate-100">
-            <p className="text-xs text-slate-400">Columns: K&E = Knowledge & Expertise · P&W = Personality & Work Style · C.Fit = Cultural Fit · C.Think = Critical Thinking · AI.R = AI Readiness</p>
-          </div>
-        </div>
 
-        {/* Category Radar for all candidates */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 pt-4 pb-3 border-b border-slate-100">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Category Analysis</p>
-            <p className="text-sm font-bold text-primary mt-0.5">Pool Average vs Top Candidate — Radar Comparison</p>
-          </div>
-          <div className="p-5">
-            <ResponsiveContainer width="100%" height={260}>
-              <RadarChart
-                cx="50%" cy="50%" outerRadius="72%"
-                data={SAMPLE_SCORES.map(s => ({
-                  subject: s.short,
-                  "Top Candidate": s.score,
-                  "Pool Average": Math.round(s.score * 0.85 + 0),
-                  fullMark: 100,
-                }))}
-              >
-                <PolarGrid stroke="#e2e8f0" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontWeight: 600, fill: "#475569" }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9, fill: "#94a3b8" }} tickCount={5} />
-                <Radar name="Top Candidate" dataKey="Top Candidate" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.2} strokeWidth={2} />
-                <Radar name="Pool Average"  dataKey="Pool Average"  stroke="#ea580c" fill="#ea580c" fillOpacity={0.1} strokeWidth={2} strokeDasharray="4 2" />
-                <Tooltip formatter={(v: any) => [`${v}%`]} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </LockOverlay>
+          {/* Radar comparison (top candidate vs pool average) */}
+          {scored.length >= 1 && (() => {
+            const top = candidates[0];
+            const avgScores = SCORE_DEFS.map((def, i) => {
+              const vals = scored.map(c => c.scores[i]?.score ?? 0).filter(v => v > 0);
+              return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+            });
+            return (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 pt-4 pb-3 border-b border-slate-100">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Category Analysis</p>
+                  <p className="text-sm font-bold text-primary mt-0.5">Pool Average vs Top Candidate — Radar Comparison</p>
+                </div>
+                <div className="p-5">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <RadarChart cx="50%" cy="50%" outerRadius="72%"
+                      data={SCORE_DEFS.map((def, i) => ({
+                        subject: def.short,
+                        "Top Candidate": top.scores[i]?.score ?? 0,
+                        "Pool Average": avgScores[i],
+                        fullMark: 100,
+                      }))}
+                    >
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontWeight: 600, fill: "#475569" }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9, fill: "#94a3b8" }} tickCount={5} />
+                      <Radar name="Top Candidate" dataKey="Top Candidate" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.2} strokeWidth={2} />
+                      <Radar name="Pool Average"  dataKey="Pool Average"  stroke="#ea580c" fill="#ea580c" fillOpacity={0.1} strokeWidth={2} strokeDasharray="4 2" />
+                      <Tooltip formatter={(v: any) => [`${v}%`]} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })()}
+        </LockOverlay>
+      )}
     </div>
   );
 }
@@ -982,7 +1071,7 @@ export default function ResultsPage() {
               hasProfile={hasProfile}
               hasResults={hasResults}
             />
-          : <EmployerReport locked={!isPremium} />
+          : <EmployerReport locked={!isPremium} isPremium={isPremium} />
         }
 
         {/* Free tier footer */}
