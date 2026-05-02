@@ -468,6 +468,14 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
     }
   }, [applicantId]);
 
+  // Auto-load questions when component starts directly in quiz phase (e.g. after page refresh)
+  useEffect(() => {
+    if (phase === "quiz" && questions.length === 0 && industry && role && !loading) {
+      loadQuiz(industry, role);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function selectIndustry(ind: string) {
     setIndustry(ind);
     setRole("");
