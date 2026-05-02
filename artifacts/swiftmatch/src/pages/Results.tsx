@@ -368,7 +368,7 @@ function CvMatchAnalysis() {
           <Sparkles className="w-4 h-4 text-accent" />
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">AI-Powered</p>
         </div>
-        <p className="text-sm font-bold text-primary">CV vs Assessment Match Analysis</p>
+        <p className="text-sm font-bold text-primary">Match Analysis</p>
         <p className="text-xs text-slate-500 mt-0.5">
           Upload your CV and our AI will compare it against your real assessment scores — identifying confirmed strengths, gaps, and specific career advice.
         </p>
