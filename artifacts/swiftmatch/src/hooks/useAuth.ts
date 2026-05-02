@@ -7,6 +7,7 @@ export interface AuthUser {
   email: string;
   phone: string;
   applicantId: number | null;
+  targetIndustry: string | null;
 }
 
 function getToken() {

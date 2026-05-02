@@ -97,6 +97,7 @@ interface Props {
   applicantId?: number | null;
   initialIndustry?: string;
   initialRole?: string;
+  recommendedIndustry?: string;
   onComplete?: (score: number) => void;
   onBack?: () => void;
 }
@@ -411,7 +412,7 @@ function TypingTestSection({
 /* ══════════════════════════════════════════════════════
    MAIN QUIZ COMPONENT
 ══════════════════════════════════════════════════════ */
-export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRole, onComplete, onBack }: Props) {
+export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRole, recommendedIndustry, onComplete, onBack }: Props) {
   const [phase, setPhase]       = useState<Phase>(
     initialIndustry && initialRole ? "quiz" :
     initialIndustry ? "select-role" : "select-industry"
@@ -576,23 +577,64 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
           </div>
         )}
 
-        {!loading && (
-          <div className="grid sm:grid-cols-2 gap-2">
-            {INDUSTRIES.map(ind => (
-              <button
-                key={ind}
-                onClick={() => selectIndustry(ind)}
-                className={cn(
-                  "text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all",
-                  "border-slate-200 hover:border-primary/50 hover:bg-primary/5 hover:text-primary",
-                  savedIndustry === ind && "border-primary/40 bg-primary/5 text-primary"
-                )}
-              >
-                {ind}
-              </button>
-            ))}
-          </div>
-        )}
+        {!loading && (() => {
+          const otherIndustries = recommendedIndustry
+            ? INDUSTRIES.filter(ind => ind !== recommendedIndustry)
+            : INDUSTRIES;
+
+          return (
+            <>
+              {/* Recommended industry (auto-matched to profile) */}
+              {recommendedIndustry && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Matched to your profile</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold border border-accent/20">Recommended</span>
+                  </div>
+                  <button
+                    onClick={() => selectIndustry(recommendedIndustry)}
+                    className={cn(
+                      "w-full text-left px-5 py-4 rounded-xl border-2 text-sm font-bold transition-all",
+                      "border-primary bg-primary/5 text-primary hover:bg-primary/10",
+                      "flex items-center justify-between gap-3"
+                    )}
+                  >
+                    <span>{recommendedIndustry}</span>
+                    <span className="text-xs font-normal text-primary/70 shrink-0">Start here →</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Catchy divider / disclosure */}
+              {recommendedIndustry && (
+                <div className="relative flex items-center gap-3 py-1">
+                  <div className="flex-1 h-px bg-slate-200" />
+                  <p className="text-xs text-center text-slate-500 font-medium shrink-0 max-w-xs">
+                    Think you'd excel in a different field too? <span className="text-accent font-semibold">Challenge yourself below.</span>
+                  </p>
+                  <div className="flex-1 h-px bg-slate-200" />
+                </div>
+              )}
+
+              {/* Full / remaining industries grid */}
+              <div className="grid sm:grid-cols-2 gap-2">
+                {otherIndustries.map(ind => (
+                  <button
+                    key={ind}
+                    onClick={() => selectIndustry(ind)}
+                    className={cn(
+                      "text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all",
+                      "border-slate-200 hover:border-primary/50 hover:bg-primary/5 hover:text-primary",
+                      savedIndustry === ind && "border-primary/40 bg-primary/5 text-primary"
+                    )}
+                  >
+                    {ind}
+                  </button>
+                ))}
+              </div>
+            </>
+          );
+        })()}
       </div>
     );
   }

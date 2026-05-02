@@ -159,6 +159,7 @@ export default function AssessmentCenter() {
             applicantId={applicantId}
             initialIndustry={storedIndustry || undefined}
             initialRole={storedRole || undefined}
+            recommendedIndustry={user?.targetIndustry || undefined}
             onComplete={async (score: number) => {
               await fetchResults();
               setShowKEQuiz(false);
