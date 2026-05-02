@@ -23,7 +23,9 @@ import type {
   AssessmentSubmission,
   Course,
   CreateApplicantRequest,
+  DeleteDemoJobs200,
   ErrorResponse,
+  GetDemoJobCount200,
   GetSkillSuggestionsParams,
   HealthStatus,
   Job,
@@ -857,6 +859,164 @@ export function useListJobs<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Requires `x-admin-token` header matching the SM_ADMIN_TOKEN environment secret.
+ * @summary Admin: count demo and real jobs
+ */
+export const getGetDemoJobCountUrl = () => {
+  return `/api/jobs/demo/count`;
+};
+
+export const getDemoJobCount = async (
+  options?: RequestInit,
+): Promise<GetDemoJobCount200> => {
+  return customFetch<GetDemoJobCount200>(getGetDemoJobCountUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDemoJobCountQueryKey = () => {
+  return [`/api/jobs/demo/count`] as const;
+};
+
+export const getGetDemoJobCountQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDemoJobCount>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDemoJobCount>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDemoJobCountQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDemoJobCount>>> = ({
+    signal,
+  }) => getDemoJobCount({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDemoJobCount>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDemoJobCountQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDemoJobCount>>
+>;
+export type GetDemoJobCountQueryError = ErrorType<void>;
+
+/**
+ * @summary Admin: count demo and real jobs
+ */
+
+export function useGetDemoJobCount<
+  TData = Awaited<ReturnType<typeof getDemoJobCount>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDemoJobCount>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDemoJobCountQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Requires `x-admin-token` header matching the SM_ADMIN_TOKEN environment secret. Permanently removes all rows where `isDemo = true`.
+ * @summary Admin: wipe all sample/demo job listings
+ */
+export const getDeleteDemoJobsUrl = () => {
+  return `/api/jobs/demo`;
+};
+
+export const deleteDemoJobs = async (
+  options?: RequestInit,
+): Promise<DeleteDemoJobs200> => {
+  return customFetch<DeleteDemoJobs200>(getDeleteDemoJobsUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteDemoJobsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDemoJobs>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDemoJobs>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["deleteDemoJobs"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDemoJobs>>,
+    void
+  > = () => {
+    return deleteDemoJobs(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDemoJobsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDemoJobs>>
+>;
+
+export type DeleteDemoJobsMutationError = ErrorType<void>;
+
+/**
+ * @summary Admin: wipe all sample/demo job listings
+ */
+export const useDeleteDemoJobs = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDemoJobs>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDemoJobs>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteDemoJobsMutationOptions(options));
+};
 
 /**
  * @summary Get job by ID

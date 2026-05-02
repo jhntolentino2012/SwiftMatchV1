@@ -274,6 +274,15 @@ export interface Course {
   url?: string | null;
 }
 
+export type GetDemoJobCount200 = {
+  demoCount: number;
+  realCount: number;
+};
+
+export type DeleteDemoJobs200 = {
+  deleted: number;
+};
+
 export type GetSkillSuggestionsParams = {
   q?: string;
 };

@@ -407,6 +407,31 @@ export const ListJobsResponseItem = zod.object({
 export const ListJobsResponse = zod.array(ListJobsResponseItem);
 
 /**
+ * Requires `x-admin-token` header matching the SM_ADMIN_TOKEN environment secret.
+ * @summary Admin: count demo and real jobs
+ */
+export const GetDemoJobCountHeader = zod.object({
+  "x-admin-token": zod.string(),
+});
+
+export const GetDemoJobCountResponse = zod.object({
+  demoCount: zod.number(),
+  realCount: zod.number(),
+});
+
+/**
+ * Requires `x-admin-token` header matching the SM_ADMIN_TOKEN environment secret. Permanently removes all rows where `isDemo = true`.
+ * @summary Admin: wipe all sample/demo job listings
+ */
+export const DeleteDemoJobsHeader = zod.object({
+  "x-admin-token": zod.string(),
+});
+
+export const DeleteDemoJobsResponse = zod.object({
+  deleted: zod.number(),
+});
+
+/**
  * @summary Get job by ID
  */
 export const GetJobParams = zod.object({

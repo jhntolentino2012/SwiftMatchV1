@@ -218,6 +218,64 @@ paths:
                 items:
                   $ref: "#/components/schemas/Job"
 
+  /jobs/demo/count:
+    get:
+      operationId: getDemoJobCount
+      tags: [jobs]
+      summary: "Admin: count demo and real jobs"
+      description: Requires `x-admin-token` header matching the SM_ADMIN_TOKEN environment secret.
+      parameters:
+        - name: x-admin-token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Counts of demo and real jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  demoCount:
+                    type: integer
+                  realCount:
+                    type: integer
+                required: [demoCount, realCount]
+        "401":
+          description: Unauthorized — missing or wrong admin token
+        "503":
+          description: Admin token not configured on the server
+
+  /jobs/demo:
+    delete:
+      operationId: deleteDemoJobs
+      tags: [jobs]
+      summary: "Admin: wipe all sample/demo job listings"
+      description: Requires `x-admin-token` header matching the SM_ADMIN_TOKEN environment secret. Permanently removes all rows where `isDemo = true`.
+      parameters:
+        - name: x-admin-token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Number of demo jobs deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: integer
+                required: [deleted]
+        "401":
+          description: Unauthorized — missing or wrong admin token
+        "503":
+          description: Admin token not configured on the server
+
   /jobs/{id}:
     get:
       operationId: getJob
