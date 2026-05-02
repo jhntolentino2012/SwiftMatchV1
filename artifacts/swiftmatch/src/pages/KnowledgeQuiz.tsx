@@ -141,6 +141,11 @@ function TypingTestSection({
   const inputRef  = useRef<HTMLInputElement>(null);
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAt = useRef<number>(0);
+  // Mirror of `typed` in a ref so the interval closure can read the latest
+  // value without `typed` appearing in the useEffect dependency array.
+  // Having `typed` in deps caused the interval to be destroyed and recreated
+  // on every keystroke, which meant it never ticked while the user was typing.
+  const typedRef  = useRef("");
 
   const calcStats = useCallback((typedStr: string, elapsed: number) => {
     let correct = 0;
@@ -162,12 +167,14 @@ function TypingTestSection({
     setFinished(true);
   }, [calcStats]);
 
+  // Only recreate the interval when started/finished change — NOT on every keystroke.
+  // The interval reads `typedRef.current` (always fresh) instead of closing over `typed`.
   useEffect(() => {
     if (started && !finished) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            finish(typed);
+            finish(typedRef.current);
             return 0;
           }
           return prev - 1;
@@ -175,7 +182,7 @@ function TypingTestSection({
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [started, finished, finish, typed]);
+  }, [started, finished, finish]);
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
@@ -184,6 +191,7 @@ function TypingTestSection({
       setStarted(true);
       startedAt.current = Date.now();
     }
+    typedRef.current = val;
     setTyped(val);
     const elapsed = (Date.now() - startedAt.current) / 1000;
     const { wpm: w, accuracy: a } = calcStats(val, elapsed);
