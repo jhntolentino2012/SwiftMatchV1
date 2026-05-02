@@ -180,6 +180,7 @@ export default function AssessmentCenter() {
         <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
           <PersonalityQuiz
             applicantId={applicantId}
+            recommendedLevel={user?.careerLevel || undefined}
             onComplete={async () => {
               await fetchResults();
               setShowPersonalityQuiz(false);

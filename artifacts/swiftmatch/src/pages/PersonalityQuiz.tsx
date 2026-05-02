@@ -247,11 +247,12 @@ type Phase = "select-level" | "quiz" | "result";
 
 interface Props {
   applicantId?: number | null;
+  recommendedLevel?: string;
   onComplete?: (result: string) => void;
   onBack?: () => void;
 }
 
-export default function PersonalityQuiz({ applicantId, onComplete, onBack }: Props) {
+export default function PersonalityQuiz({ applicantId, recommendedLevel, onComplete, onBack }: Props) {
   const [phase, setPhase]               = useState<Phase>("select-level");
   const [tier, setTier]                 = useState<PositionTier | null>(null);
   const [positionLabel, setPositionLabel] = useState<string>("");
@@ -364,35 +365,88 @@ export default function PersonalityQuiz({ applicantId, onComplete, onBack }: Pro
           </div>
         )}
 
-        <div className="space-y-3">
-          {POSITION_OPTIONS.map(opt => (
-            <button
-              key={opt.label}
-              onClick={() => startQuiz(opt)}
-              className={cn(
-                "w-full text-left px-5 py-4 rounded-2xl border text-sm transition-all group",
-                "border-slate-200 hover:border-primary/50 hover:bg-primary/5"
+        {(() => {
+          const recommendedOpt = recommendedLevel
+            ? POSITION_OPTIONS.find(o => o.label === recommendedLevel)
+            : null;
+          const otherOptions = recommendedOpt
+            ? POSITION_OPTIONS.filter(o => o.label !== recommendedLevel)
+            : POSITION_OPTIONS;
+
+          return (
+            <>
+              {/* Recommended level (matched from profile) */}
+              {recommendedOpt && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Matched to your profile</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold border border-accent/20">Recommended</span>
+                  </div>
+                  <button
+                    onClick={() => startQuiz(recommendedOpt)}
+                    className="w-full text-left px-5 py-4 rounded-2xl border-2 border-primary bg-primary/5 text-sm transition-all group hover:bg-primary/10"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-primary">{recommendedOpt.label}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{recommendedOpt.sublabel}</p>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-2">
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
+                          recommendedOpt.tier === "entry" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                        )}>
+                          {recommendedOpt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
+                        </span>
+                        <span className="text-xs text-primary/60">Start here →</span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
               )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-primary group-hover:text-primary">{opt.label}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{opt.sublabel}</p>
+
+              {/* Catchy divider */}
+              {recommendedOpt && (
+                <div className="relative flex items-center gap-3 py-1">
+                  <div className="flex-1 h-px bg-slate-200" />
+                  <p className="text-xs text-center text-slate-500 font-medium shrink-0 max-w-xs">
+                    Applying for a different level? <span className="text-accent font-semibold">Pick the one that fits below.</span>
+                  </p>
+                  <div className="flex-1 h-px bg-slate-200" />
                 </div>
-                <div className="shrink-0">
-                  <span className={cn(
-                    "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
-                    opt.tier === "entry"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-blue-100 text-blue-700"
-                  )}>
-                    {opt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
-                  </span>
-                </div>
+              )}
+
+              {/* Other / all position options */}
+              <div className="space-y-3">
+                {otherOptions.map(opt => (
+                  <button
+                    key={opt.label}
+                    onClick={() => startQuiz(opt)}
+                    className={cn(
+                      "w-full text-left px-5 py-4 rounded-2xl border text-sm transition-all group",
+                      "border-slate-200 hover:border-primary/50 hover:bg-primary/5"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-primary group-hover:text-primary">{opt.label}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{opt.sublabel}</p>
+                      </div>
+                      <div className="shrink-0">
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
+                          opt.tier === "entry" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                        )}>
+                          {opt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
-            </button>
-          ))}
-        </div>
+            </>
+          );
+        })()}
 
         <div className="grid sm:grid-cols-2 gap-3 pt-2">
           <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">

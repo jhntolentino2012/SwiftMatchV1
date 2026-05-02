@@ -24,6 +24,7 @@ export const applicantsTable = pgTable("applicants", {
   linkedinUrl: text("linkedin_url"),
   targetIndustry: text("target_industry"),
   targetRole: text("target_role"),
+  careerLevel: text("career_level"),
   expectedSalary: text("expected_salary"),
   salaryNegotiable: boolean("salary_negotiable").notNull().default(true),
   availabilityDate: text("availability_date").notNull(),

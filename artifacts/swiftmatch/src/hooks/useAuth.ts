@@ -8,6 +8,7 @@ export interface AuthUser {
   phone: string;
   applicantId: number | null;
   targetIndustry: string | null;
+  careerLevel: string | null;
 }
 
 function getToken() {

@@ -45,7 +45,7 @@ export default function ApplicationFlow() {
     certificates: [] as any[],
     references: [] as any[],
     facebookUrl: "", linkedinUrl: "",
-    targetIndustry: "", targetRole: "",
+    targetIndustry: "", targetRole: "", careerLevel: "",
     expectedSalary: "", salaryNegotiable: true, availabilityDate: "",
     status: "pending" as const
   });
@@ -108,6 +108,9 @@ export default function ApplicationFlow() {
         if (formData.targetRole) {
           localStorage.setItem(`sm_ke_role_${applicant.id}_${encodeURIComponent(formData.targetIndustry)}`, formData.targetRole);
         }
+      }
+      if ((formData as any).careerLevel) {
+        localStorage.setItem(`sm_personality_level_${applicant.id}`, (formData as any).careerLevel);
       }
       toast({ title: "Profile Created!", description: "Next — complete your assessments to boost your match score." });
       setLocation("/assessment");
@@ -653,6 +656,15 @@ const PREF_ROLES: Record<string, string[]> = {
   "Architecture & Urban Planning": ["Licensed Architect","Urban / Land Use Planner","Interior Designer","Landscape Architect","Heritage Conservation Specialist","Building / Construction Project Manager"],
 };
 
+const CAREER_LEVELS = [
+  "Entry Level / Fresh Graduate",
+  "Associate / Junior Professional",
+  "Senior / Experienced Specialist",
+  "Team Leader / Supervisor",
+  "Manager / Department Head",
+  "Director / Executive / C-Suite",
+];
+
 function StepPreferences({ data, update }: any) {
   const roles = PREF_ROLES[data.targetIndustry] ?? [];
 
@@ -692,6 +704,27 @@ function StepPreferences({ data, update }: any) {
               ))}
             </select>
           </div>
+        </div>
+      </div>
+
+      {/* Career Level */}
+      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-4">
+        <div>
+          <p className="text-sm font-bold text-primary mb-1">Career Level</p>
+          <p className="text-xs text-slate-500">This pre-selects the right personality assessment framework for you (DOPE for individual contributors, MBTI for leaders).</p>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-slate-700">Your current or target career level</label>
+          <select
+            value={data.careerLevel}
+            onChange={(e: any) => update('careerLevel', e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+          >
+            <option value="">— Select level —</option>
+            {CAREER_LEVELS.map(lvl => (
+              <option key={lvl} value={lvl}>{lvl}</option>
+            ))}
+          </select>
         </div>
       </div>
 
