@@ -108,6 +108,20 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API client from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes
 
+## Owner / Admin Accounts
+
+Owner emails are configured in two places (must stay in sync):
+- **Backend**: `artifacts/api-server/src/routes/auth.ts` — `DEFAULT_OWNER_EMAILS` array, also extendable via `OWNER_EMAILS` env var (comma-separated).
+- **Frontend**: `artifacts/swiftmatch/src/lib/owner.ts` — `OWNER_EMAILS` Set used by `isOwnerEmail()`.
+
+Current owner: `jhn.tolentino2012@gmail.com`.
+
+Owner-account bypasses currently in place:
+1. **Email confirmation skipped** — signup endpoint inserts owner with `is_confirmed=true` and never sends a confirmation email.
+2. **Premium subscription bypassed** — Results page treats signed-in owner accounts as premium (full report visible, no lock overlay, no "Subscribe" upsell), even without `localStorage.sm_subscription = "active"`.
+
+When adding new bypasses, prefer reading the email via `useAuth()` and checking `isOwnerEmail(user?.email)` rather than localStorage flags so the bypass is tied to the authenticated identity, not the device.
+
 ## Pending / Deferred
 
 ### Email delivery (signup confirmation + password reset) — NOT YET CONNECTED

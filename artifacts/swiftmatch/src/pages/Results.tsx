@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { isOwnerEmail } from "@/lib/owner";
 import {
   Lock, Crown, ChevronRight, User, Building2,
   FileText, Award, TrendingUp, Calendar, Download, Compass,
@@ -749,7 +751,9 @@ function EmployerReport({ locked }: { locked: boolean }) {
 ══════════════════════════════════════════════════════ */
 export default function ResultsPage() {
   const [audience, setAudience] = useState<Audience>("applicant");
-  const isPremium = localStorage.getItem("sm_subscription") === "active";
+  const { user } = useAuth();
+  const hasSubscription = localStorage.getItem("sm_subscription") === "active";
+  const isPremium = hasSubscription || isOwnerEmail(user?.email);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
