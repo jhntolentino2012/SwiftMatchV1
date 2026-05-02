@@ -5,13 +5,8 @@ import { JobSearchWidget } from "@/components/JobSearchWidget";
 import { useListJobs } from "@workspace/api-client-react";
 import {
   MapPin, Briefcase, Building2, ChevronRight, Search,
-  CheckCircle2, Clock, Banknote, ArrowUpRight,
+  CheckCircle2, Clock, Banknote, ArrowUpRight, X,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 type Job = {
@@ -157,21 +152,27 @@ export default function JobsPage() {
         )}
       </main>
 
-      {/* ── Job Detail Sheet ── */}
-      <Sheet open={!!selectedJob} onOpenChange={open => { if (!open) setSelectedJob(null); }}>
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col overflow-hidden">
-          {selectedJob && (
-            <>
-              {/* Sheet header */}
-              <SheetHeader className="px-6 pt-6 pb-4 border-b border-slate-100 bg-white shrink-0">
-                <div className="pr-8">
+      {/* ── Job Detail Panel (no overlay) ── */}
+      <div
+        className={cn(
+          "fixed inset-y-0 right-0 z-50 w-full bg-white shadow-2xl flex flex-col",
+          "transition-transform duration-300 ease-in-out",
+          selectedJob ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        {selectedJob && (
+          <>
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
+              <div className="max-w-3xl mx-auto flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/12 inline-block mb-2">
                     {selectedJob.industry}
                   </span>
-                  <h2 className="font-display font-bold text-xl text-primary leading-tight">
+                  <h2 className="font-display font-bold text-2xl text-primary leading-tight">
                     {selectedJob.title}
                   </h2>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm text-slate-500">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-slate-500">
                     <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" />{selectedJob.company}</span>
                     <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />{selectedJob.location}</span>
                   </div>
@@ -181,25 +182,34 @@ export default function JobsPage() {
                     </div>
                   )}
                 </div>
-              </SheetHeader>
+                <button
+                  onClick={() => setSelectedJob(null)}
+                  className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-700 shrink-0"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
 
-              {/* Scrollable body */}
-              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-3xl mx-auto px-6 py-8 space-y-10">
 
                 {/* About the Job */}
                 <section>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-4">
                     <Briefcase className="w-4 h-4 text-primary" />
-                    <h3 className="font-display font-bold text-primary text-base">About the Job</h3>
+                    <h3 className="font-display font-bold text-primary text-lg">About the Job</h3>
                   </div>
                   <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                     {selectedJob.description}
                   </p>
 
                   {selectedJob.requirements.length > 0 && (
-                    <div className="mt-5">
+                    <div className="mt-6">
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Requirements</p>
-                      <ul className="space-y-2">
+                      <ul className="space-y-2.5">
                         {selectedJob.requirements.map((req, i) => (
                           <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
                             <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -211,14 +221,13 @@ export default function JobsPage() {
                   )}
                 </section>
 
-                {/* Divider */}
                 <div className="border-t border-slate-100" />
 
                 {/* About the Company */}
                 <section>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-4">
                     <Building2 className="w-4 h-4 text-primary" />
-                    <h3 className="font-display font-bold text-primary text-base">About {selectedJob.company}</h3>
+                    <h3 className="font-display font-bold text-primary text-lg">About {selectedJob.company}</h3>
                   </div>
                   {selectedJob.companyDescription ? (
                     <p className="text-sm text-slate-600 leading-relaxed">
@@ -230,23 +239,23 @@ export default function JobsPage() {
                 </section>
 
               </div>
+            </div>
 
-              {/* Sticky Apply CTA */}
-              <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white">
+            {/* Sticky Apply CTA */}
+            <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white">
+              <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+                <p className="text-xs text-slate-400">Create a free profile to apply — takes less than 5 minutes.</p>
                 <Link
                   href="/signup"
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-bold text-sm hover:bg-accent/90 transition-colors"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-accent text-white rounded-xl font-bold text-sm hover:bg-accent/90 transition-colors shrink-0"
                 >
-                  Apply for this Position <ArrowUpRight className="w-4 h-4" />
+                  Apply Now <ArrowUpRight className="w-4 h-4" />
                 </Link>
-                <p className="text-center text-xs text-slate-400 mt-2">
-                  Create a free profile to apply — takes less than 5 minutes.
-                </p>
               </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
