@@ -107,3 +107,15 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API client from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes
+
+## Pending / Deferred
+
+### Email delivery (signup confirmation + password reset) — NOT YET CONNECTED
+- Signup endpoint (`POST /api/auth/signup`) calls `sendConfirmationEmail` in `artifacts/api-server/src/lib/email.ts`.
+- The email lib falls back to logging the confirmation link to the server console when `SMTP_HOST` env var is missing, so the "Check your inbox" UI shows but no email actually leaves the server.
+- User dismissed the Gmail Replit integration on 2026-05-02 and chose to defer email setup ("lets do it later").
+- When the user is ready, options to revisit:
+  1. Connect a Replit email integration: Brevo, Loops.so, or Gmail (`searchIntegrations("send email")`).
+  2. Provide raw SMTP credentials and set env vars: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `SMTP_FROM`.
+  3. Temporarily auto-confirm new accounts on signup (set `isConfirmed: true` directly in the signup insert) — only acceptable for dev/testing.
+- Until then: confirmation links can be retrieved manually from the API server logs (search for `"DEV: Email confirmation link"`).
