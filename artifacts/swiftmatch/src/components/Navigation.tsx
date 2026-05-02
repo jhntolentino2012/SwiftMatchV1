@@ -33,9 +33,16 @@ export function Navigation() {
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               />
             </div>
-            <span className="font-display font-extrabold text-2xl tracking-tight" style={{ color: "hsl(214 80% 34%)" }}>
-              Swift<span style={{ color: "hsl(24 95% 52%)" }}>Match</span>
-            </span>
+            <div className="flex flex-col leading-tight">
+              <span className="font-display font-extrabold text-2xl tracking-tight" style={{ color: "hsl(214 80% 34%)" }}>
+                Swift<span style={{ color: "hsl(24 95% 52%)" }}>Match</span>
+              </span>
+              {user && (
+                <span className="text-[11px] text-slate-400 font-medium truncate max-w-[180px]">
+                  {user.email}
+                </span>
+              )}
+            </div>
           </Link>
 
           {/* Nav links */}
@@ -64,21 +71,18 @@ export function Navigation() {
           <div className="flex items-center gap-3 shrink-0">
             {user ? (
               <>
-                <div className="hidden sm:flex items-center gap-2.5">
+                <div className="hidden sm:flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
                     {user.email.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm font-medium text-slate-700 max-w-[160px] truncate">
-                    {user.email}
-                  </span>
+                  <button
+                    onClick={logout}
+                    className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-red-600 transition-colors px-3 py-2 rounded-lg hover:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </button>
                 </div>
-                <button
-                  onClick={logout}
-                  className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-red-600 transition-colors px-3 py-2 rounded-lg hover:bg-red-50"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </button>
               </>
             ) : (
               <>
