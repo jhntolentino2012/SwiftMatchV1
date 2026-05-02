@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navigation } from "@/components/Navigation";
+import { DataPrivacyConsent, hasPrivacyConsent } from "@/components/DataPrivacyConsent";
 import { 
   ChevronRight, User, MapPin, 
   Briefcase, GraduationCap, Users, Share2, 
@@ -11,6 +12,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useCreateApplicant } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+
+const APPLICANT_DPA_KEY = "sm_dpa_consent_applicant";
 
 const STEPS = [
   { id: 1, title: "Personal Info", icon: User },
@@ -28,6 +31,7 @@ export default function ApplicationFlow() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consented, setConsented] = useState<boolean>(() => hasPrivacyConsent(APPLICANT_DPA_KEY));
 
   const { mutateAsync: createApplicant } = useCreateApplicant();
 
@@ -129,6 +133,22 @@ export default function ApplicationFlow() {
       default: return null;
     }
   };
+
+  if (!consented) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navigation />
+        <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+          <DataPrivacyConsent
+            role="applicant"
+            storageKey={APPLICANT_DPA_KEY}
+            onAccept={() => setConsented(true)}
+            onDecline={() => setLocation("/")}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

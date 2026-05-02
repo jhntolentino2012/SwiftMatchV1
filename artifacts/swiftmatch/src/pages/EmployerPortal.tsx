@@ -1,8 +1,31 @@
+import { useState } from "react";
 import { Navigation } from "@/components/Navigation";
+import { DataPrivacyConsent, hasPrivacyConsent } from "@/components/DataPrivacyConsent";
 import { Building2, ArrowRight, Mail } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+
+const EMPLOYER_DPA_KEY = "sm_dpa_consent_employer";
 
 export default function EmployerPortal() {
+  const [, setLocation] = useLocation();
+  const [consented, setConsented] = useState<boolean>(() => hasPrivacyConsent(EMPLOYER_DPA_KEY));
+
+  if (!consented) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navigation />
+        <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+          <DataPrivacyConsent
+            role="employer"
+            storageKey={EMPLOYER_DPA_KEY}
+            onAccept={() => setConsented(true)}
+            onDecline={() => setLocation("/")}
+          />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
