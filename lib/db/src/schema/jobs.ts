@@ -11,6 +11,7 @@ export const jobsTable = pgTable("jobs", {
   requirements: text("requirements").array().notNull().default([]),
   salaryRange: text("salary_range").notNull(),
   industry: text("industry").notNull(),
+  companyDescription: text("company_description").notNull().default(""),
   isDemo: boolean("is_demo").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
