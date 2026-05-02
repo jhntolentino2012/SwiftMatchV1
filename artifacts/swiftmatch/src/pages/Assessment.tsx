@@ -37,8 +37,8 @@ function canRetake(result: AssessmentResult): boolean {
 }
 
 const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> = {
-  knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",       desc: "Role-specific quiz — select your industry and target role, then answer 10 adaptive questions across 3 difficulty levels." },
-  personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",       desc: "Entry-level roles use the DOPE Bird Test. Team leaders and above use the Myers-Briggs (MBTI) framework." },
+  knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",       desc: "Assess your industry knowledge with role-specific adaptive questions." },
+  personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",       desc: "Discover your work style and personality traits." },
   cultural_fit:     { icon: Users,    color: "text-orange-600 bg-orange-50 border-orange-200", desc: "See how your values and work style align with company culture." },
   critical_thinking:{ icon: Lightbulb,color: "text-yellow-600 bg-yellow-50 border-yellow-200",desc: "Demonstrate logical reasoning and sound decision-making." },
   ai_readiness:     { icon: Bot,      color: "text-violet-600 bg-violet-50 border-violet-200", desc: "Show how you adapt to and work alongside AI tools." },
@@ -360,7 +360,7 @@ export default function AssessmentCenter() {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-primary">{test.title}</h3>
                         <p className="text-xs text-slate-500 mt-0.5 capitalize">
-                          {test.category.replace(/_/g, " ")} · {isKE ? "10 questions" : isPersonality ? "12–20 questions" : `${test.questions?.length || 0} questions`}
+                          {test.category.replace(/_/g, " ")}
                         </p>
                         {isDone && result ? (
                           /* Score row */
