@@ -329,55 +329,17 @@ router.get("/match-analysis", async (req, res) => {
         ).join("\n\n")
       : "No active job postings on file for this industry.";
 
-    const MATCH_PROMPT = `You are an expert HR analyst and career coach for the Philippine job market.
+    const MATCH_PROMPT = `Philippine HR analyst. Return ONLY valid JSON, no markdown.
 
-You will be given:
-1. An applicant's CV/resume text
-2. Their SwiftMatch assessment scores (objective test results across 5 competency dimensions)
-3. Their profile preferences
-4. Active recruiter job requirements for their target industry
+PROFILE: ${profileSummary || "Not specified"}
+SCORES: ${scoresText}
+JOBS: ${jobsContext.slice(0, 600)}
+CV: ${applicant.cvText.slice(0, 2500)}
 
-Your task: analyze how well the CV's claims and work history align with the assessment results AND the recruiter job requirements, identify confirmed strengths, gaps or inconsistencies, and produce specific, actionable recommendations.
+JSON schema:
+{"overallAlignment":<0-100>,"summary":"<2 sentences>","confirmedStrengths":[{"skill":"","cvEvidence":"","assessmentCategory":""}],"gapAreas":[{"area":"","cvClaim":"","suggestion":""}],"recommendations":["","",""],"cvProfile":{"industry":"","role":"","level":"","yearsExperience":"","topSkills":[]}}
 
-Return ONLY valid JSON in this exact schema — no markdown, no extra text:
-{
-  "overallAlignment": <integer 0–100, weighted alignment between CV narrative, assessment performance, and job requirements>,
-  "summary": "<2-3 sentence narrative summary of the alignment analysis>",
-  "confirmedStrengths": [
-    { "skill": "<skill or competency>", "cvEvidence": "<1 line from CV supporting this>", "assessmentCategory": "<which assessment confirmed it>" }
-  ],
-  "gapAreas": [
-    { "area": "<skill or competency>", "cvClaim": "<what the CV claims>", "suggestion": "<specific advice to close the gap>" }
-  ],
-  "recommendations": ["<specific action>", "<specific action>", "<specific action>"],
-  "cvProfile": {
-    "industry": "<detected industry from CV>",
-    "role": "<detected target role>",
-    "level": "<detected seniority: Entry / Mid / Senior / Lead / Executive>",
-    "yearsExperience": "<e.g. 5 years>",
-    "topSkills": ["<skill>", "<skill>", "<skill>", "<skill>", "<skill>"]
-  }
-}
-
-Rules:
-- confirmedStrengths: list 2-4 items where CV claims AND assessment scores agree, or where job requirements are clearly met
-- gapAreas: list 1-3 items where CV/assessment fall short of job requirements, or where CV claims exceed assessment performance
-- recommendations: exactly 3 specific, actionable items tailored to the job requirements
-- overallAlignment: be realistic — a typical well-prepared candidate scores 55–80%
-- Focus on Philippine market context
-
-APPLICANT PROFILE:
-${profileSummary || "Not specified"}
-
-ASSESSMENT SCORES:
-${scoresText}
-
-RECRUITER JOB REQUIREMENTS (active postings):
-${jobsContext}
-
-CV TEXT (first 6000 chars):
-${applicant.cvText.slice(0, 6000)}
-`;
+Rules: confirmedStrengths 2-3 items, gapAreas 1-2 items, exactly 3 recommendations, overallAlignment 55-80 for typical candidates.`;
 
     /* 7 ── Call OpenAI */
     req.log.info({ applicantId: applicant.id, jobCount: matchingJobs.length }, "Running auto CV match analysis");
@@ -386,7 +348,7 @@ ${applicant.cvText.slice(0, 6000)}
       model: "gpt-5-mini",
       messages: [{ role: "user", content: MATCH_PROMPT }],
       response_format: { type: "json_object" },
-      max_completion_tokens: 1500,
+      max_completion_tokens: 900,
     });
 
     const content = completion.choices[0]?.message?.content;
