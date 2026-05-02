@@ -36,12 +36,8 @@ export default function AssessmentCenter() {
   const [answers, setAnswers]               = useState<Record<number, any[]>>({});
   const [submitting, setSubmitting]         = useState<number | null>(null);
   const [submitted, setSubmitted]           = useState<Set<number>>(new Set());
-  const [keCompleted, setKECompleted]       = useState<boolean>(
-    () => !!localStorage.getItem(`sm_ke_industry_${applicantId ?? "guest"}`)
-  );
-  const [personalityCompleted, setPersonalityCompleted] = useState<boolean>(
-    () => !!localStorage.getItem(`sm_personality_level_${applicantId ?? "guest"}`)
-  );
+  const [keCompleted, setKECompleted]                   = useState(false);
+  const [personalityCompleted, setPersonalityCompleted] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const videoRef = useRef<HTMLInputElement>(null);
 
