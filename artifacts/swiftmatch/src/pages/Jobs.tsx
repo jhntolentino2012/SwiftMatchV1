@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { JobSearchWidget } from "@/components/JobSearchWidget";
 import { useListJobs } from "@workspace/api-client-react";
-import { MapPin, Briefcase, DollarSign, Building2, ChevronRight, Search, Info } from "lucide-react";
+import { MapPin, Briefcase, DollarSign, Building2, ChevronRight, Search } from "lucide-react";
 
 export default function JobsPage() {
   const { data: jobs = [], isLoading } = useListJobs();
@@ -27,7 +27,6 @@ export default function JobsPage() {
   });
 
   const activeFilters = [filterIndustry, filterLocation].filter(Boolean);
-  const allDemo = filtered.length > 0 && filtered.every(j => j.isDemo);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -62,17 +61,6 @@ export default function JobsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {allDemo && (
-              <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900">
-                <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
-                <div className="text-sm">
-                  <p className="font-semibold">These are sample listings.</p>
-                  <p className="text-amber-800/80 mt-0.5">
-                    SwiftMatch is launching soon. Once verified employers start posting, these placeholder jobs are replaced automatically with real openings from Philippine companies.
-                  </p>
-                </div>
-              </div>
-            )}
             <p className="text-xs text-slate-400 font-medium">{filtered.length} job{filtered.length !== 1 ? "s" : ""} found</p>
             {filtered.map(job => (
               <div key={job.id} className="bg-white rounded-2xl border border-border shadow-sm p-6 hover:shadow-md hover:border-primary/20 transition-all group">
@@ -82,11 +70,6 @@ export default function JobsPage() {
                       <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/12">
                         {job.industry}
                       </span>
-                      {job.isDemo && (
-                        <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                          Sample
-                        </span>
-                      )}
                     </div>
                     <h3 className="font-display font-bold text-lg text-primary group-hover:text-accent transition-colors">{job.title}</h3>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-sm text-slate-500">
