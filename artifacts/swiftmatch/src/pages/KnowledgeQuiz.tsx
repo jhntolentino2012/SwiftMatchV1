@@ -424,6 +424,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [typingWpm, setTypingWpm]   = useState<number | null>(null);
   const [typingAccuracy, setTypingAccuracy] = useState<number | null>(null);
@@ -516,14 +517,23 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
     if (applicantId) {
       try {
-        await fetch("/api/assessments/ke-quiz/submit", {
+        const resp = await fetch("/api/assessments/ke-quiz/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ applicantId, industry, role, score: pct, answers, attemptedIds: fresh }),
         });
+        if (resp.status === 429) {
+          const body = await resp.json().catch(() => ({}));
+          const availDate = body.retakeAvailableAt
+            ? new Date(body.retakeAvailableAt).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })
+            : "in 1 month";
+          setSubmitError(`Retake cooldown active — available from ${availDate}.`);
+          setSubmitting(false);
+          return;
+        }
       } catch {}
     }
-
+    setSubmitError(null);
     setFinalScore(pct);
     setPhase("result");
     setSubmitting(false);
@@ -923,6 +933,12 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
       {current === questions.length - 1 && !allAnswered && (
         <p className="text-center text-xs text-amber-600">
           Answer all questions to submit. Unanswered: {questions.filter(q2 => !(answers[q2.id] ?? "").trim()).length}
+        </p>
+      )}
+
+      {submitError && (
+        <p className="text-center text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+          {submitError}
         </p>
       )}
     </div>

@@ -24,6 +24,16 @@ type AssessmentResult = {
   completedAt: string;
 };
 
+function retakeAvailableAt(completedAt: string): Date {
+  const d = new Date(completedAt);
+  d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
+function canRetake(result: AssessmentResult): boolean {
+  return new Date() >= retakeAvailableAt(result.completedAt);
+}
+
 const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> = {
   knowledge:        { icon: Brain,    color: "text-blue-600 bg-blue-50 border-blue-200",       desc: "Role-specific quiz — select your industry and target role, then answer 10 adaptive questions across 3 difficulty levels." },
   personality:      { icon: Heart,    color: "text-pink-600 bg-pink-50 border-pink-200",       desc: "Entry-level roles use the DOPE Bird Test. Team leaders and above use the Myers-Briggs (MBTI) framework." },
@@ -375,17 +385,24 @@ export default function AssessmentCenter() {
                           <div className="flex items-center gap-1.5 text-green-600 font-semibold text-sm">
                             <CheckCircle className="w-4 h-4" /> Done
                           </div>
-                          <button
-                            onClick={() => {
-                              if (isKE) setShowKEQuiz(true);
-                              else if (isPersonality) setShowPersonalityQuiz(true);
-                              else setActiveTest(test);
-                            }}
-                            className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            {result && !result.passed ? "Retake to improve" : "Retake"}
-                          </button>
+                          {result && canRetake(result) ? (
+                            <button
+                              onClick={() => {
+                                if (isKE) setShowKEQuiz(true);
+                                else if (isPersonality) setShowPersonalityQuiz(true);
+                                else setActiveTest(test);
+                              }}
+                              className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              {!result.passed ? "Retake to improve" : "Retake"}
+                            </button>
+                          ) : result ? (
+                            <div className="flex items-center gap-1 text-xs text-slate-400 select-none">
+                              <Lock className="w-3 h-3" />
+                              Available {retakeAvailableAt(result.completedAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                            </div>
+                          ) : null}
                         </div>
                       ) : (
                         <button

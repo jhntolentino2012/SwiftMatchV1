@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, assessmentsTable, assessmentResultsTable } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and, desc } from "drizzle-orm";
 import { pickQuiz, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
 import {
   GetAssessmentParams,
@@ -10,6 +10,30 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+// ── Retake cooldown helpers ──
+async function getLatestResult(applicantId: number, assessmentId: number) {
+  const [latest] = await db
+    .select()
+    .from(assessmentResultsTable)
+    .where(and(
+      eq(assessmentResultsTable.applicantId, applicantId),
+      eq(assessmentResultsTable.assessmentId, assessmentId),
+    ))
+    .orderBy(desc(assessmentResultsTable.completedAt))
+    .limit(1);
+  return latest ?? null;
+}
+
+function addOneMonth(date: Date): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
+function isTooSoon(completedAt: Date): boolean {
+  return new Date() < addOneMonth(completedAt);
+}
 
 const SEED_ASSESSMENTS = [
   {
@@ -129,6 +153,11 @@ router.post("/ke-quiz/submit", async (req, res) => {
     return;
   }
   try {
+    const latest = await getLatestResult(applicantId, 1);
+    if (latest && isTooSoon(latest.completedAt)) {
+      res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
+      return;
+    }
     const passed = score >= 60;
     const feedback = passed
       ? `Strong performance in ${industry}! Your domain knowledge is well above the baseline.`
@@ -158,6 +187,11 @@ router.post("/personality/submit", async (req, res) => {
     return;
   }
   try {
+    const latest = await getLatestResult(applicantId, 2);
+    if (latest && isTooSoon(latest.completedAt)) {
+      res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
+      return;
+    }
     const framework = tier === "leadership" ? "Myers-Briggs (MBTI)" : "DOPE Bird Test";
     const [saved] = await db.insert(assessmentResultsTable).values({
       applicantId,
@@ -211,6 +245,12 @@ router.post("/:id/submit", async (req, res) => {
     const [assessment] = await db.select().from(assessmentsTable).where(eq(assessmentsTable.id, params.data.id));
     if (!assessment) {
       res.status(404).json({ error: "Assessment not found" });
+      return;
+    }
+
+    const latest = await getLatestResult(parsed.data.applicantId, params.data.id);
+    if (latest && isTooSoon(latest.completedAt)) {
+      res.status(429).json({ error: "Retake cooldown active", retakeAvailableAt: addOneMonth(latest.completedAt).toISOString() });
       return;
     }
 

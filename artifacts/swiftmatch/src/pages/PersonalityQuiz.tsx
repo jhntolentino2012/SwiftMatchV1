@@ -259,6 +259,7 @@ export default function PersonalityQuiz({ applicantId, onComplete, onBack }: Pro
   const [dopeAnswers, setDopeAnswers]   = useState<Record<string, Bird>>({});
   const [mbtiAnswers, setMbtiAnswers]   = useState<Record<string, "A" | "B">>({});
   const [submitting, setSubmitting]     = useState(false);
+  const [submitError, setSubmitError]   = useState<string | null>(null);
   const [dopeResult, setDopeResult]     = useState<{ primary: Bird; secondary: Bird; scores: Record<Bird, number> } | null>(null);
   const [mbtiResult, setMbtiResult]     = useState<{ type: MBTIType; scores: Record<MBTIDim, { A: number; B: number }> } | null>(null);
 
@@ -318,14 +319,23 @@ export default function PersonalityQuiz({ applicantId, onComplete, onBack }: Pro
     // Persist to API
     if (applicantId) {
       try {
-        await fetch("/api/assessments/personality/submit", {
+        const resp = await fetch("/api/assessments/personality/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ applicantId, positionLabel, tier, result: resultLabel, answers: tier === "entry" ? dopeAnswers : mbtiAnswers }),
         });
+        if (resp.status === 429) {
+          const body = await resp.json().catch(() => ({}));
+          const availDate = body.retakeAvailableAt
+            ? new Date(body.retakeAvailableAt).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })
+            : "in 1 month";
+          setSubmitError(`Retake cooldown active — available from ${availDate}.`);
+          setSubmitting(false);
+          return;
+        }
       } catch {}
     }
-
+    setSubmitError(null);
     setPhase("result");
     setSubmitting(false);
     onComplete?.(resultLabel);
@@ -648,6 +658,11 @@ export default function PersonalityQuiz({ applicantId, onComplete, onBack }: Pro
             {totalQ - answered} question{totalQ - answered !== 1 ? "s" : ""} remaining
           </p>
         )}
+        {submitError && (
+          <p className="text-center text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+            {submitError}
+          </p>
+        )}
       </div>
     );
   }
@@ -736,6 +751,11 @@ export default function PersonalityQuiz({ applicantId, onComplete, onBack }: Pro
       {current === totalQ - 1 && !allAnswered && (
         <p className="text-center text-xs text-blue-600">
           {totalQ - answered} question{totalQ - answered !== 1 ? "s" : ""} remaining
+        </p>
+      )}
+      {submitError && (
+        <p className="text-center text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+          {submitError}
         </p>
       )}
     </div>
