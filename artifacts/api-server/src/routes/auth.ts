@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db/schema";
+import { usersTable, applicantsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { sendConfirmationEmail, sendPasswordResetEmail } from "../lib/email";
 
@@ -225,7 +225,32 @@ router.get("/me", async (req, res) => {
     const payload = jwt.verify(authHeader.slice(7), jwtSecret()) as any;
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found." }); return; }
-    res.json({ id: user.id, email: user.email, phone: user.phone });
+
+    // Look up applicant record by email
+    let [applicant] = await db.select({ id: applicantsTable.id })
+      .from(applicantsTable)
+      .where(eq(applicantsTable.email, user.email))
+      .limit(1);
+
+    // Auto-create a stub applicant for owner accounts so they can use assessments
+    // without completing the full onboarding form.
+    if (!applicant && isOwnerEmail(user.email)) {
+      const emailHandle = user.email.split("@")[0] ?? "owner";
+      const [created] = await db.insert(applicantsTable).values({
+        firstName: emailHandle,
+        lastName: "Owner",
+        permanentAddress: "N/A",
+        currentAddress: "N/A",
+        phoneAreaCode: "63",
+        phoneNumber: user.phone || "0000000000",
+        email: user.email,
+        availabilityDate: "Immediate",
+      }).returning({ id: applicantsTable.id });
+      applicant = created;
+      req.log.info({ email: user.email, applicantId: applicant?.id }, "Auto-created stub applicant for owner");
+    }
+
+    res.json({ id: user.id, email: user.email, phone: user.phone, applicantId: applicant?.id ?? null });
   } catch {
     res.status(401).json({ error: "Invalid or expired token." });
   }

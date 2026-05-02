@@ -6,6 +6,7 @@ export interface AuthUser {
   id: number;
   email: string;
   phone: string;
+  applicantId: number | null;
 }
 
 function getToken() {
@@ -21,7 +22,15 @@ export function useAuth() {
     if (!token) { setLoading(false); return; }
     fetch(`${BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(data => setUser(data))
+      .then(data => {
+        if (data) {
+          // Persist applicantId so Assessment page and quizzes can use it immediately
+          if (data.applicantId != null) {
+            localStorage.setItem("sm_applicant_id", String(data.applicantId));
+          }
+        }
+        setUser(data);
+      })
       .finally(() => setLoading(false));
   }, []);
 

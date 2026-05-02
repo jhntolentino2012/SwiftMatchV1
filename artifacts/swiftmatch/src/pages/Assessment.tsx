@@ -47,7 +47,11 @@ const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> 
 export default function AssessmentCenter() {
   const { user } = useAuth();
   const cooldownBypassed = isOwnerEmail(user?.email);
-  const applicantId = Number(localStorage.getItem("sm_applicant_id") || "0") || null;
+  // Prefer the applicantId that /auth/me returned (populated by useAuth into localStorage),
+  // fall back to the value set during the onboarding flow.
+  const applicantId: number | null =
+    (user?.applicantId ?? null) ||
+    (Number(localStorage.getItem("sm_applicant_id") || "0") || null);
   const storedIndustry = applicantId ? localStorage.getItem(`sm_ke_industry_${applicantId}`) ?? "" : "";
   const storedRole = storedIndustry && applicantId
     ? localStorage.getItem(`sm_ke_role_${applicantId}_${encodeURIComponent(storedIndustry)}`) ?? ""
