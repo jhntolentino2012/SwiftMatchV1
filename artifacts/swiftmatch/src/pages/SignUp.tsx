@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
 import { apiPost } from "@/hooks/useAuth";
-import { Eye, EyeOff, Mail, Lock, Phone, UserPlus, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Phone, UserPlus, CheckCircle, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function Field({ label, id, type, value, onChange, placeholder, icon: Icon, right }: any) {
@@ -36,7 +36,7 @@ export default function SignUp() {
   const [showPw, setShowPw] = useState(false);
   const [showCpw, setShowCpw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<false | "pending" | "owner">(false);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(prev => ({ ...prev, [k]: e.target.value }));
@@ -53,8 +53,8 @@ export default function SignUp() {
     }
     try {
       setLoading(true);
-      await apiPost("/signup", form);
-      setDone(true);
+      const resp = await apiPost("/signup", form) as { confirmed?: boolean };
+      setDone(resp?.confirmed ? "owner" : "pending");
     } catch (err: any) {
       toast({ title: "Sign up failed", description: err.message, variant: "destructive" });
     } finally {
@@ -62,7 +62,30 @@ export default function SignUp() {
     }
   };
 
-  if (done) {
+  if (done === "owner") {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navigation />
+        <div className="flex-1 flex items-center justify-center px-4 pt-20">
+          <div className="bg-white rounded-2xl border border-border shadow-lg p-10 max-w-md w-full text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-5">
+              <ShieldCheck className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-display font-bold text-primary mb-2">Owner account ready</h2>
+            <p className="text-slate-500 text-sm mb-2">
+              <strong className="text-primary">{form.email}</strong> has been auto-activated as an owner account.
+            </p>
+            <p className="text-slate-400 text-xs mb-6">Email confirmation was skipped. You can sign in right away.</p>
+            <Link href="/signin" className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors">
+              Go to Sign In
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (done === "pending") {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <Navigation />

@@ -23,6 +23,25 @@ function tokenExpiry(hours: number) {
   return new Date(Date.now() + hours * 60 * 60 * 1000);
 }
 
+/**
+ * Owner / admin emails — bypass email confirmation on signup so they can log in
+ * immediately without waiting for a confirmation email. Configure additional
+ * owners by setting the OWNER_EMAILS env var (comma-separated).
+ */
+const DEFAULT_OWNER_EMAILS = ["jhn.tolentino2012@gmail.com"];
+const OWNER_EMAILS = new Set(
+  [
+    ...DEFAULT_OWNER_EMAILS,
+    ...(process.env["OWNER_EMAILS"]?.split(",") ?? []),
+  ]
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+function isOwnerEmail(email: string): boolean {
+  return OWNER_EMAILS.has(email.toLowerCase());
+}
+
 /* ── POST /auth/signup ─────────────────────────────── */
 router.post("/signup", async (req, res) => {
   const { email, password, confirmPassword, phone } = req.body as any;
@@ -47,20 +66,42 @@ router.post("/signup", async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
+  const normalizedEmail = email.toLowerCase();
+  const owner = isOwnerEmail(normalizedEmail);
+
+  if (owner) {
+    // Owner accounts skip email confirmation entirely.
+    await db.insert(usersTable).values({
+      email: normalizedEmail,
+      passwordHash,
+      phone,
+      isConfirmed: true,
+    });
+    req.log.info({ email: normalizedEmail }, "Owner account auto-confirmed on signup");
+    res.status(201).json({
+      confirmed: true,
+      message: "Owner account created and auto-activated. You can sign in immediately.",
+    });
+    return;
+  }
+
   const confirmationToken = generateToken();
   const confirmationTokenExpiry = tokenExpiry(24);
 
   await db.insert(usersTable).values({
-    email: email.toLowerCase(),
+    email: normalizedEmail,
     passwordHash,
     phone,
     confirmationToken,
     confirmationTokenExpiry,
   });
 
-  await sendConfirmationEmail(email.toLowerCase(), confirmationToken);
+  await sendConfirmationEmail(normalizedEmail, confirmationToken);
 
-  res.status(201).json({ message: "Account created. Please check your email to confirm your account." });
+  res.status(201).json({
+    confirmed: false,
+    message: "Account created. Please check your email to confirm your account.",
+  });
 });
 
 /* ── GET /auth/confirm-email ───────────────────────── */
