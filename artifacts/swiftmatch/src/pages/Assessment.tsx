@@ -21,6 +21,10 @@ const CATEGORY_META: Record<string, { icon: any; color: string; desc: string }> 
 
 export default function AssessmentCenter() {
   const applicantId = Number(localStorage.getItem("sm_applicant_id") || "0") || null;
+  const storedIndustry = applicantId ? localStorage.getItem(`sm_ke_industry_${applicantId}`) ?? "" : "";
+  const storedRole = storedIndustry && applicantId
+    ? localStorage.getItem(`sm_ke_role_${applicantId}_${encodeURIComponent(storedIndustry)}`) ?? ""
+    : "";
   const { data: assessments = [], isLoading } = useListAssessments();
   const { mutateAsync: submitAssessment } = useSubmitAssessment();
   const { toast } = useToast();
@@ -85,6 +89,8 @@ export default function AssessmentCenter() {
         <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
           <KnowledgeQuiz
             applicantId={applicantId}
+            initialIndustry={storedIndustry || undefined}
+            initialRole={storedRole || undefined}
             onComplete={() => {
               setKECompleted(true);
               toast({ title: "Knowledge quiz complete!", description: "Your results have been saved." });

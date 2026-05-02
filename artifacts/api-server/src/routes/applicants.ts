@@ -57,6 +57,8 @@ router.post("/", async (req, res) => {
         references: parsed.data.references,
         facebookUrl: parsed.data.facebookUrl ?? null,
         linkedinUrl: parsed.data.linkedinUrl ?? null,
+        targetIndustry: (parsed.data as any).targetIndustry ?? null,
+        targetRole: (parsed.data as any).targetRole ?? null,
         expectedSalary: parsed.data.expectedSalary ?? null,
         salaryNegotiable: parsed.data.salaryNegotiable,
         availabilityDate: parsed.data.availabilityDate,
@@ -130,6 +132,8 @@ router.patch("/:id", async (req, res) => {
     if (parsed.data.references !== undefined) updateData.references = parsed.data.references;
     if (parsed.data.facebookUrl !== undefined) updateData.facebookUrl = parsed.data.facebookUrl ?? null;
     if (parsed.data.linkedinUrl !== undefined) updateData.linkedinUrl = parsed.data.linkedinUrl ?? null;
+    if ((parsed.data as any).targetIndustry !== undefined) (updateData as any).targetIndustry = (parsed.data as any).targetIndustry ?? null;
+    if ((parsed.data as any).targetRole !== undefined) (updateData as any).targetRole = (parsed.data as any).targetRole ?? null;
     if (parsed.data.expectedSalary !== undefined) updateData.expectedSalary = parsed.data.expectedSalary ?? null;
     if (parsed.data.salaryNegotiable !== undefined) updateData.salaryNegotiable = parsed.data.salaryNegotiable;
     if (parsed.data.availabilityDate !== undefined) updateData.availabilityDate = parsed.data.availabilityDate;

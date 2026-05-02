@@ -38,6 +38,10 @@ export interface Applicant {
   /** @nullable */
   linkedinUrl?: string | null;
   /** @nullable */
+  targetIndustry?: string | null;
+  /** @nullable */
+  targetRole?: string | null;
+  /** @nullable */
   expectedSalary?: string | null;
   salaryNegotiable: boolean;
   availabilityDate: string;

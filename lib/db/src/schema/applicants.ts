@@ -22,6 +22,8 @@ export const applicantsTable = pgTable("applicants", {
   references: jsonb("references").notNull().default([]),
   facebookUrl: text("facebook_url"),
   linkedinUrl: text("linkedin_url"),
+  targetIndustry: text("target_industry"),
+  targetRole: text("target_role"),
   expectedSalary: text("expected_salary"),
   salaryNegotiable: boolean("salary_negotiable").notNull().default(true),
   availabilityDate: text("availability_date").notNull(),

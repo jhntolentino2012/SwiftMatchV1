@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, ChevronRight, BookOpen, CheckCircle,
@@ -66,6 +66,8 @@ type Phase = "select-industry" | "select-role" | "quiz" | "result";
 
 interface Props {
   applicantId?: number | null;
+  initialIndustry?: string;
+  initialRole?: string;
   onComplete?: (score: number) => void;
   onBack?: () => void;
 }
@@ -86,10 +88,10 @@ function storageKey(type: string, applicantId: number | null | undefined, indust
   return `sm_ke_${type}_${applicantId ?? "guest"}_${encodeURIComponent(industry)}`;
 }
 
-export default function KnowledgeQuiz({ applicantId, onComplete, onBack }: Props) {
-  const [phase, setPhase]         = useState<Phase>("select-industry");
-  const [industry, setIndustry]   = useState<string>("");
-  const [role, setRole]           = useState<string>("");
+export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRole, onComplete, onBack }: Props) {
+  const [phase, setPhase]         = useState<Phase>(initialIndustry && initialRole ? "quiz" : initialIndustry ? "select-role" : "select-industry");
+  const [industry, setIndustry]   = useState<string>(initialIndustry ?? "");
+  const [role, setRole]           = useState<string>(initialRole ?? "");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [answers, setAnswers]     = useState<Record<string, string>>({});
   const [current, setCurrent]     = useState(0);
@@ -103,6 +105,8 @@ export default function KnowledgeQuiz({ applicantId, onComplete, onBack }: Props
     ? localStorage.getItem(`sm_ke_role_${applicantId ?? "guest"}_${encodeURIComponent(savedIndustry)}`) ?? ""
     : "";
 
+  // Auto-start when initial industry+role are pre-supplied from profile
+  const autoStarted = useRef(false);
   const loadQuiz = useCallback(async (ind: string, rl: string) => {
     setLoading(true);
     setError(null);
@@ -124,6 +128,14 @@ export default function KnowledgeQuiz({ applicantId, onComplete, onBack }: Props
       setLoading(false);
     }
   }, [applicantId]);
+
+  // Auto-start if both initialIndustry and initialRole are pre-supplied from the applicant profile
+  useEffect(() => {
+    if (initialIndustry && initialRole && !autoStarted.current && phase === "quiz" && questions.length === 0 && !loading) {
+      autoStarted.current = true;
+      loadQuiz(initialIndustry, initialRole);
+    }
+  }, [initialIndustry, initialRole, phase, questions.length, loading, loadQuiz]);
 
   function selectIndustry(ind: string) {
     setIndustry(ind);

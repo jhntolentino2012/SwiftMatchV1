@@ -41,6 +41,7 @@ export default function ApplicationFlow() {
     certificates: [] as any[],
     references: [] as any[],
     facebookUrl: "", linkedinUrl: "",
+    targetIndustry: "", targetRole: "",
     expectedSalary: "", salaryNegotiable: true, availabilityDate: "",
     status: "pending" as const
   });
@@ -98,6 +99,12 @@ export default function ApplicationFlow() {
       const applicant = await createApplicant({ data: formData as any });
       // Persist applicant ID so the Assessment page can use it
       localStorage.setItem("sm_applicant_id", String(applicant.id));
+      if (formData.targetIndustry) {
+        localStorage.setItem(`sm_ke_industry_${applicant.id}`, formData.targetIndustry);
+        if (formData.targetRole) {
+          localStorage.setItem(`sm_ke_role_${applicant.id}_${encodeURIComponent(formData.targetIndustry)}`, formData.targetRole);
+        }
+      }
       toast({ title: "Profile Created!", description: "Next — complete your assessments to boost your match score." });
       setLocation("/assessment");
 
@@ -594,11 +601,82 @@ function StepSocial({ data, update }: any) {
   );
 }
 
+const PREF_INDUSTRIES = [
+  "Technology / IT","BPO / Call Center","Healthcare / Medical","Finance / Banking",
+  "Marketing / Advertising","Real Estate & Construction","Manufacturing & Engineering",
+  "Retail & E-commerce","Education & Training","Hospitality & Tourism","Food & Beverage",
+  "Creative Arts & Design","Logistics & Transportation","Telecommunications",
+  "Media & Entertainment","Human Resources","Government & Public Sector",
+  "Agriculture & Environment","Legal & Compliance","Architecture & Urban Planning",
+];
+
+const PREF_ROLES: Record<string, string[]> = {
+  "Technology / IT": ["Software Developer / Engineer","Data Analyst / Engineer","IT Manager / Project Lead","System / Network Administrator","QA / Test Engineer","DevOps / Cloud Engineer","Cybersecurity Analyst"],
+  "BPO / Call Center": ["Customer Service Agent","Team Leader / Supervisor","Quality Analyst","Workforce Manager","Trainer / L&D Specialist","Operations Manager"],
+  "Healthcare / Medical": ["Staff Nurse / RN","Medical Doctor / Physician","Medical Technologist","Hospital Administrator","Pharmacist","Radiologic Technologist"],
+  "Finance / Banking": ["Credit / Loan Analyst","Bank Teller / Branch Staff","Compliance Officer","Treasury / Investment Analyst","Financial Advisor","Risk Manager","Accounting / Finance Officer"],
+  "Marketing / Advertising": ["Digital Marketing Specialist","Brand Manager","Content Creator / Copywriter","Media Buyer / Planner","SEO / SEM Specialist","Marketing Manager"],
+  "Real Estate & Construction": ["Licensed Real Estate Broker","Civil / Structural Engineer","Project Manager","Quantity Surveyor","Property Appraiser","Site Safety Officer"],
+  "Manufacturing & Engineering": ["Production / Plant Engineer","Quality Control Inspector","Safety Officer","Industrial / Process Engineer","Maintenance Engineer","Production Supervisor"],
+  "Retail & E-commerce": ["Store Manager / Supervisor","Merchandiser / Buyer","E-commerce Manager","Supply Chain / Inventory Analyst","Customer Service Representative","Sales Associate"],
+  "Education & Training": ["Teacher / Instructor","School Administrator","Curriculum Developer","Corporate Trainer / L&D Specialist","Special Education Teacher","Academic Coordinator"],
+  "Hospitality & Tourism": ["Front Office / Guest Relations","Food & Beverage Manager","Hotel General Manager","Events Coordinator","Revenue Manager","Tour Operations Specialist"],
+  "Food & Beverage": ["Chef / Cook","Restaurant Manager","Food Safety Officer","Purchasing / Supply Officer","Barista / Bartender","F&B Supervisor"],
+  "Creative Arts & Design": ["Graphic Designer","UI / UX Designer","Art Director","Video / Motion Designer","Copywriter / Content Strategist","Brand / Visual Identity Designer"],
+  "Logistics & Transportation": ["Logistics Coordinator","Customs Broker / Compliance Officer","Supply Chain Manager","Warehouse Supervisor","Freight Forwarder","Fleet / Transport Manager"],
+  "Telecommunications": ["Network Engineer","RF / Transmission Engineer","Customer Solutions Specialist","Telco Sales Account Manager","Network Operations Analyst","Product / Service Manager"],
+  "Media & Entertainment": ["Journalist / Reporter","Content Producer / Editor","Broadcast Engineer","Social Media Manager","Advertising / Media Sales Executive","Public Relations Specialist"],
+  "Human Resources": ["HR Generalist","Recruiter / Talent Acquisition Specialist","Compensation & Benefits Specialist","Learning & Development Officer","HR Business Partner","HR Manager / Director"],
+  "Government & Public Sector": ["Government Project Officer","Public Health Officer","Procurement / Bids & Awards Officer","Policy Analyst / Researcher","Local Government Officer","Administrative Officer"],
+  "Agriculture & Environment": ["Agricultural Extension Officer","Agronomist / Crop Scientist","Environmental Compliance Officer","Farm Manager / Supervisor","Veterinarian / Animal Health Officer","Fisheries / Aquaculture Officer"],
+  "Legal & Compliance": ["Associate Lawyer / Attorney","Paralegal / Legal Assistant","Compliance Officer","Corporate / In-house Counsel","Legal Researcher","Contracts Specialist"],
+  "Architecture & Urban Planning": ["Licensed Architect","Urban / Land Use Planner","Interior Designer","Landscape Architect","Heritage Conservation Specialist","Building / Construction Project Manager"],
+};
+
 function StepPreferences({ data, update }: any) {
+  const roles = PREF_ROLES[data.targetIndustry] ?? [];
+
   return (
     <div className="space-y-6">
+      {/* Target Industry & Role */}
+      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-4">
+        <div>
+          <p className="text-sm font-bold text-primary mb-1">Target Industry & Role</p>
+          <p className="text-xs text-slate-500">This is used to personalise your Knowledge & Expertise assessment questions.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-700">Industry you are applying in</label>
+            <select
+              value={data.targetIndustry}
+              onChange={(e: any) => { update('targetIndustry', e.target.value); update('targetRole', ''); }}
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+            >
+              <option value="">— Select industry —</option>
+              {PREF_INDUSTRIES.map(ind => (
+                <option key={ind} value={ind}>{ind}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-700">Target role / position</label>
+            <select
+              value={data.targetRole}
+              onChange={(e: any) => update('targetRole', e.target.value)}
+              disabled={!data.targetIndustry}
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
+            >
+              <option value="">— Select role —</option>
+              {roles.map(rl => (
+                <option key={rl} value={rl}>{rl}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-6">
-        <Input label="Expected Salary" type="text" placeholder="$60,000 / year" value={data.expectedSalary} onChange={(e:any)=>update('expectedSalary', e.target.value)} />
+        <Input label="Expected Salary" type="text" placeholder="₱30,000 / month" value={data.expectedSalary} onChange={(e:any)=>update('expectedSalary', e.target.value)} />
         
         <div className="space-y-1.5">
           <label className="text-sm font-semibold text-slate-700">Salary Negotiability</label>

@@ -388,6 +388,10 @@ components:
           type: ["string", "null"]
         linkedinUrl:
           type: ["string", "null"]
+        targetIndustry:
+          type: ["string", "null"]
+        targetRole:
+          type: ["string", "null"]
         expectedSalary:
           type: ["string", "null"]
         salaryNegotiable:
@@ -460,6 +464,10 @@ components:
           type: ["string", "null"]
         linkedinUrl:
           type: ["string", "null"]
+        targetIndustry:
+          type: ["string", "null"]
+        targetRole:
+          type: ["string", "null"]
         expectedSalary:
           type: ["string", "null"]
         salaryNegotiable:
@@ -518,6 +526,10 @@ components:
         facebookUrl:
           type: ["string", "null"]
         linkedinUrl:
+          type: ["string", "null"]
+        targetIndustry:
+          type: ["string", "null"]
+        targetRole:
           type: ["string", "null"]
         expectedSalary:
           type: ["string", "null"]

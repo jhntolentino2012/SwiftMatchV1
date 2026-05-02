@@ -73,6 +73,10 @@ export interface CreateApplicantRequest {
   /** @nullable */
   linkedinUrl?: string | null;
   /** @nullable */
+  targetIndustry?: string | null;
+  /** @nullable */
+  targetRole?: string | null;
+  /** @nullable */
   expectedSalary?: string | null;
   salaryNegotiable: boolean;
   availabilityDate: string;
@@ -116,6 +120,10 @@ export interface UpdateApplicantRequest {
   facebookUrl?: string | null;
   /** @nullable */
   linkedinUrl?: string | null;
+  /** @nullable */
+  targetIndustry?: string | null;
+  /** @nullable */
+  targetRole?: string | null;
   /** @nullable */
   expectedSalary?: string | null;
   salaryNegotiable?: boolean;
@@ -161,6 +169,10 @@ export interface Applicant {
   facebookUrl?: string | null;
   /** @nullable */
   linkedinUrl?: string | null;
+  /** @nullable */
+  targetIndustry?: string | null;
+  /** @nullable */
+  targetRole?: string | null;
   /** @nullable */
   expectedSalary?: string | null;
   salaryNegotiable: boolean;
