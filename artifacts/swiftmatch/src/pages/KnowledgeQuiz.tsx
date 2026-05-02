@@ -91,7 +91,7 @@ interface QuizQuestion {
   options?: string[];
 }
 
-type Phase = "select-industry" | "select-role" | "typing-test" | "quiz" | "result";
+type Phase = "select-industry" | "select-role" | "quiz" | "result";
 
 interface Props {
   applicantId?: number | null;
@@ -273,7 +273,7 @@ function TypingTestSection({
           onClick={() => onDone(wpm, accuracy)}
           className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-colors"
         >
-          Continue to Knowledge Quiz <ChevronRight className="w-4 h-4" />
+          Continue <ChevronRight className="w-4 h-4" />
         </button>
       </motion.div>
     );
@@ -413,7 +413,7 @@ function TypingTestSection({
 ══════════════════════════════════════════════════════ */
 export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRole, onComplete, onBack }: Props) {
   const [phase, setPhase]       = useState<Phase>(
-    initialIndustry && initialRole ? "typing-test" :
+    initialIndustry && initialRole ? "quiz" :
     initialIndustry ? "select-role" : "select-industry"
   );
   const [industry, setIndustry] = useState<string>(initialIndustry ?? "");
@@ -444,6 +444,17 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
       const res = await fetch(`/api/assessments/ke-quiz?${params}`);
       if (!res.ok) throw new Error(await res.text());
       const qs: QuizQuestion[] = await res.json();
+      // Inject typing test at a random position (not first, not last if 2+ questions)
+      const insertAt = qs.length > 1
+        ? 1 + Math.floor(Math.random() * (qs.length - 1))
+        : 0;
+      const typingQ: QuizQuestion = {
+        id: "__typing__",
+        difficulty: "medium",
+        type: "typing" as QuizQuestion["type"],
+        text: "Typing Speed Test",
+      };
+      qs.splice(insertAt, 0, typingQ);
       setQuestions(qs);
       setAnswers({});
       setCurrent(0);
@@ -465,17 +476,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
     setRole(rl);
     localStorage.setItem(`sm_ke_industry_${applicantId ?? "guest"}`, industry);
     localStorage.setItem(storageKey("role", applicantId, industry), rl);
-    setPhase("typing-test");
-  }
-
-  function handleTypingDone(wpm: number, accuracy: number) {
-    setTypingWpm(wpm);
-    setTypingAccuracy(accuracy);
-    // Store typing results in localStorage
-    if (applicantId) {
-      localStorage.setItem(`sm_ke_typing_${applicantId}`, JSON.stringify({ wpm, accuracy, industry, role }));
-    }
-    loadQuiz(industry, role);
+    loadQuiz(industry, rl);
   }
 
   function retryQuiz() {
@@ -501,6 +502,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
     const weights = { easy: 1, medium: 2, hard: 3 } as const;
     let rawScore = 0, maxScore = 0;
     for (const question of questions) {
+      if (question.id === "__typing__") continue; // typing test doesn't count toward quiz score
       const w = weights[question.difficulty];
       maxScore += w;
       if ((answers[question.id] ?? "").trim().length > 0) rawScore += w;
@@ -540,7 +542,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
         <div>
           <h2 className="text-xl font-display font-bold text-primary mb-1">Knowledge & Expertise</h2>
           <p className="text-sm text-muted-foreground">
-            Step 1 of 3 — Select the industry that best matches the role you are applying for.
+            Step 1 of 2 — Select the industry that best matches the role you are applying for.
           </p>
         </div>
 
@@ -549,7 +551,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
             <Briefcase className="w-4 h-4 shrink-0" />
             <span>Last: <strong>{savedIndustry}</strong> › <strong>{savedRole}</strong></span>
             <button
-              onClick={() => { setIndustry(savedIndustry); setRole(savedRole); setPhase("typing-test"); }}
+              onClick={() => { setIndustry(savedIndustry); setRole(savedRole); loadQuiz(savedIndustry, savedRole); }}
               className="ml-auto px-3 py-1 rounded-md bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
             >
               Retry
@@ -597,7 +599,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{industry}</span>
           <h2 className="text-xl font-display font-bold text-primary mt-0.5 mb-1">What role are you applying for?</h2>
           <p className="text-sm text-muted-foreground">
-            Step 2 of 3 — Questions will be prioritised based on your target role.
+            Step 2 of 2 — Questions will be prioritised based on your target role.
           </p>
         </div>
 
@@ -624,18 +626,6 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
             </div>
           )}
       </div>
-    );
-  }
-
-  /* ── TYPING TEST ── */
-  if (phase === "typing-test") {
-    return (
-      <TypingTestSection
-        industry={industry}
-        role={role}
-        onDone={handleTypingDone}
-        onBack={onBack}
-      />
     );
   }
 
@@ -744,7 +734,11 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
   if (!q) return null;
 
   const progress    = ((current + 1) / questions.length) * 100;
-  const allAnswered = questions.every(q2 => (answers[q2.id] ?? "").trim().length > 0);
+  const allAnswered = questions.every(q2 =>
+    q2.id === "__typing__"
+      ? (answers["__typing__"] ?? "").length > 0
+      : (answers[q2.id] ?? "").trim().length > 0
+  );
 
   return (
     <div className="space-y-5">
@@ -782,63 +776,101 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
         </div>
       )}
 
-      {/* Question card */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={q.id}
-          initial={{ opacity: 0, x: 24 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -24 }}
-          transition={{ duration: 0.2 }}
-          className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
-        >
-          <div className="flex items-center gap-2 px-5 pt-4 pb-2">
-            <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full", DIFFICULTY_COLORS[q.difficulty])}>
-              {q.difficulty}
-            </span>
-            <span className="text-[10px] text-muted-foreground">{TYPE_LABELS[q.type]}</span>
-          </div>
-
-          {q.type === "berlitz" && q.passage && (
-            <div className="mx-5 mb-3 p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-              {q.passage}
+      {/* Question card — or inline typing test */}
+      {q.id === "__typing__" ? (
+        answers["__typing__"] ? (
+          /* Already completed — show compact summary */
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl border border-primary/30 shadow-sm p-8 text-center space-y-4"
+          >
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <Keyboard className="w-6 h-6 text-primary" />
             </div>
-          )}
+            <div>
+              <p className="font-bold text-primary text-lg">Typing Test Complete</p>
+              <p className="text-sm text-slate-500 mt-1">{typingWpm} WPM · {typingAccuracy}% accuracy</p>
+            </div>
+            <button
+              onClick={() => setCurrent(c => Math.min(questions.length - 1, c + 1))}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
+            >
+              Continue <ChevronRight className="w-4 h-4" />
+            </button>
+          </motion.div>
+        ) : (
+          <TypingTestSection
+            industry={industry}
+            role={role}
+            onDone={(wpm, accuracy) => {
+              setTypingWpm(wpm);
+              setTypingAccuracy(accuracy);
+              if (applicantId) {
+                localStorage.setItem(`sm_ke_typing_${applicantId}`, JSON.stringify({ wpm, accuracy, industry, role }));
+              }
+              setAnswer("__typing__", JSON.stringify({ wpm, accuracy }));
+            }}
+          />
+        )
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={q.id}
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -24 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-5 pt-4 pb-2">
+              <span className={cn("text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full", DIFFICULTY_COLORS[q.difficulty])}>
+                {q.difficulty}
+              </span>
+              <span className="text-[10px] text-muted-foreground">{TYPE_LABELS[q.type]}</span>
+            </div>
 
-          <p className="px-5 pb-4 text-base font-semibold text-primary leading-snug">{q.text}</p>
-
-          <div className="px-5 pb-5 space-y-2">
-            {(q.type === "multiple_choice" || q.type === "berlitz") && q.options ? (
-              q.options.map((opt, i) => {
-                const selected = answers[q.id] === opt;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setAnswer(q.id, opt)}
-                    className={cn(
-                      "w-full text-left px-4 py-3 rounded-xl border text-sm transition-all",
-                      selected
-                        ? "border-primary bg-primary/5 text-primary font-semibold"
-                        : "border-slate-200 hover:border-primary/40 hover:bg-primary/5"
-                    )}
-                  >
-                    <span className="font-bold mr-2 text-muted-foreground">{String.fromCharCode(65 + i)}.</span>
-                    {opt}
-                  </button>
-                );
-              })
-            ) : (
-              <textarea
-                rows={5}
-                placeholder="Type your answer here…"
-                value={answers[q.id] ?? ""}
-                onChange={e => setAnswer(q.id, e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:border-primary transition-colors"
-              />
+            {q.type === "berlitz" && q.passage && (
+              <div className="mx-5 mb-3 p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {q.passage}
+              </div>
             )}
-          </div>
-        </motion.div>
-      </AnimatePresence>
+
+            <p className="px-5 pb-4 text-base font-semibold text-primary leading-snug">{q.text}</p>
+
+            <div className="px-5 pb-5 space-y-2">
+              {(q.type === "multiple_choice" || q.type === "berlitz") && q.options ? (
+                q.options.map((opt, i) => {
+                  const selected = answers[q.id] === opt;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setAnswer(q.id, opt)}
+                      className={cn(
+                        "w-full text-left px-4 py-3 rounded-xl border text-sm transition-all",
+                        selected
+                          ? "border-primary bg-primary/5 text-primary font-semibold"
+                          : "border-slate-200 hover:border-primary/40 hover:bg-primary/5"
+                      )}
+                    >
+                      <span className="font-bold mr-2 text-muted-foreground">{String.fromCharCode(65 + i)}.</span>
+                      {opt}
+                    </button>
+                  );
+                })
+              ) : (
+                <textarea
+                  rows={5}
+                  placeholder="Type your answer here…"
+                  value={answers[q.id] ?? ""}
+                  onChange={e => setAnswer(q.id, e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:border-primary transition-colors"
+                />
+              )}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
