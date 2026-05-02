@@ -72,12 +72,58 @@ const SEED_JOBS = [
     companyDescription: "PixelCraft Studios is a boutique creative agency based in Cebu City, known for producing award-winning brand identities and campaigns for clients across the Visayas and beyond. Since 2014 our 25-person team of designers, illustrators, and art directors has worked with startups, NGOs, and established consumer brands. We run a relaxed, creativity-first studio where inspiration walls, regular design critiques, and after-hours skill-building sessions are part of everyday life. We also offer a generous project bonus structure on top of your base salary.",
     isDemo: true,
   },
+  {
+    title: "Operations Manager",
+    company: "Nexus Contact Solutions",
+    location: "Eastwood City, Quezon City, Philippines",
+    description: "Lead day-to-day operations of a 300-seat BPO contact centre handling inbound and outbound campaigns for US and AU clients. You will own SLA delivery, workforce planning, team leader development, and client relationship management. The ideal candidate brings a track record of turning around underperforming accounts, driving CSAT improvements, and building high-accountability floor cultures. This is a high-visibility role with a direct line to the VP of Operations.",
+    requirements: [
+      "5+ years BPO operations experience, at least 2 years as Operations Manager",
+      "Proven SLA and KPI management (AHT, CSAT, FCR, shrinkage)",
+      "Strong workforce planning and capacity modelling skills",
+      "Experience managing Team Leaders and coaching supervisors",
+      "Excellent stakeholder communication — client-facing experience required",
+      "Proficiency in WFM tools (NICE, Verint, or equivalent)",
+      "Bachelor's degree in Business Administration, Management, or related field"
+    ],
+    salaryRange: "PHP 70,000 - 100,000/month",
+    industry: "BPO / Call Center",
+    companyDescription: "Nexus Contact Solutions is a Philippine-based BPO with over 12 years of experience delivering customer experience, technical support, and back-office services to clients across North America, Australia, and the UK. With 2,000 seats across Quezon City and Cebu, we operate 24/7 and pride ourselves on a culture of operational excellence and career growth. We promote from within, invest in leadership development, and offer a competitive package including HMO for the employee and two dependents, night-differential pay, and a performance bonus scheme.",
+    isDemo: true,
+  },
+  {
+    title: "Team Leader / Supervisor",
+    company: "Apex BPO Services",
+    location: "Ortigas Center, Pasig, Philippines",
+    description: "Supervise a team of 15–20 customer service agents handling a financial services account. You will monitor real-time performance, conduct coaching sessions, manage escalations, and ensure your team consistently meets quality and productivity targets. You will also contribute to floor-wide process improvement initiatives and represent your team in client calibration calls.",
+    requirements: [
+      "2+ years as a Team Leader in a BPO setting",
+      "Strong coaching and performance management skills",
+      "Solid understanding of call centre metrics (QA, AHT, CSAT, adherence)",
+      "Experience with financial services or banking accounts preferred",
+      "Excellent written and verbal English communication",
+      "Amenable to shifting schedules including graveyard"
+    ],
+    salaryRange: "PHP 35,000 - 55,000/month",
+    industry: "BPO / Call Center",
+    companyDescription: "Apex BPO Services has operated in the Philippines since 2010, providing voice and non-voice customer support solutions to leading banks and fintech companies worldwide. Our Ortigas site houses 800 agents working across two floors, supported by a dedicated training academy and a structured leadership pipeline. We believe in growing our own leaders — over 60% of our current managers started as frontline agents. Benefits include HMO, life insurance, paid leaves above statutory minimums, and a profit-sharing programme.",
+    isDemo: true,
+  },
 ];
 
 async function ensureJobsSeeded() {
   const existing = await db.select().from(jobsTable);
   if (existing.length === 0) {
     for (const job of SEED_JOBS) {
+      await db.insert(jobsTable).values(job);
+    }
+    return;
+  }
+  // Patch: ensure BPO jobs exist even if the table was seeded before they were added
+  const bpoJobs = SEED_JOBS.filter(j => j.industry === "BPO / Call Center");
+  const existingTitles = new Set(existing.map(j => j.title));
+  for (const job of bpoJobs) {
+    if (!existingTitles.has(job.title)) {
       await db.insert(jobsTable).values(job);
     }
   }

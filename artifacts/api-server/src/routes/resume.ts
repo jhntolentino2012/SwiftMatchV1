@@ -298,19 +298,35 @@ router.get("/match-analysis", async (req, res) => {
       return;
     }
 
-    /* 5 ── Fetch matching recruiter job requirements */
-    const matchingJobs = applicant.targetIndustry
-      ? await db.select({
+    /* 5 ── Fetch matching recruiter job requirements (fall back to demo jobs if no real ones) */
+    let matchingJobs: { title: string; company: string; requirements: string[] | null; description: string }[] = [];
+    if (applicant.targetIndustry) {
+      const realJobs = await db.select({
+        title: jobsTable.title,
+        company: jobsTable.company,
+        requirements: jobsTable.requirements,
+        description: jobsTable.description,
+      })
+      .from(jobsTable)
+      .where(and(eq(jobsTable.industry, applicant.targetIndustry), ne(jobsTable.isDemo, true)))
+      .orderBy(desc(jobsTable.createdAt))
+      .limit(3);
+
+      if (realJobs.length > 0) {
+        matchingJobs = realJobs;
+      } else {
+        matchingJobs = await db.select({
           title: jobsTable.title,
           company: jobsTable.company,
           requirements: jobsTable.requirements,
           description: jobsTable.description,
         })
         .from(jobsTable)
-        .where(and(eq(jobsTable.industry, applicant.targetIndustry), ne(jobsTable.isDemo, true)))
+        .where(eq(jobsTable.industry, applicant.targetIndustry))
         .orderBy(desc(jobsTable.createdAt))
-        .limit(3)
-      : [];
+        .limit(3);
+      }
+    }
 
     /* 6 ── Build context strings */
     const profileSummary = [
@@ -329,17 +345,41 @@ router.get("/match-analysis", async (req, res) => {
         ).join("\n\n")
       : "No active job postings on file for this industry.";
 
-    const MATCH_PROMPT = `Philippine HR analyst. Return ONLY valid JSON, no markdown.
+    const MATCH_PROMPT = `You are a Philippine HR analyst. Analyse the applicant data below and return ONLY a JSON object — no markdown, no extra text.
 
-PROFILE: ${profileSummary || "Not specified"}
-SCORES: ${scoresText}
-JOBS: ${jobsContext.slice(0, 600)}
-CV: ${applicant.cvText.slice(0, 2500)}
+PROFILE:
+${profileSummary || "Not specified"}
 
-JSON schema:
-{"overallAlignment":<0-100>,"summary":"<2 sentences>","confirmedStrengths":[{"skill":"","cvEvidence":"","assessmentCategory":""}],"gapAreas":[{"area":"","cvClaim":"","suggestion":""}],"recommendations":["","",""],"cvProfile":{"industry":"","role":"","level":"","yearsExperience":"","topSkills":[]}}
+ASSESSMENT SCORES:
+${scoresText}
 
-Rules: confirmedStrengths 2-3 items, gapAreas 1-2 items, exactly 3 recommendations, overallAlignment 55-80 for typical candidates.`;
+JOB REQUIREMENTS:
+${jobsContext.slice(0, 500)}
+
+CV TEXT:
+${applicant.cvText.slice(0, 2000)}
+
+Return this JSON structure (fill in real values):
+{
+  "overallAlignment": 68,
+  "summary": "Two sentence summary here.",
+  "confirmedStrengths": [
+    { "skill": "Skill name", "cvEvidence": "Quote from CV", "assessmentCategory": "Assessment name" }
+  ],
+  "gapAreas": [
+    { "area": "Gap name", "cvClaim": "What CV says", "suggestion": "How to improve" }
+  ],
+  "recommendations": ["Action 1", "Action 2", "Action 3"],
+  "cvProfile": {
+    "industry": "Industry name",
+    "role": "Role title",
+    "level": "Entry/Mid/Senior/Lead/Executive",
+    "yearsExperience": "N years",
+    "topSkills": ["Skill1", "Skill2", "Skill3"]
+  }
+}
+
+Rules: 2-3 confirmedStrengths, 1-2 gapAreas, exactly 3 recommendations. overallAlignment between 50-85 for a typical candidate.`;
 
     /* 7 ── Call OpenAI */
     req.log.info({ applicantId: applicant.id, jobCount: matchingJobs.length }, "Running auto CV match analysis");
@@ -347,16 +387,21 @@ Rules: confirmedStrengths 2-3 items, gapAreas 1-2 items, exactly 3 recommendatio
     const completion = await openai.chat.completions.create({
       model: "gpt-5-mini",
       messages: [{ role: "user", content: MATCH_PROMPT }],
-      response_format: { type: "json_object" },
       max_completion_tokens: 900,
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content) { res.status(500).json({ error: "AI analysis failed. Please try again." }); return; }
+    const rawContent = completion.choices[0]?.message?.content;
+    if (!rawContent) { res.status(500).json({ error: "AI analysis failed. Please try again." }); return; }
+
+    // Strip markdown code fences if present (e.g. ```json ... ```)
+    const content = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
 
     let parsed: any;
     try { parsed = JSON.parse(content); }
-    catch { res.status(500).json({ error: "Failed to parse AI response. Please try again." }); return; }
+    catch (parseErr) {
+      req.log.error({ rawContent, parseErr }, "Failed to parse AI JSON response");
+      res.status(500).json({ error: "Failed to parse AI response. Please try again." }); return;
+    }
 
     /* 8 ── Sanitize and return */
     res.json({
