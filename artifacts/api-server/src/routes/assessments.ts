@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, assessmentsTable, assessmentResultsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { pickQuiz, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
 import {
   GetAssessmentParams,
@@ -264,7 +264,8 @@ router.get("/applicant/:id/results", async (req, res) => {
     const results = await db
       .select()
       .from(assessmentResultsTable)
-      .where(eq(assessmentResultsTable.applicantId, params.data.id));
+      .where(eq(assessmentResultsTable.applicantId, params.data.id))
+      .orderBy(asc(assessmentResultsTable.completedAt));
     res.json(results.map(r => ({ ...r, completedAt: r.completedAt.toISOString() })));
   } catch (err) {
     req.log.error({ err }, "Failed to get assessment results");
