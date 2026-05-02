@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,44 @@ import { isOwnerEmail } from "@/lib/owner";
 import {
   Lock, Crown, ChevronRight, User, Building2,
   FileText, Award, TrendingUp, Calendar, Download, Compass,
+  ClipboardList, UserCircle,
 } from "lucide-react";
+
+/* ══════════════════════════════════════════════════════
+   SCORE DEFINITIONS & MAPPING
+══════════════════════════════════════════════════════ */
+type ScoreItem = {
+  key: string; label: string; short: string;
+  score: number; max: number; color: string; taken: boolean;
+};
+
+type ApplicantData = {
+  name: string; email: string; industry: string;
+  role: string; level: string; date: string;
+};
+
+const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+
+const SCORE_DEFS = [
+  { key: "ke",  label: "Knowledge & Expertise",    short: "K&E",    color: "#1e40af", words: ["knowledge"] },
+  { key: "pw",  label: "Personality & Work Style", short: "P&W",    color: "#7c3aed", words: ["personality", "work style"] },
+  { key: "cf",  label: "Cultural Fit",             short: "C.Fit",  color: "#ea580c", words: ["cultural"] },
+  { key: "ct",  label: "Critical Thinking",        short: "C.Think",color: "#0891b2", words: ["critical thinking", "critical"] },
+  { key: "air", label: "AI Readiness",             short: "AI.R",   color: "#16a34a", words: ["ai readiness", "ai"] },
+] as const;
+
+function mapResultsToScores(results: { assessmentTitle: string; score: number }[]): ScoreItem[] {
+  return SCORE_DEFS.map(def => {
+    const match = results.find(r =>
+      def.words.some(w => r.assessmentTitle.toLowerCase().includes(w))
+    );
+    return {
+      key: def.key, label: def.label, short: def.short,
+      score: match?.score ?? 0, max: 100, color: def.color,
+      taken: !!match,
+    };
+  });
+}
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis,
   PolarRadiusAxis, ResponsiveContainer, Tooltip,
@@ -189,7 +226,7 @@ const CAREER_EXPANSION: Record<string, ExpansionEntry[]> = {
   ],
 };
 
-function getExpansionSuggestions(scores: typeof SAMPLE_SCORES, industry: string) {
+function getExpansionSuggestions(scores: ScoreItem[], industry: string) {
   const entries = CAREER_EXPANSION[industry] ?? CAREER_EXPANSION["Technology / IT"];
   const scoreMap: Record<string, number> = {};
   scores.forEach(s => { scoreMap[s.key] = s.score; });
@@ -262,17 +299,78 @@ function LockOverlay({ children, locked }: { children: React.ReactNode; locked: 
 /* ══════════════════════════════════════════════════════
    APPLICANT REPORT
 ══════════════════════════════════════════════════════ */
-function ApplicantReport({ locked }: { locked: boolean }) {
-  const app = SAMPLE_APPLICANT;
+function ApplicantReport({
+  locked, applicant, scores, hasProfile, hasResults,
+}: {
+  locked: boolean;
+  applicant?: ApplicantData | null;
+  scores?: ScoreItem[];
+  hasProfile: boolean;
+  hasResults: boolean;
+}) {
+  const app = applicant ?? SAMPLE_APPLICANT;
+  const displayScores: ScoreItem[] = scores ?? SAMPLE_SCORES.map(s => ({ ...s, taken: true }));
+  const takenScores = displayScores.filter(s => s.taken && s.score > 0);
+  const overall = takenScores.length > 0
+    ? Math.round(takenScores.reduce((sum, s) => sum + s.score, 0) / takenScores.length)
+    : OVERALL;
+  const isReal = hasProfile && hasResults;
 
   return (
     <div className="space-y-5">
+
+      {/* ── No profile CTA ── */}
+      {!hasProfile && (
+        <div className="bg-white border border-dashed border-primary/30 rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+            <UserCircle className="w-7 h-7 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-display font-bold text-primary mb-1">No profile registered yet</h3>
+            <p className="text-sm text-slate-500">
+              The sample report below shows what your personalised results will look like.
+              Create your applicant profile, complete the assessments, and your real scores will replace it automatically.
+            </p>
+          </div>
+          <Link
+            href="/apply"
+            className="shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors"
+          >
+            Create Profile <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+
+      {/* ── Profile exists but no assessments taken yet ── */}
+      {hasProfile && !hasResults && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+          <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+            <ClipboardList className="w-6 h-6 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-amber-900 mb-0.5">Profile registered — assessments pending</h3>
+            <p className="text-sm text-amber-800">
+              Complete your assessments to generate your personalised score report. The sample below is a preview.
+            </p>
+          </div>
+          <Link
+            href="/assessment"
+            className="shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-semibold text-sm hover:bg-accent/90 transition-colors"
+          >
+            Take Assessment <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+
       {/* Report Header */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-primary" />
             <span className="font-bold text-primary text-sm tracking-wide uppercase">SwiftMatch Assessment Report</span>
+            {!isReal && (
+              <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">Sample</span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <Calendar className="w-3.5 h-3.5" />
@@ -294,14 +392,16 @@ function ApplicantReport({ locked }: { locked: boolean }) {
                 <h2 className="text-xl font-display font-bold text-primary">{app.name}</h2>
                 <p className="text-sm text-slate-500">{app.email}</p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-bold">
-                  <Award className="w-3.5 h-3.5" /> {RANK}
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-accent/10 text-accent text-xs font-bold">
-                  {PERCENTILE}
-                </span>
-              </div>
+              {isReal && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-bold">
+                    <Award className="w-3.5 h-3.5" /> {RANK}
+                  </span>
+                  <span className="px-3 py-1.5 rounded-full bg-accent/10 text-accent text-xs font-bold">
+                    {PERCENTILE}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-3 mt-2 text-xs text-slate-500">
               <span className="flex items-center gap-1">📂 {app.industry}</span>
@@ -316,12 +416,14 @@ function ApplicantReport({ locked }: { locked: boolean }) {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-bold text-primary uppercase tracking-wide">Overall Match Score</span>
-              <span className="text-lg font-display font-bold text-primary">{OVERALL}%</span>
+              <span className="text-lg font-display font-bold text-primary">
+                {takenScores.length > 0 ? `${overall}%` : "—"}
+              </span>
             </div>
             <div className="h-3 bg-white border border-slate-200 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-primary to-blue-400 transition-all"
-                style={{ width: `${OVERALL}%` }}
+                style={{ width: `${takenScores.length > 0 ? overall : OVERALL}%` }}
               />
             </div>
           </div>
@@ -338,7 +440,7 @@ function ApplicantReport({ locked }: { locked: boolean }) {
               <p className="text-sm font-bold text-primary mt-0.5">5-Dimension Assessment Profile</p>
             </div>
             <ResponsiveContainer width="100%" height={260}>
-              <RadarChart cx="50%" cy="50%" outerRadius="72%" data={RADAR_DATA}>
+              <RadarChart cx="50%" cy="50%" outerRadius="72%" data={displayScores.map(s => ({ subject: s.short, score: s.score, fullMark: 100 }))}>
                 <PolarGrid stroke="#e2e8f0" />
                 <PolarAngleAxis
                   dataKey="subject"
@@ -373,21 +475,29 @@ function ApplicantReport({ locked }: { locked: boolean }) {
               <p className="text-sm font-bold text-primary mt-0.5">Category Breakdown</p>
             </div>
             <div className="divide-y divide-slate-100">
-              {SAMPLE_SCORES.map(cat => (
+              {displayScores.map(cat => (
                 <div key={cat.key} className="px-5 py-3.5 flex items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-700 truncate">{cat.label}</p>
-                    <div className="mt-1.5">
-                      <MiniBar score={cat.score} color={cat.color} />
-                    </div>
+                    {cat.taken ? (
+                      <div className="mt-1.5"><MiniBar score={cat.score} color={cat.color} /></div>
+                    ) : (
+                      <p className="text-xs text-slate-400 mt-0.5 italic">Not taken yet</p>
+                    )}
                   </div>
-                  <ScoreBadge score={cat.score} size="sm" />
+                  {cat.taken
+                    ? <ScoreBadge score={cat.score} size="sm" />
+                    : <span className="text-xs text-slate-400 font-medium">—</span>
+                  }
                 </div>
               ))}
             </div>
             <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Overall</span>
-              <ScoreBadge score={OVERALL} size="md" />
+              {takenScores.length > 0
+                ? <ScoreBadge score={overall} size="md" />
+                : <span className="text-sm text-slate-400 font-medium">—</span>
+              }
             </div>
           </div>
         </div>
@@ -402,7 +512,7 @@ function ApplicantReport({ locked }: { locked: boolean }) {
             <ResponsiveContainer width="100%" height={210}>
               <BarChart
                 layout="vertical"
-                data={SAMPLE_SCORES.map(s => ({
+                data={displayScores.map(s => ({
                   name: s.short,
                   "Your Score": s.score,
                   Benchmark: Math.round(s.score * 0.82 + 5),
@@ -435,11 +545,11 @@ function ApplicantReport({ locked }: { locked: boolean }) {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
                   <th className="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Applicant</th>
-                  {SAMPLE_SCORES.map(s => (
+                  {displayScores.map(s => (
                     <th key={s.key} className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">{s.short}</th>
                   ))}
                   <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Overall</th>
-                  <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Rank</th>
+                  {isReal && <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Rank</th>}
                 </tr>
               </thead>
               <tbody>
@@ -455,17 +565,19 @@ function ApplicantReport({ locked }: { locked: boolean }) {
                       </div>
                     </div>
                   </td>
-                  {SAMPLE_SCORES.map(s => (
+                  {displayScores.map(s => (
                     <td key={s.key} className="text-center px-3 py-3.5">
-                      <ScoreBadge score={s.score} size="sm" />
+                      {s.taken ? <ScoreBadge score={s.score} size="sm" /> : <span className="text-xs text-slate-400">—</span>}
                     </td>
                   ))}
                   <td className="text-center px-3 py-3.5">
-                    <ScoreBadge score={OVERALL} size="sm" />
+                    {takenScores.length > 0 ? <ScoreBadge score={overall} size="sm" /> : <span className="text-xs text-slate-400">—</span>}
                   </td>
-                  <td className="text-center px-3 py-3.5">
-                    <span className="text-xs font-bold text-primary">{RANK}</span>
-                  </td>
+                  {isReal && (
+                    <td className="text-center px-3 py-3.5">
+                      <span className="text-xs font-bold text-primary">{RANK}</span>
+                    </td>
+                  )}
                 </tr>
               </tbody>
             </table>
@@ -475,7 +587,7 @@ function ApplicantReport({ locked }: { locked: boolean }) {
 
       {/* ── Career Expansion ── */}
       {(() => {
-        const suggestions = getExpansionSuggestions(SAMPLE_SCORES, app.industry);
+        const suggestions = getExpansionSuggestions(displayScores, app.industry);
         return (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 pt-4 pb-3 border-b border-slate-100">
@@ -726,7 +838,7 @@ function EmployerReport({ locked }: { locked: boolean }) {
                 data={SAMPLE_SCORES.map(s => ({
                   subject: s.short,
                   "Top Candidate": s.score,
-                  "Pool Average": Math.round(s.score * 0.85),
+                  "Pool Average": Math.round(s.score * 0.85 + 0),
                   fullMark: 100,
                 }))}
               >
@@ -754,6 +866,64 @@ export default function ResultsPage() {
   const { user } = useAuth();
   const hasSubscription = localStorage.getItem("sm_subscription") === "active";
   const isPremium = hasSubscription || isOwnerEmail(user?.email);
+
+  // Real data state
+  const [profileData, setProfileData] = useState<ApplicantData | null>(null);
+  const [profileScores, setProfileScores] = useState<ScoreItem[] | null>(null);
+  const [hasProfile, setHasProfile] = useState(false);
+  const [hasResults, setHasResults] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  useEffect(() => {
+    const applicantId = localStorage.getItem("sm_applicant_id");
+    if (!applicantId) {
+      setHasProfile(false);
+      setDataLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem("sm_auth_token");
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+    Promise.all([
+      fetch(`${BASE_URL}/api/applicants/${applicantId}`, { headers }).then(r => r.ok ? r.json() : null),
+      fetch(`${BASE_URL}/api/assessments/applicant/${applicantId}/results`, { headers }).then(r => r.ok ? r.json() : []),
+    ]).then(([applicant, results]) => {
+      if (!applicant) {
+        setHasProfile(false);
+        setDataLoading(false);
+        return;
+      }
+      setHasProfile(true);
+
+      const fullName = [applicant.firstName, applicant.middleName, applicant.lastName, applicant.suffix]
+        .filter(Boolean).join(" ");
+      const dateStr = new Date(applicant.createdAt).toLocaleDateString("en-PH", {
+        year: "numeric", month: "long", day: "numeric",
+      });
+
+      setProfileData({
+        name: fullName || applicant.email,
+        email: applicant.email,
+        industry: applicant.targetIndustry ?? "Technology / IT",
+        role: applicant.targetRole ?? "Professional",
+        level: "Registered Applicant",
+        date: dateStr,
+      });
+
+      if (Array.isArray(results) && results.length > 0) {
+        setHasResults(true);
+        setProfileScores(mapResultsToScores(results));
+      } else {
+        setHasResults(false);
+        setProfileScores(null);
+      }
+      setDataLoading(false);
+    }).catch(() => {
+      setHasProfile(false);
+      setDataLoading(false);
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -799,9 +969,20 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {audience === "applicant"
-          ? <ApplicantReport locked={!isPremium} />
-          : <EmployerReport  locked={!isPremium} />
+        {dataLoading ? (
+          <div className="flex items-center justify-center py-24 text-slate-400 text-sm gap-3">
+            <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            Loading your report…
+          </div>
+        ) : audience === "applicant"
+          ? <ApplicantReport
+              locked={!isPremium}
+              applicant={profileData}
+              scores={profileScores ?? undefined}
+              hasProfile={hasProfile}
+              hasResults={hasResults}
+            />
+          : <EmployerReport locked={!isPremium} />
         }
 
         {/* Free tier footer */}

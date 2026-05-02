@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { ChevronRight, LogIn, ClipboardList, BarChart2, UserPlus, Search } from "lucide-react";
+import { LogIn, ClipboardList, BarChart2, UserPlus, Search, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 const NAV_LINKS = [
   { label: "Browse Jobs",    href: "/jobs",       icon: Search },
@@ -13,6 +14,7 @@ const NAV_LINKS = [
 export function Navigation() {
   const [location] = useLocation();
   const isHome = location === "/";
+  const { user, logout } = useAuth();
 
   return (
     <header className={cn(
@@ -60,27 +62,49 @@ export function Navigation() {
 
           {/* Right actions */}
           <div className="flex items-center gap-3 shrink-0">
-            <Link
-              href="/signin"
-              className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-slate-100"
-            >
-              <LogIn className="h-4 w-4" />
-              Sign In
-            </Link>
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 px-5 py-2.5 font-semibold text-sm text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all"
-              style={{
-                background: "linear-gradient(135deg, hsl(24 95% 52%), hsl(24 95% 44%))",
-                clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
-                paddingLeft: "1.5rem",
-                paddingRight: "1.5rem",
-                boxShadow: "0 4px 14px hsl(24 95% 52% / 0.35)",
-              }}
-            >
-              <UserPlus className="h-4 w-4" />
-              Sign Up
-            </Link>
+            {user ? (
+              <>
+                <div className="hidden sm:flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                    {user.email.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-slate-700 max-w-[160px] truncate">
+                    {user.email}
+                  </span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-red-600 transition-colors px-3 py-2 rounded-lg hover:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/signin"
+                  className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-slate-100"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </Link>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 font-semibold text-sm text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(24 95% 52%), hsl(24 95% 44%))",
+                    clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
+                    paddingLeft: "1.5rem",
+                    paddingRight: "1.5rem",
+                    boxShadow: "0 4px 14px hsl(24 95% 52% / 0.35)",
+                  }}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
