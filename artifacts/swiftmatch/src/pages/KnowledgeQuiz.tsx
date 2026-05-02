@@ -413,12 +413,9 @@ function TypingTestSection({
    MAIN QUIZ COMPONENT
 ══════════════════════════════════════════════════════ */
 export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRole, recommendedIndustry, onComplete, onBack }: Props) {
-  const [phase, setPhase]       = useState<Phase>(
-    initialIndustry && initialRole ? "quiz" :
-    initialIndustry ? "select-role" : "select-industry"
-  );
-  const [industry, setIndustry] = useState<string>(initialIndustry ?? "");
-  const [role, setRole]         = useState<string>(initialRole ?? "");
+  const [phase, setPhase]       = useState<Phase>("select-industry");
+  const [industry, setIndustry] = useState<string>("");
+  const [role, setRole]         = useState<string>("");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [answers, setAnswers]   = useState<Record<string, string>>({});
   const [current, setCurrent]   = useState(0);
@@ -468,13 +465,6 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
     }
   }, [applicantId]);
 
-  // Auto-load questions when component starts directly in quiz phase (e.g. after page refresh)
-  useEffect(() => {
-    if (phase === "quiz" && questions.length === 0 && industry && role && !loading) {
-      loadQuiz(industry, role);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function selectIndustry(ind: string) {
     setIndustry(ind);
