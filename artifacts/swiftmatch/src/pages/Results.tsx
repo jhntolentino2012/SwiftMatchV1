@@ -382,9 +382,6 @@ function CvMatchAnalysis() {
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">AI-Powered</p>
         </div>
         <p className="text-sm font-bold text-primary">Match Analysis</p>
-        <p className="text-xs text-slate-500 mt-0.5">
-          AI-powered analysis of your CV against your assessment scores and live recruiter job requirements.
-        </p>
       </div>
 
       <div className="p-5 space-y-5">
