@@ -56,6 +56,9 @@ export default function AssessmentCenter() {
   const storedRole = storedIndustry && applicantId
     ? localStorage.getItem(`sm_ke_role_${applicantId}_${encodeURIComponent(storedIndustry)}`) ?? ""
     : "";
+  // Fall back to the profile's target industry/role when nothing is stored in localStorage yet
+  const effectiveIndustry = storedIndustry || user?.targetIndustry || "";
+  const effectiveRole = storedRole || (storedIndustry ? "" : user?.targetRole || "");
   const { data: assessments = [], isLoading } = useListAssessments();
   const { mutateAsync: submitAssessment } = useSubmitAssessment();
   const { toast } = useToast();
@@ -157,8 +160,8 @@ export default function AssessmentCenter() {
         <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
           <KnowledgeQuiz
             applicantId={applicantId}
-            initialIndustry={storedIndustry || undefined}
-            initialRole={storedRole || undefined}
+            initialIndustry={effectiveIndustry || undefined}
+            initialRole={effectiveRole || undefined}
             recommendedIndustry={user?.targetIndustry || undefined}
             onComplete={async (score: number) => {
               await fetchResults();

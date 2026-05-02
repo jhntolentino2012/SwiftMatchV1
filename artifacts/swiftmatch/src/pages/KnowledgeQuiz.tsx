@@ -413,9 +413,11 @@ function TypingTestSection({
    MAIN QUIZ COMPONENT
 ══════════════════════════════════════════════════════ */
 export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRole, recommendedIndustry, onComplete, onBack }: Props) {
-  const [phase, setPhase]       = useState<Phase>("select-industry");
-  const [industry, setIndustry] = useState<string>("");
-  const [role, setRole]         = useState<string>("");
+  // If we already know the industry (from profile or prior session), skip straight to role-select.
+  // If we also know the role, we'll auto-trigger loadQuiz below.
+  const [phase, setPhase]       = useState<Phase>(initialIndustry ? "select-role" : "select-industry");
+  const [industry, setIndustry] = useState<string>(initialIndustry ?? "");
+  const [role, setRole]         = useState<string>(initialRole ?? "");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [answers, setAnswers]   = useState<Record<string, string>>({});
   const [current, setCurrent]   = useState(0);
@@ -465,6 +467,14 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
     }
   }, [applicantId]);
 
+  // When both industry and role are pre-known from the user's profile, skip straight to the quiz.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (!autoStartedRef.current && initialIndustry && initialRole) {
+      autoStartedRef.current = true;
+      loadQuiz(initialIndustry, initialRole);
+    }
+  }, [initialIndustry, initialRole, loadQuiz]);
 
   function selectIndustry(ind: string) {
     setIndustry(ind);
