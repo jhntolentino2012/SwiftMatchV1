@@ -7,7 +7,8 @@ import { isOwnerEmail } from "@/lib/owner";
 import {
   Lock, Crown, ChevronLeft, ChevronRight, User, Building2,
   FileText, Award, TrendingUp, Calendar, Download, Compass,
-  ClipboardList, UserCircle,
+  ClipboardList, UserCircle, Briefcase, Target, ChevronDown,
+  CheckCircle2, MinusCircle, MapPin,
 } from "lucide-react";
 
 /* ══════════════════════════════════════════════════════
@@ -668,6 +669,108 @@ function ApplicantReport({
 }
 
 /* ══════════════════════════════════════════════════════
+   JOB MATCH TYPES & ALGORITHM
+══════════════════════════════════════════════════════ */
+interface Job {
+  id: number; title: string; company: string; location: string;
+  industry: string; description: string; requirements: string[];
+  companyDescription: string; salaryRange: string;
+}
+
+interface MatchBreakdown {
+  total: number; industry: number; role: number; level: number; assessment: number;
+}
+
+function computeJobMatch(c: CandidateRow, job: Job): MatchBreakdown {
+  /* ── 1. Industry alignment (25%) ── */
+  const cInd = c.industry.toLowerCase();
+  const jInd = (job.industry ?? "").toLowerCase();
+  let industryScore = 0;
+  if (cInd === jInd) {
+    industryScore = 100;
+  } else if (cInd.includes(jInd) || jInd.includes(cInd)) {
+    industryScore = 75;
+  } else {
+    const clusters: string[][] = [
+      ["tech","it","software","digital","data","ai","cloud"],
+      ["finance","banking","fintech","accounting","investment","capital"],
+      ["health","medical","nursing","clinical","hospital","pharma"],
+      ["marketing","advertising","creative","brand","media","arts"],
+      ["retail","ecommerce","consumer","sales","fmcg"],
+      ["education","training","academ"],
+      ["construction","engineering","manufacturing","industrial"],
+    ];
+    const clusterOf = (s: string) => clusters.findIndex(kws => kws.some(k => s.includes(k)));
+    if (clusterOf(cInd) !== -1 && clusterOf(cInd) === clusterOf(jInd)) industryScore = 50;
+  }
+
+  /* ── 2. Role / keyword match (20%) ── */
+  const cRole = c.role.toLowerCase();
+  const reqBlob = (job.requirements ?? []).join(" ").toLowerCase();
+  const jobBlob = `${job.title} ${reqBlob}`.toLowerCase();
+  const cTokens = cRole.split(/[\s,\/\-–|()]+/).filter(t => t.length > 3);
+  const jTokenSet = new Set(jobBlob.split(/\W+/).filter(t => t.length > 3));
+  const forward = cTokens.length > 0
+    ? cTokens.filter(t => jTokenSet.has(t)).length / cTokens.length
+    : 0;
+  const jTitleTokens = job.title.toLowerCase().split(/\W+/).filter(t => t.length > 3);
+  const reverse = jTitleTokens.length > 0
+    ? jTitleTokens.filter(t => cRole.includes(t)).length / jTitleTokens.length
+    : 0;
+  const roleScore = Math.min(100, Math.round(Math.max(forward, reverse) * 130));
+
+  /* ── 3. Career-level fit (10%) ── */
+  const levelTier = (s: string): number => {
+    const l = s.toLowerCase();
+    if (l.includes("entry") || l.includes("fresh") || l.includes("junior") || l.includes("graduate")) return 1;
+    if (l.includes("mid") || l.includes("associate") || l.includes("intermediate")) return 2;
+    if (l.includes("senior") || l.includes("experienced") || l.includes("specialist")) return 3;
+    if (l.includes("lead") || l.includes("manager") || l.includes("principal")) return 4;
+    if (l.includes("director") || l.includes("executive") || l.includes("vp") || l.includes("head")) return 5;
+    return 2;
+  };
+  const cTier = levelTier(c.level);
+  const yearsMatch = reqBlob.match(/(\d+)\+?\s*years?/);
+  const reqYears = yearsMatch ? parseInt(yearsMatch[1]) : null;
+  let levelScore = 60;
+  if (reqYears !== null) {
+    const reqTier = reqYears <= 1 ? 1 : reqYears <= 3 ? 2 : reqYears <= 6 ? 3 : reqYears <= 10 ? 4 : 5;
+    const diff = Math.abs(cTier - reqTier);
+    levelScore = diff === 0 ? 100 : diff === 1 ? 72 : diff === 2 ? 44 : 15;
+  }
+
+  /* ── 4. Assessment score, industry-weighted (45%) ── */
+  const iL = jInd;
+  let w: number[]; // [ke, pw, cf, ct, air]
+  if (iL.includes("tech") || iL.includes("software") || iL.includes("it") || iL.includes("data") || iL.includes("ai")) {
+    w = [0.38, 0.06, 0.06, 0.30, 0.20];
+  } else if (iL.includes("health") || iL.includes("medical") || iL.includes("nurs") || iL.includes("clinic")) {
+    w = [0.44, 0.26, 0.20, 0.10, 0.00];
+  } else if (iL.includes("financ") || iL.includes("bank") || iL.includes("account") || iL.includes("invest")) {
+    w = [0.34, 0.06, 0.10, 0.40, 0.10];
+  } else if (iL.includes("market") || iL.includes("creative") || iL.includes("art") || iL.includes("brand")) {
+    w = [0.18, 0.28, 0.26, 0.18, 0.10];
+  } else if (iL.includes("educat") || iL.includes("train")) {
+    w = [0.30, 0.28, 0.22, 0.15, 0.05];
+  } else {
+    w = [0.20, 0.20, 0.20, 0.20, 0.20];
+  }
+  const takenWeightSum = c.scores.reduce((s, sc, i) => s + (sc.taken ? w[i] : 0), 0);
+  const assessmentScore = takenWeightSum > 0
+    ? Math.round(c.scores.reduce((s, sc, i) => s + (sc.taken ? sc.score * w[i] : 0), 0) / takenWeightSum)
+    : 0;
+
+  const total = Math.round(
+    industryScore * 0.25 +
+    roleScore     * 0.20 +
+    levelScore    * 0.10 +
+    assessmentScore * 0.45
+  );
+
+  return { total, industry: industryScore, role: roleScore, level: levelScore, assessment: assessmentScore };
+}
+
+/* ══════════════════════════════════════════════════════
    EMPLOYER REPORT
 ══════════════════════════════════════════════════════ */
 interface CandidateRow {
@@ -682,6 +785,10 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
   const [loadingPool, setLoadingPool] = useState(true);
   const [selected, setSelected]       = useState<CandidateRow | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [poolMode, setPoolMode]           = useState<"pool" | "match">("pool");
+  const [jobs, setJobs]                   = useState<Job[]>([]);
+  const [loadingJobs, setLoadingJobs]     = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("sm_auth_token");
@@ -721,10 +828,35 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
       .catch(() => setLoadingPool(false));
   }, []);
 
+  /* ── Fetch jobs when switching to match mode ── */
+  useEffect(() => {
+    if (poolMode !== "match" || jobs.length > 0) return;
+    setLoadingJobs(true);
+    const token = localStorage.getItem("sm_auth_token");
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`${BASE_URL}/api/jobs`, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then((data: any) => {
+        const list: Job[] = Array.isArray(data) ? data : (data.jobs ?? []);
+        setJobs(list);
+        if (list.length > 0) setSelectedJobId(list[0].id);
+        setLoadingJobs(false);
+      })
+      .catch(() => setLoadingJobs(false));
+  }, [poolMode]);
+
   const scored   = candidates.filter(c => c.overall > 0);
   const avgScore = scored.length > 0
     ? Math.round(scored.reduce((s, c) => s + c.overall, 0) / scored.length)
     : 0;
+
+  const selectedJob = jobs.find(j => j.id === selectedJobId) ?? null;
+
+  const matchedCandidates: (CandidateRow & { match: MatchBreakdown })[] = selectedJob
+    ? candidates
+        .map(c => ({ ...c, match: computeJobMatch(c, selectedJob) }))
+        .sort((a, b) => b.match.total - a.match.total)
+    : [];
 
   const COLORS = ["#1d4ed8","#7c3aed","#ea580c","#0891b2","#16a34a"];
 
@@ -791,6 +923,28 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
             <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : (candidates.length - scored.length)}</p>
             <p className="text-xs text-slate-500">Pending Assessment</p>
           </div>
+
+          {/* View mode toggle */}
+          <div className="ml-auto flex gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
+            <button
+              onClick={() => setPoolMode("pool")}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                poolMode === "pool" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-primary"
+              )}
+            >
+              <ClipboardList className="w-3.5 h-3.5" /> Pool Rankings
+            </button>
+            <button
+              onClick={() => setPoolMode("match")}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                poolMode === "match" ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-primary"
+              )}
+            >
+              <Target className="w-3.5 h-3.5" /> Job Match
+            </button>
+          </div>
         </div>
       </div>
 
@@ -805,7 +959,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
           <p className="font-semibold text-slate-500">No applicants yet</p>
           <p className="text-xs text-slate-400">Applicants who complete their profile will appear here.</p>
         </div>
-      ) : (
+      ) : poolMode === "pool" ? (
         <LockOverlay locked={locked}>
           {/* Candidate Table */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -941,6 +1095,211 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
               </div>
             );
           })()}
+        </LockOverlay>
+      ) : (
+        /* ══════════════════════════════════════════════════════
+           JOB MATCH ANALYSIS VIEW
+        ══════════════════════════════════════════════════════ */
+        <LockOverlay locked={locked}>
+          <div className="space-y-4">
+            {/* Job selector */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Job Match Analysis</p>
+                  <p className="text-sm font-bold text-primary mt-0.5">Candidates ranked by compatibility with a specific job posting</p>
+                </div>
+                {loadingJobs ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    Loading jobs…
+                  </div>
+                ) : jobs.length === 0 ? (
+                  <p className="text-xs text-slate-400">No job postings found.</p>
+                ) : (
+                  <div className="relative">
+                    <select
+                      value={selectedJobId ?? ""}
+                      onChange={e => setSelectedJobId(Number(e.target.value))}
+                      className="appearance-none pl-9 pr-8 py-2 text-sm font-semibold text-primary bg-primary/5 border border-primary/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+                    >
+                      {jobs.map(j => (
+                        <option key={j.id} value={j.id}>{j.title} — {j.company}</option>
+                      ))}
+                    </select>
+                    <Briefcase className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary/60 pointer-events-none" />
+                  </div>
+                )}
+              </div>
+
+              {/* Job detail card */}
+              {selectedJob && (
+                <div className="px-5 py-4 flex flex-wrap gap-6">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Briefcase className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-display font-bold text-slate-800 text-base leading-tight">{selectedJob.title}</h3>
+                        <p className="text-sm text-slate-500 mt-0.5">{selectedJob.company}</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/8 text-primary text-[11px] font-semibold rounded-md">
+                            🏢 {selectedJob.industry}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] font-medium rounded-md">
+                            <MapPin className="w-3 h-3" /> {selectedJob.location}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] font-medium rounded-md">
+                            💰 {selectedJob.salaryRange}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-3 leading-relaxed line-clamp-2">{selectedJob.description}</p>
+                  </div>
+                  {selectedJob.requirements.length > 0 && (
+                    <div className="w-full sm:w-64 shrink-0">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Key Requirements</p>
+                      <ul className="space-y-1">
+                        {selectedJob.requirements.slice(0, 5).map((r, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                            {r}
+                          </li>
+                        ))}
+                        {selectedJob.requirements.length > 5 && (
+                          <li className="text-[11px] text-slate-400">+{selectedJob.requirements.length - 5} more…</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Scoring legend */}
+              {selectedJob && (
+                <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-1">
+                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide w-full mb-0.5">Match score factors</p>
+                  {[
+                    { label: "Industry alignment", pct: "25%" },
+                    { label: "Role compatibility", pct: "20%" },
+                    { label: "Career level fit", pct: "10%" },
+                    { label: "Assessment scores (industry-weighted)", pct: "45%" },
+                  ].map(f => (
+                    <span key={f.label} className="text-[11px] text-slate-500">
+                      <span className="font-semibold text-primary">{f.pct}</span> {f.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Match table */}
+            {selectedJob && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100">
+                        <th className="text-center px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-12">Rank</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Applicant</th>
+                        <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Match %</th>
+                        <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Industry</th>
+                        <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Role</th>
+                        <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Level</th>
+                        <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Scores</th>
+                        <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-28"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {matchedCandidates.map((c, idx) => {
+                        const rank = idx + 1;
+                        const m = c.match;
+                        const matchColor = m.total >= 75 ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+                          : m.total >= 50 ? "text-amber-600 bg-amber-50 border-amber-200"
+                          : "text-slate-500 bg-slate-50 border-slate-200";
+                        const barColor = m.total >= 75 ? "#059669" : m.total >= 50 ? "#d97706" : "#94a3b8";
+                        const factorBadge = (val: number) => val >= 75 ? (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600"><CheckCircle2 className="w-3 h-3" />{val}%</span>
+                        ) : val >= 40 ? (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-500"><MinusCircle className="w-3 h-3" />{val}%</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-slate-400"><MinusCircle className="w-3 h-3" />{val}%</span>
+                        );
+                        return (
+                          <tr
+                            key={c.id}
+                            className={cn(
+                              "hover:bg-primary/[0.03] transition-colors cursor-pointer",
+                              rank === 1 && "bg-blue-50/40"
+                            )}
+                            onClick={() => { if (!locked) setSelected(c); }}
+                          >
+                            <td className="text-center px-4 py-3.5">
+                              <span className={cn(
+                                "text-sm font-display font-bold",
+                                rank === 1 ? "text-primary" : rank <= 3 ? "text-slate-600" : "text-slate-400"
+                              )}>#{rank}</span>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className={cn(
+                                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                                  rank === 1 ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
+                                )}>
+                                  {c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-slate-800 text-sm leading-tight">{c.name}</p>
+                                  <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{c.industry !== "—" ? c.industry : c.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="text-center px-3 py-3.5">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className={cn("text-sm font-display font-bold px-2.5 py-0.5 rounded-lg border text-sm", matchColor)}>
+                                  {m.total}%
+                                </span>
+                                <div className="w-14 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full transition-all" style={{ width: `${m.total}%`, backgroundColor: barColor }} />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="text-center px-3 py-3.5">{factorBadge(m.industry)}</td>
+                            <td className="text-center px-3 py-3.5">{factorBadge(m.role)}</td>
+                            <td className="text-center px-3 py-3.5">{factorBadge(m.level)}</td>
+                            <td className="text-center px-3 py-3.5">
+                              {c.overall > 0 ? <ScoreBadge score={m.assessment} size="sm" /> : <span className="text-xs text-slate-300">—</span>}
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <button
+                                onClick={e => { e.stopPropagation(); if (!locked) setSelected(c); }}
+                                className={cn(
+                                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                                  locked
+                                    ? "text-slate-300 border border-slate-100 cursor-not-allowed"
+                                    : "text-primary border border-primary/30 hover:bg-primary/5"
+                                )}
+                              >
+                                <User className="w-3 h-3" /> View Report
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-1 items-center">
+                  <span className="flex items-center gap-1 text-[11px] text-slate-500"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Strong match ≥ 75%</span>
+                  <span className="flex items-center gap-1 text-[11px] text-slate-500"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Good match ≥ 50%</span>
+                  <span className="flex items-center gap-1 text-[11px] text-slate-500"><span className="w-2 h-2 rounded-full bg-slate-300 inline-block" /> Partial match &lt; 50%</span>
+                </div>
+              </div>
+            )}
+          </div>
         </LockOverlay>
       )}
     </div>
