@@ -1106,7 +1106,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
               name: fullName || app.email,
               email: app.email,
               industry: app.targetIndustry ?? "—",
-              role: app.targetRole ?? "—",
+              role: Array.isArray(app.targetRole) ? (app.targetRole.length > 0 ? app.targetRole.join(", ") : "—") : (app.targetRole ?? "—"),
               level: app.careerLevel ?? "—",
               date: new Date(app.createdAt).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" }),
               scores,
@@ -1647,7 +1647,7 @@ export default function ResultsPage() {
         name: fullName || applicant.email,
         email: applicant.email,
         industry: applicant.targetIndustry ?? "Technology / IT",
-        role: applicant.targetRole ?? "Professional",
+        role: Array.isArray(applicant.targetRole) ? (applicant.targetRole.length > 0 ? applicant.targetRole.join(", ") : "Professional") : (applicant.targetRole ?? "Professional"),
         level: "Registered Applicant",
         date: dateStr,
       });

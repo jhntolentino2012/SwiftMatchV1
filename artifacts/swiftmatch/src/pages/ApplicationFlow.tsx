@@ -45,7 +45,7 @@ export default function ApplicationFlow() {
     certificates: [] as any[],
     references: [] as any[],
     facebookUrl: "", linkedinUrl: "",
-    targetIndustry: "", targetRole: "", careerLevel: "",
+    targetIndustry: "", targetRole: [] as string[], careerLevel: "",
     expectedSalary: "", salaryNegotiable: true, availabilityDate: "",
     status: "pending" as const
   });
@@ -100,13 +100,17 @@ export default function ApplicationFlow() {
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      const applicant = await createApplicant({ data: formData as any });
+      const apiPayload = {
+        ...formData,
+        targetRole: formData.targetRole.length > 0 ? formData.targetRole.join(", ") : undefined,
+      };
+      const applicant = await createApplicant({ data: apiPayload as any });
       // Persist applicant ID so the Assessment page can use it
       localStorage.setItem("sm_applicant_id", String(applicant.id));
       if (formData.targetIndustry) {
         localStorage.setItem(`sm_ke_industry_${applicant.id}`, formData.targetIndustry);
-        if (formData.targetRole) {
-          localStorage.setItem(`sm_ke_role_${applicant.id}_${encodeURIComponent(formData.targetIndustry)}`, formData.targetRole);
+        if (formData.targetRole.length > 0) {
+          localStorage.setItem(`sm_ke_role_${applicant.id}_${encodeURIComponent(formData.targetIndustry)}`, formData.targetRole.join(", "));
         }
       }
       if ((formData as any).careerLevel) {
@@ -665,6 +669,78 @@ const CAREER_LEVELS = [
   "Director / Executive / C-Suite",
 ];
 
+function RoleMultiSelect({ roles, selected, onChange, disabled }: {
+  roles: string[];
+  selected: string[];
+  onChange: (roles: string[]) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const toggle = (role: string) => {
+    if (selected.includes(role)) {
+      onChange(selected.filter(r => r !== role));
+    } else {
+      onChange([...selected, role]);
+    }
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(o => !o)}
+        className={cn(
+          "w-full min-h-[42px] px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary transition-colors text-left flex flex-wrap gap-1 items-center",
+          disabled && "opacity-50 cursor-not-allowed"
+        )}
+      >
+        {selected.length === 0 ? (
+          <span className="text-slate-400">— Select role —</span>
+        ) : (
+          selected.map(role => (
+            <span key={role} className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full">
+              {role}
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); toggle(role); }}
+                className="hover:text-primary/70"
+              >
+                <X size={10} />
+              </button>
+            </span>
+          ))
+        )}
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg max-h-56 overflow-y-auto">
+          {roles.map(role => (
+            <label key={role} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm">
+              <input
+                type="checkbox"
+                checked={selected.includes(role)}
+                onChange={() => toggle(role)}
+                className="accent-primary"
+              />
+              {role}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StepPreferences({ data, update }: any) {
   const roles = PREF_ROLES[data.targetIndustry] ?? [];
 
@@ -681,7 +757,7 @@ function StepPreferences({ data, update }: any) {
             <label className="text-sm font-semibold text-slate-700">Industry you are applying in</label>
             <select
               value={data.targetIndustry}
-              onChange={(e: any) => { update('targetIndustry', e.target.value); update('targetRole', ''); }}
+              onChange={(e: any) => { update('targetIndustry', e.target.value); update('targetRole', []); }}
               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary transition-colors"
             >
               <option value="">— Select industry —</option>
@@ -692,17 +768,12 @@ function StepPreferences({ data, update }: any) {
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-slate-700">Target role / position</label>
-            <select
-              value={data.targetRole}
-              onChange={(e: any) => update('targetRole', e.target.value)}
+            <RoleMultiSelect
+              roles={roles}
+              selected={data.targetRole}
+              onChange={(val) => update('targetRole', val)}
               disabled={!data.targetIndustry}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
-            >
-              <option value="">— Select role —</option>
-              {roles.map(rl => (
-                <option key={rl} value={rl}>{rl}</option>
-              ))}
-            </select>
+            />
           </div>
         </div>
       </div>
