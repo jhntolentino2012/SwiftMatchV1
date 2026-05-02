@@ -310,37 +310,28 @@ type CvAnalysis = {
   gapAreas: CvGap[];
   recommendations: string[];
   cvProfile: { industry?: string; role?: string; level?: string; yearsExperience?: string; topSkills?: string[] };
+  jobsMatched?: number;
 };
 
 function CvMatchAnalysis() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile]       = useState<File | null>(null);
-  const [status, setStatus]   = useState<"idle" | "loading" | "done" | "error">("idle");
+  const fileInputRef  = useRef<HTMLInputElement>(null);
+  const [status, setStatus]     = useState<"loading" | "cv_missing" | "no_scores" | "done" | "error">("loading");
   const [analysis, setAnalysis] = useState<CvAnalysis | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    setFile(f);
-    setStatus("idle");
+  const runAnalysis = async () => {
+    setStatus("loading");
     setAnalysis(null);
     setErrorMsg(null);
-  }
-
-  async function handleAnalyze() {
-    if (!file) return;
-    setStatus("loading");
-    setErrorMsg(null);
+    const token = localStorage.getItem("sm_auth_token");
     try {
-      const formData = new FormData();
-      formData.append("resume", file);
-      const token = localStorage.getItem("sm_auth_token");
       const res = await fetch(`${BASE_URL}/api/resume/match-analysis`, {
-        method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
       });
       const data = await res.json();
+      if (res.status === 422 && data.errorCode === "cv_missing") { setStatus("cv_missing"); return; }
+      if (res.status === 422 && data.errorCode === "no_scores")  { setStatus("no_scores");  return; }
       if (!res.ok) { setErrorMsg(data.error || "Analysis failed."); setStatus("error"); return; }
       setAnalysis(data as CvAnalysis);
       setStatus("done");
@@ -348,11 +339,33 @@ function CvMatchAnalysis() {
       setErrorMsg("Network error. Please try again.");
       setStatus("error");
     }
-  }
+  };
 
-  function reset() {
-    setFile(null); setStatus("idle"); setAnalysis(null); setErrorMsg(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  useEffect(() => { runAnalysis(); }, []);
+
+  async function handleCvUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("resume", file);
+    const token = localStorage.getItem("sm_auth_token");
+    try {
+      const res = await fetch(`${BASE_URL}/api/resume/store-cv`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || "Upload failed."); setStatus("error"); return; }
+      await runAnalysis();
+    } catch {
+      setErrorMsg("Upload failed. Please try again.");
+      setStatus("error");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   const alignColor = (n: number) =>
@@ -370,78 +383,93 @@ function CvMatchAnalysis() {
         </div>
         <p className="text-sm font-bold text-primary">Match Analysis</p>
         <p className="text-xs text-slate-500 mt-0.5">
-          Upload your CV and our AI will compare it against your real assessment scores — identifying confirmed strengths, gaps, and specific career advice.
+          AI-powered analysis of your CV against your assessment scores and live recruiter job requirements.
         </p>
       </div>
 
       <div className="p-5 space-y-5">
 
-        {/* Upload zone */}
-        {status !== "done" && (
-          <div
-            className={cn(
-              "border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-3 text-center transition-colors cursor-pointer",
-              file ? "border-primary/40 bg-primary/[0.02]" : "border-slate-200 hover:border-primary/30 hover:bg-slate-50/60"
-            )}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", file ? "bg-primary/10" : "bg-slate-100")}>
-              <FileUp className={cn("w-6 h-6", file ? "text-primary" : "text-slate-400")} />
-            </div>
-            {file ? (
-              <div>
-                <p className="text-sm font-semibold text-primary truncate max-w-xs">{file.name}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{(file.size / 1024).toFixed(0)} KB — click to change</p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-sm font-semibold text-slate-700">Click to upload your CV</p>
-                <p className="text-xs text-slate-400 mt-0.5">PDF or DOCX · max 10 MB</p>
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
-        )}
-
-        {/* Error state */}
-        {status === "error" && errorMsg && (
-          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <div className="flex-1">{errorMsg}</div>
-            <button onClick={reset} className="shrink-0 text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
-          </div>
-        )}
-
         {/* Loading */}
         {status === "loading" && (
-          <div className="flex flex-col items-center gap-4 py-6">
+          <div className="flex flex-col items-center gap-4 py-8">
             <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
             <div className="text-center">
-              <p className="text-sm font-semibold text-primary">Analysing your CV…</p>
-              <p className="text-xs text-slate-400 mt-1">Comparing against your assessment scores. This takes 15–30 seconds.</p>
+              <p className="text-sm font-semibold text-primary">Analysing your profile…</p>
+              <p className="text-xs text-slate-400 mt-1">Comparing CV against assessment scores and job requirements.</p>
             </div>
           </div>
         )}
 
-        {/* Analyse button */}
-        {status === "idle" && file && (
-          <button
-            onClick={handleAnalyze}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors"
-          >
-            <Sparkles className="w-4 h-4" /> Run CV Match Analysis
-          </button>
+        {/* No CV stored — upload prompt */}
+        {status === "cv_missing" && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+              <FileUp className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>No CV on file yet. Upload your CV once and all future analyses will run automatically.</p>
+            </div>
+            <div
+              className="border-2 border-dashed border-slate-200 hover:border-primary/30 hover:bg-slate-50/60 rounded-xl p-6 flex flex-col items-center gap-3 text-center cursor-pointer transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
+                {uploading
+                  ? <div className="w-6 h-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                  : <FileUp className="w-6 h-6 text-slate-400" />
+                }
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">{uploading ? "Uploading…" : "Click to upload your CV"}</p>
+                <p className="text-xs text-slate-400 mt-0.5">PDF or DOCX · max 10 MB</p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                onChange={handleCvUpload}
+                disabled={uploading}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* No scores yet */}
+        {status === "no_scores" && (
+          <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <p>No assessment results found. Complete at least one assessment to unlock match analysis.</p>
+          </div>
+        )}
+
+        {/* General error */}
+        {status === "error" && errorMsg && (
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <p className="flex-1">{errorMsg}</p>
+            </div>
+            <button
+              onClick={runAnalysis}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:border-primary/30 hover:text-primary transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" /> Try Again
+            </button>
+          </div>
         )}
 
         {/* Results */}
         {status === "done" && analysis && (
           <div className="space-y-5">
+
+            {/* Job context badge */}
+            {(analysis.jobsMatched ?? 0) > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/10 rounded-lg">
+                <Briefcase className="w-3.5 h-3.5 text-primary shrink-0" />
+                <p className="text-xs text-primary font-medium">
+                  Benchmarked against {analysis.jobsMatched} active recruiter job posting{analysis.jobsMatched !== 1 ? "s" : ""} in your industry
+                </p>
+              </div>
+            )}
 
             {/* Overall alignment gauge */}
             <div className="flex items-center gap-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
@@ -449,7 +477,7 @@ function CvMatchAnalysis() {
                 <div className={cn("text-4xl font-display font-bold tabular-nums", alignColor(analysis.overallAlignment))}>
                   {analysis.overallAlignment}%
                 </div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">CV Alignment</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Match Score</div>
               </div>
               <div className="flex-1 space-y-2">
                 <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -572,13 +600,28 @@ function CvMatchAnalysis() {
               </div>
             )}
 
-            {/* Run again */}
-            <button
-              onClick={reset}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:border-primary/30 hover:text-primary transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" /> Upload a Different CV
-            </button>
+            {/* Footer actions */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={runAnalysis}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:border-primary/30 hover:text-primary transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> Re-analyse
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:border-primary/30 hover:text-primary transition-colors"
+              >
+                <FileUp className="w-3.5 h-3.5" /> Update CV
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                onChange={handleCvUpload}
+              />
+            </div>
           </div>
         )}
       </div>

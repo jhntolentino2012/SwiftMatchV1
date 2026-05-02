@@ -2,8 +2,8 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
-import { eq, desc } from "drizzle-orm";
-import { db, usersTable, applicantsTable, assessmentResultsTable, assessmentsTable } from "@workspace/db";
+import { eq, desc, and, ne } from "drizzle-orm";
+import { db, usersTable, applicantsTable, assessmentResultsTable, assessmentsTable, jobsTable } from "@workspace/db";
 
 function jwtSecret(): string {
   const s = process.env.SESSION_SECRET;
@@ -185,6 +185,23 @@ router.post("/parse", upload.single("resume"), async (req, res) => {
       references: [],
     };
 
+    // Step 4: If authenticated, store CV text against the applicant record
+    const authHeader = req.headers["authorization"];
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const payload: any = jwt.verify(authHeader.slice(7), jwtSecret());
+        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
+        if (user) {
+          await db.update(applicantsTable)
+            .set({ cvText: rawText.slice(0, 12000) })
+            .where(eq(applicantsTable.email, user.email));
+          req.log.info({ userId: payload.userId }, "Stored CV text for applicant");
+        }
+      } catch {
+        // Non-fatal — don't block the parse response
+      }
+    }
+
     req.log.info("Resume parsed successfully");
     res.json({ success: true, data: result });
 
@@ -195,30 +212,58 @@ router.post("/parse", upload.single("resume"), async (req, res) => {
 });
 
 /* ══════════════════════════════════════════════════════
-   POST /resume/match-analysis
-   Parses the uploaded CV, fetches the authenticated
-   applicant's real assessment scores, then asks OpenAI
-   to produce a structured CV-vs-assessment alignment report.
+   POST /resume/store-cv
+   Stores raw CV text against the authenticated applicant
+   without parsing it. Used by the Match Analysis page when
+   no CV has been uploaded yet.
 ══════════════════════════════════════════════════════ */
-router.post("/match-analysis", upload.single("resume"), async (req, res) => {
+router.post("/store-cv", upload.single("resume"), async (req, res) => {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Authentication required." }); return; }
+  let payload: any;
+  try { payload = jwt.verify(authHeader.slice(7), jwtSecret()); }
+  catch { res.status(401).json({ error: "Invalid or expired token." }); return; }
+
+  if (!req.file) { res.status(400).json({ error: "No file uploaded." }); return; }
+
+  try {
+    const rawText = await extractTextFromBuffer(req.file.buffer, req.file.mimetype);
+    if (!rawText || rawText.trim().length < 80) {
+      res.status(400).json({ error: "Could not extract enough text from the file. Please try a different format." });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found." }); return; }
+
+    const updated = await db.update(applicantsTable)
+      .set({ cvText: rawText.slice(0, 12000) })
+      .where(eq(applicantsTable.email, user.email))
+      .returning({ id: applicantsTable.id });
+
+    if (!updated.length) { res.status(404).json({ error: "Applicant profile not found." }); return; }
+
+    req.log.info({ applicantId: updated[0].id }, "CV text stored via store-cv");
+    res.json({ success: true });
+  } catch (err: any) {
+    req.log.error({ err }, "store-cv error");
+    res.status(500).json({ error: err.message || "Failed to store CV." });
+  }
+});
+
+/* ══════════════════════════════════════════════════════
+   GET /resume/match-analysis
+   Automatically runs a CV-vs-assessment match analysis
+   using the CV text already stored on the applicant record,
+   their real assessment scores, and recruiter job requirements
+   for their target industry.  No file upload needed.
+══════════════════════════════════════════════════════ */
+router.get("/match-analysis", async (req, res) => {
   /* 1 ── Auth */
   const authHeader = req.headers["authorization"];
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Authentication required." });
-    return;
-  }
+  if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Authentication required." }); return; }
   let payload: any;
-  try {
-    payload = jwt.verify(authHeader.slice(7), jwtSecret());
-  } catch {
-    res.status(401).json({ error: "Invalid or expired token." });
-    return;
-  }
-
-  if (!req.file) {
-    res.status(400).json({ error: "No file uploaded." });
-    return;
-  }
+  try { payload = jwt.verify(authHeader.slice(7), jwtSecret()); }
+  catch { res.status(401).json({ error: "Invalid or expired token." }); return; }
 
   try {
     /* 2 ── Resolve user → applicant */
@@ -229,7 +274,13 @@ router.post("/match-analysis", upload.single("resume"), async (req, res) => {
       .where(eq(applicantsTable.email, user.email)).limit(1);
     if (!applicant) { res.status(404).json({ error: "Applicant profile not found. Please complete your profile first." }); return; }
 
-    /* 3 ── Fetch assessment results (latest per assessment) */
+    /* 3 ── Check stored CV text */
+    if (!applicant.cvText || applicant.cvText.trim().length < 80) {
+      res.status(422).json({ errorCode: "cv_missing", error: "No CV on file. Please upload your CV to enable match analysis." });
+      return;
+    }
+
+    /* 4 ── Fetch assessment results (latest per assessment) */
     const rawResults = await db
       .select({ title: assessmentsTable.title, score: assessmentResultsTable.score })
       .from(assessmentResultsTable)
@@ -243,18 +294,25 @@ router.post("/match-analysis", upload.single("resume"), async (req, res) => {
     }
 
     if (Object.keys(latestScores).length === 0) {
-      res.status(400).json({ error: "No assessment results found. Please complete at least one assessment before running CV match analysis." });
+      res.status(422).json({ errorCode: "no_scores", error: "No assessment results found. Please complete at least one assessment first." });
       return;
     }
 
-    /* 4 ── Extract CV text */
-    const rawText = await extractTextFromBuffer(req.file.buffer, req.file.mimetype);
-    if (!rawText || rawText.trim().length < 80) {
-      res.status(400).json({ error: "Could not extract enough text from the file. Please try a different format." });
-      return;
-    }
+    /* 5 ── Fetch matching recruiter job requirements */
+    const matchingJobs = applicant.targetIndustry
+      ? await db.select({
+          title: jobsTable.title,
+          company: jobsTable.company,
+          requirements: jobsTable.requirements,
+          description: jobsTable.description,
+        })
+        .from(jobsTable)
+        .where(and(eq(jobsTable.industry, applicant.targetIndustry), ne(jobsTable.isDemo, true)))
+        .orderBy(desc(jobsTable.createdAt))
+        .limit(3)
+      : [];
 
-    /* 5 ── Build context strings */
+    /* 6 ── Build context strings */
     const profileSummary = [
       applicant.targetIndustry ? `Target Industry: ${applicant.targetIndustry}` : null,
       applicant.targetRole     ? `Target Role: ${applicant.targetRole}`         : null,
@@ -265,18 +323,25 @@ router.post("/match-analysis", upload.single("resume"), async (req, res) => {
     const scoresText = Object.entries(latestScores)
       .map(([title, score]) => `  - ${title}: ${score}%`).join("\n");
 
+    const jobsContext = matchingJobs.length > 0
+      ? matchingJobs.map((j, i) =>
+          `Job ${i + 1}: ${j.title} at ${j.company}\n  Requirements: ${(j.requirements ?? []).join("; ") || j.description.slice(0, 300)}`
+        ).join("\n\n")
+      : "No active job postings on file for this industry.";
+
     const MATCH_PROMPT = `You are an expert HR analyst and career coach for the Philippine job market.
 
 You will be given:
 1. An applicant's CV/resume text
 2. Their SwiftMatch assessment scores (objective test results across 5 competency dimensions)
 3. Their profile preferences
+4. Active recruiter job requirements for their target industry
 
-Your task: analyze how well the CV's claims and work history align with the assessment results, identify confirmed strengths, gaps or inconsistencies, and produce specific, actionable recommendations.
+Your task: analyze how well the CV's claims and work history align with the assessment results AND the recruiter job requirements, identify confirmed strengths, gaps or inconsistencies, and produce specific, actionable recommendations.
 
 Return ONLY valid JSON in this exact schema — no markdown, no extra text:
 {
-  "overallAlignment": <integer 0–100, weighted alignment between CV narrative and assessment performance>,
+  "overallAlignment": <integer 0–100, weighted alignment between CV narrative, assessment performance, and job requirements>,
   "summary": "<2-3 sentence narrative summary of the alignment analysis>",
   "confirmedStrengths": [
     { "skill": "<skill or competency>", "cvEvidence": "<1 line from CV supporting this>", "assessmentCategory": "<which assessment confirmed it>" }
@@ -295,9 +360,9 @@ Return ONLY valid JSON in this exact schema — no markdown, no extra text:
 }
 
 Rules:
-- confirmedStrengths: list 2-4 items where CV claims AND assessment scores agree
-- gapAreas: list 1-3 items where CV claims exceed assessment performance, OR where assessment scores are strong but CV undersells them
-- recommendations: exactly 3 specific, actionable items
+- confirmedStrengths: list 2-4 items where CV claims AND assessment scores agree, or where job requirements are clearly met
+- gapAreas: list 1-3 items where CV/assessment fall short of job requirements, or where CV claims exceed assessment performance
+- recommendations: exactly 3 specific, actionable items tailored to the job requirements
 - overallAlignment: be realistic — a typical well-prepared candidate scores 55–80%
 - Focus on Philippine market context
 
@@ -307,12 +372,15 @@ ${profileSummary || "Not specified"}
 ASSESSMENT SCORES:
 ${scoresText}
 
+RECRUITER JOB REQUIREMENTS (active postings):
+${jobsContext}
+
 CV TEXT (first 6000 chars):
-${rawText.slice(0, 6000)}
+${applicant.cvText.slice(0, 6000)}
 `;
 
-    /* 6 ── Call OpenAI */
-    req.log.info({ applicantId: applicant.id, filename: req.file.originalname }, "Running CV match analysis");
+    /* 7 ── Call OpenAI */
+    req.log.info({ applicantId: applicant.id, jobCount: matchingJobs.length }, "Running auto CV match analysis");
 
     const completion = await openai.chat.completions.create({
       model: "gpt-5-mini",
@@ -328,7 +396,7 @@ ${rawText.slice(0, 6000)}
     try { parsed = JSON.parse(content); }
     catch { res.status(500).json({ error: "Failed to parse AI response. Please try again." }); return; }
 
-    /* 7 ── Sanitize and return */
+    /* 8 ── Sanitize and return */
     res.json({
       overallAlignment: typeof parsed.overallAlignment === "number" ? Math.min(100, Math.max(0, Math.round(parsed.overallAlignment))) : 60,
       summary: typeof parsed.summary === "string" ? parsed.summary : "",
@@ -336,6 +404,7 @@ ${rawText.slice(0, 6000)}
       gapAreas: Array.isArray(parsed.gapAreas) ? parsed.gapAreas.slice(0, 3) : [],
       recommendations: Array.isArray(parsed.recommendations) ? (parsed.recommendations as string[]).slice(0, 3) : [],
       cvProfile: parsed.cvProfile ?? {},
+      jobsMatched: matchingJobs.length,
     });
 
   } catch (err: any) {

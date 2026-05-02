@@ -28,6 +28,7 @@ export const applicantsTable = pgTable("applicants", {
   expectedSalary: text("expected_salary"),
   salaryNegotiable: boolean("salary_negotiable").notNull().default(true),
   availabilityDate: text("availability_date").notNull(),
+  cvText: text("cv_text"),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
