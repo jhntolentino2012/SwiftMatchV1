@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,8 @@ import {
   Lock, Crown, ChevronLeft, ChevronRight, User, Building2,
   FileText, Award, TrendingUp, Calendar, Download, Compass,
   ClipboardList, UserCircle, Briefcase, Target, ChevronDown,
-  CheckCircle2, MinusCircle, MapPin,
+  CheckCircle2, MinusCircle, MapPin, Upload, AlertCircle, FileUp,
+  Sparkles, ShieldCheck, AlertTriangle, Lightbulb, X,
 } from "lucide-react";
 
 /* ══════════════════════════════════════════════════════
@@ -292,6 +293,294 @@ function LockOverlay({ children, locked }: { children: React.ReactNode; locked: 
             <Crown className="w-4 h-4" /> Unlock Now
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   CV MATCH ANALYSIS COMPONENT
+══════════════════════════════════════════════════════ */
+type CvStrength = { skill: string; cvEvidence: string; assessmentCategory: string };
+type CvGap      = { area: string; cvClaim: string; suggestion: string };
+type CvAnalysis = {
+  overallAlignment: number;
+  summary: string;
+  confirmedStrengths: CvStrength[];
+  gapAreas: CvGap[];
+  recommendations: string[];
+  cvProfile: { industry?: string; role?: string; level?: string; yearsExperience?: string; topSkills?: string[] };
+};
+
+function CvMatchAnalysis() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile]       = useState<File | null>(null);
+  const [status, setStatus]   = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [analysis, setAnalysis] = useState<CvAnalysis | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setFile(f);
+    setStatus("idle");
+    setAnalysis(null);
+    setErrorMsg(null);
+  }
+
+  async function handleAnalyze() {
+    if (!file) return;
+    setStatus("loading");
+    setErrorMsg(null);
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
+      const token = localStorage.getItem("sm_auth_token");
+      const res = await fetch(`${BASE_URL}/api/resume/match-analysis`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || "Analysis failed."); setStatus("error"); return; }
+      setAnalysis(data as CvAnalysis);
+      setStatus("done");
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+      setStatus("error");
+    }
+  }
+
+  function reset() {
+    setFile(null); setStatus("idle"); setAnalysis(null); setErrorMsg(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  const alignColor = (n: number) =>
+    n >= 75 ? "text-emerald-700" : n >= 55 ? "text-amber-700" : "text-red-700";
+  const alignBg = (n: number) =>
+    n >= 75 ? "bg-emerald-500" : n >= 55 ? "bg-amber-500" : "bg-red-500";
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="px-5 pt-4 pb-3 border-b border-slate-100">
+        <div className="flex items-center gap-2 mb-0.5">
+          <Sparkles className="w-4 h-4 text-accent" />
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">AI-Powered</p>
+        </div>
+        <p className="text-sm font-bold text-primary">CV vs Assessment Match Analysis</p>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Upload your CV and our AI will compare it against your real assessment scores — identifying confirmed strengths, gaps, and specific career advice.
+        </p>
+      </div>
+
+      <div className="p-5 space-y-5">
+
+        {/* Upload zone */}
+        {status !== "done" && (
+          <div
+            className={cn(
+              "border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-3 text-center transition-colors cursor-pointer",
+              file ? "border-primary/40 bg-primary/[0.02]" : "border-slate-200 hover:border-primary/30 hover:bg-slate-50/60"
+            )}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", file ? "bg-primary/10" : "bg-slate-100")}>
+              <FileUp className={cn("w-6 h-6", file ? "text-primary" : "text-slate-400")} />
+            </div>
+            {file ? (
+              <div>
+                <p className="text-sm font-semibold text-primary truncate max-w-xs">{file.name}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{(file.size / 1024).toFixed(0)} KB — click to change</p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Click to upload your CV</p>
+                <p className="text-xs text-slate-400 mt-0.5">PDF or DOCX · max 10 MB</p>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+        )}
+
+        {/* Error state */}
+        {status === "error" && errorMsg && (
+          <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="flex-1">{errorMsg}</div>
+            <button onClick={reset} className="shrink-0 text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
+          </div>
+        )}
+
+        {/* Loading */}
+        {status === "loading" && (
+          <div className="flex flex-col items-center gap-4 py-6">
+            <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            <div className="text-center">
+              <p className="text-sm font-semibold text-primary">Analysing your CV…</p>
+              <p className="text-xs text-slate-400 mt-1">Comparing against your assessment scores. This takes 15–30 seconds.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Analyse button */}
+        {status === "idle" && file && (
+          <button
+            onClick={handleAnalyze}
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors"
+          >
+            <Sparkles className="w-4 h-4" /> Run CV Match Analysis
+          </button>
+        )}
+
+        {/* Results */}
+        {status === "done" && analysis && (
+          <div className="space-y-5">
+
+            {/* Overall alignment gauge */}
+            <div className="flex items-center gap-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="shrink-0 text-center">
+                <div className={cn("text-4xl font-display font-bold tabular-nums", alignColor(analysis.overallAlignment))}>
+                  {analysis.overallAlignment}%
+                </div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">CV Alignment</div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className={cn("h-full rounded-full transition-all", alignBg(analysis.overallAlignment))}
+                    style={{ width: `${analysis.overallAlignment}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">{analysis.summary}</p>
+              </div>
+            </div>
+
+            {/* CV Profile snapshot */}
+            {analysis.cvProfile && Object.values(analysis.cvProfile).some(Boolean) && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {analysis.cvProfile.industry && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wide">Industry</p>
+                    <p className="text-xs font-semibold text-blue-800 mt-0.5">{analysis.cvProfile.industry}</p>
+                  </div>
+                )}
+                {analysis.cvProfile.role && (
+                  <div className="bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">
+                    <p className="text-[10px] font-bold text-violet-400 uppercase tracking-wide">Role</p>
+                    <p className="text-xs font-semibold text-violet-800 mt-0.5">{analysis.cvProfile.role}</p>
+                  </div>
+                )}
+                {analysis.cvProfile.level && (
+                  <div className="bg-cyan-50 border border-cyan-100 rounded-lg px-3 py-2">
+                    <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-wide">Level</p>
+                    <p className="text-xs font-semibold text-cyan-800 mt-0.5">{analysis.cvProfile.level}</p>
+                  </div>
+                )}
+                {analysis.cvProfile.yearsExperience && (
+                  <div className="bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
+                    <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">Experience</p>
+                    <p className="text-xs font-semibold text-orange-800 mt-0.5">{analysis.cvProfile.yearsExperience}</p>
+                  </div>
+                )}
+                {analysis.cvProfile.topSkills && analysis.cvProfile.topSkills.length > 0 && (
+                  <div className="col-span-2 sm:col-span-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Top Skills from CV</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {analysis.cvProfile.topSkills.map(s => (
+                        <span key={s} className="text-[11px] px-2 py-0.5 bg-primary/8 text-primary rounded-full font-medium">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Confirmed Strengths */}
+            {analysis.confirmedStrengths.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <p className="text-sm font-bold text-slate-700">Confirmed Strengths</p>
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
+                    CV + Assessment agree
+                  </span>
+                </div>
+                <div className="space-y-2.5">
+                  {analysis.confirmedStrengths.map((s, i) => (
+                    <div key={i} className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-emerald-800">{s.skill}</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full shrink-0">
+                          {s.assessmentCategory}
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-700 italic">"{s.cvEvidence}"</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Gap Areas */}
+            {analysis.gapAreas.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <p className="text-sm font-bold text-slate-700">Areas to Address</p>
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
+                    Development opportunities
+                  </span>
+                </div>
+                <div className="space-y-2.5">
+                  {analysis.gapAreas.map((g, i) => (
+                    <div key={i} className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5">
+                      <p className="text-sm font-bold text-amber-800">{g.area}</p>
+                      {g.cvClaim && (
+                        <p className="text-xs text-amber-700 italic">CV states: "{g.cvClaim}"</p>
+                      )}
+                      <p className="text-xs text-amber-800 leading-relaxed">{g.suggestion}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {analysis.recommendations.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Lightbulb className="w-4 h-4 text-accent" />
+                  <p className="text-sm font-bold text-slate-700">Recommended Actions</p>
+                </div>
+                <div className="space-y-2">
+                  {analysis.recommendations.map((r, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 bg-orange-50 border border-orange-100 rounded-xl">
+                      <div className="w-5 h-5 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                        {i + 1}
+                      </div>
+                      <p className="text-xs text-orange-900 leading-relaxed">{r}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Run again */}
+            <button
+              onClick={reset}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:border-primary/30 hover:text-primary transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" /> Upload a Different CV
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -664,6 +953,10 @@ function ApplicantReport({
           </div>
         );
       })()}
+
+      {/* ── CV Match Analysis (only shown for real applicants with results) ── */}
+      {isReal && <CvMatchAnalysis />}
+
     </div>
   );
 }
