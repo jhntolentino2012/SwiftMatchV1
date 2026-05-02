@@ -243,7 +243,7 @@ const DIM_LABELS: Record<MBTIDim, [string, string]> = {
 /* ══════════════════════════════════════════════════════
    COMPONENT
 ══════════════════════════════════════════════════════ */
-type Phase = "select-level" | "quiz" | "result";
+type Phase = "select-level" | "manual-entry" | "quiz" | "result";
 
 interface Props {
   applicantId?: number | null;
@@ -274,6 +274,65 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
     setDopeAnswers({});
     setMbtiAnswers({});
     setPhase("quiz");
+  }
+
+  function startManual(option: typeof POSITION_OPTIONS[0]) {
+    setTier(option.tier);
+    setPositionLabel(option.label);
+    localStorage.setItem(`sm_personality_level_${applicantId ?? "guest"}`, option.label);
+    setSubmitError(null);
+    setPhase("manual-entry");
+  }
+
+  async function submitManual(resultLabel: string) {
+    setSubmitting(true);
+    setSubmitError(null);
+
+    if (tier === "entry") {
+      const bird = resultLabel.split(" ")[0] as Bird;
+      const scores: Record<Bird, number> = { Eagle: 0, Peacock: 0, Dove: 0, Owl: 0 };
+      scores[bird] = DOPE_QUESTIONS.length;
+      const sorted = (Object.entries(scores) as [Bird, number][]).sort((a, b) => b[1] - a[1]);
+      setDopeResult({ primary: sorted[0][0], secondary: sorted[1][0], scores });
+    } else {
+      const type = resultLabel.split(" ")[0] as MBTIType;
+      const dimScores: Record<MBTIDim, { A: number; B: number }> = {
+        EI: { A: 0, B: 0 }, SN: { A: 0, B: 0 }, TF: { A: 0, B: 0 }, JP: { A: 0, B: 0 },
+      };
+      const map: Record<string, [MBTIDim, "A" | "B"]> = {
+        E:["EI","A"], I:["EI","B"], S:["SN","A"], N:["SN","B"],
+        T:["TF","A"], F:["TF","B"], J:["JP","A"], P:["JP","B"],
+      };
+      for (const letter of type.split("")) {
+        const entry = map[letter];
+        if (entry) dimScores[entry[0]][entry[1]] = 5;
+      }
+      setMbtiResult({ type, scores: dimScores });
+    }
+
+    if (applicantId) {
+      try {
+        const resp = await fetch("/api/assessments/personality/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ applicantId, positionLabel, tier, result: resultLabel, manual: true }),
+        });
+        if (resp.status === 429) {
+          const body = await resp.json().catch(() => ({}));
+          const availDate = body.retakeAvailableAt
+            ? new Date(body.retakeAvailableAt).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })
+            : "in 1 month";
+          setSubmitError(`Retake cooldown active — available from ${availDate}.`);
+          setSubmitting(false);
+          return;
+        }
+      } catch {}
+    }
+
+    setSubmitError(null);
+    setPhase("result");
+    setSubmitting(false);
+    onComplete?.(resultLabel);
   }
 
   const questions = tier === "entry" ? DOPE_QUESTIONS : MBTI_QUESTIONS;
@@ -342,6 +401,94 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
     onComplete?.(resultLabel);
   }
 
+  /* ── MANUAL ENTRY ── */
+  if (phase === "manual-entry") {
+    const BIRDS: Bird[] = ["Eagle", "Peacock", "Dove", "Owl"];
+    const MBTI_TYPES = Object.keys(MBTI_META) as MBTIType[];
+    return (
+      <div className="space-y-6">
+        <button onClick={() => setPhase("select-level")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
+          <ChevronLeft className="w-4 h-4" /> Back
+        </button>
+        <div>
+          <h2 className="text-xl font-display font-bold text-primary mb-1">Enter Your Known Result</h2>
+          <p className="text-sm text-muted-foreground">
+            {tier === "entry"
+              ? "Select your DOPE Bird personality type below."
+              : "Select your MBTI type below."}
+          </p>
+          <p className="text-xs text-slate-400 mt-0.5">Position: {positionLabel}</p>
+        </div>
+
+        {submitError && (
+          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{submitError}</div>
+        )}
+
+        {tier === "entry" ? (
+          /* DOPE bird picker */
+          <div className="grid grid-cols-2 gap-3">
+            {BIRDS.map(bird => {
+              const m = BIRD_META[bird];
+              return (
+                <button
+                  key={bird}
+                  disabled={submitting}
+                  onClick={() => submitManual(`${bird} (DOPE)`)}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-5 rounded-2xl border-2 text-center transition-all",
+                    "hover:scale-[1.02] active:scale-[0.98]",
+                    m.bg, m.border, "hover:border-current"
+                  )}
+                >
+                  <span className="text-4xl">{m.emoji}</span>
+                  <div>
+                    <p className={cn("font-bold text-sm", m.color)}>{bird}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{m.tagline.split("—")[1]?.trim()}</p>
+                  </div>
+                  {submitting && <span className="text-[10px] text-slate-400">Saving…</span>}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          /* MBTI type grid */
+          <div className="space-y-3">
+            {[
+              { group: "Analysts",    types: ["INTJ","INTP","ENTJ","ENTP"] as MBTIType[] },
+              { group: "Diplomats",   types: ["INFJ","INFP","ENFJ","ENFP"] as MBTIType[] },
+              { group: "Sentinels",   types: ["ISTJ","ISFJ","ESTJ","ESFJ"] as MBTIType[] },
+              { group: "Explorers",   types: ["ISTP","ISFP","ESTP","ESFP"] as MBTIType[] },
+            ].map(({ group, types }) => (
+              <div key={group}>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{group}</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {types.map(type => {
+                    const meta = MBTI_META[type];
+                    return (
+                      <button
+                        key={type}
+                        disabled={submitting}
+                        onClick={() => submitManual(`${type} (MBTI)`)}
+                        className={cn(
+                          "flex flex-col items-center gap-1 px-2 py-3 rounded-xl border border-slate-200",
+                          "bg-white hover:bg-blue-50 hover:border-blue-300 transition-all",
+                          "text-center hover:scale-[1.03] active:scale-[0.97]"
+                        )}
+                      >
+                        <span className="text-sm font-display font-bold text-primary">{type}</span>
+                        <span className="text-[9px] text-slate-400 leading-tight">{meta.tagline.split("—")[0].trim()}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   /* ── LEVEL SELECTOR ── */
   if (phase === "select-level") {
     return (
@@ -382,26 +529,36 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">Matched to your profile</span>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold border border-accent/20">Recommended</span>
                   </div>
-                  <button
-                    onClick={() => startQuiz(recommendedOpt)}
-                    className="w-full text-left px-5 py-4 rounded-2xl border-2 border-primary bg-primary/5 text-sm transition-all group hover:bg-primary/10"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-bold text-primary">{recommendedOpt.label}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{recommendedOpt.sublabel}</p>
+                  <div className="rounded-2xl border-2 border-primary bg-primary/5 overflow-hidden">
+                    <button
+                      onClick={() => startQuiz(recommendedOpt)}
+                      className="w-full text-left px-5 py-4 text-sm transition-all hover:bg-primary/10"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-primary">{recommendedOpt.label}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{recommendedOpt.sublabel}</p>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-2">
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
+                            recommendedOpt.tier === "entry" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                          )}>
+                            {recommendedOpt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
+                          </span>
+                          <span className="text-xs text-primary/60">Start here →</span>
+                        </div>
                       </div>
-                      <div className="shrink-0 flex items-center gap-2">
-                        <span className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
-                          recommendedOpt.tier === "entry" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                        )}>
-                          {recommendedOpt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
-                        </span>
-                        <span className="text-xs text-primary/60">Start here →</span>
-                      </div>
+                    </button>
+                    <div className="border-t border-primary/10 px-5 py-2">
+                      <button
+                        onClick={() => startManual(recommendedOpt)}
+                        className="text-xs text-primary/60 hover:text-primary font-medium transition-colors"
+                      >
+                        I already know my {recommendedOpt.tier === "entry" ? "DOPE Bird" : "MBTI type"} → Enter it manually
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 </div>
               )}
 
@@ -419,29 +576,38 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
               {/* Other / all position options */}
               <div className="space-y-3">
                 {otherOptions.map(opt => (
-                  <button
+                  <div
                     key={opt.label}
-                    onClick={() => startQuiz(opt)}
-                    className={cn(
-                      "w-full text-left px-5 py-4 rounded-2xl border text-sm transition-all group",
-                      "border-slate-200 hover:border-primary/50 hover:bg-primary/5"
-                    )}
+                    className="rounded-2xl border border-slate-200 overflow-hidden hover:border-primary/50 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-primary group-hover:text-primary">{opt.label}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{opt.sublabel}</p>
+                    <button
+                      onClick={() => startQuiz(opt)}
+                      className="w-full text-left px-5 py-4 text-sm hover:bg-primary/5 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-primary">{opt.label}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{opt.sublabel}</p>
+                        </div>
+                        <div className="shrink-0">
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
+                            opt.tier === "entry" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                          )}>
+                            {opt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="shrink-0">
-                        <span className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
-                          opt.tier === "entry" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                        )}>
-                          {opt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
-                        </span>
-                      </div>
+                    </button>
+                    <div className="border-t border-slate-100 px-5 py-2">
+                      <button
+                        onClick={() => startManual(opt)}
+                        className="text-xs text-slate-400 hover:text-primary font-medium transition-colors"
+                      >
+                        I already know my {opt.tier === "entry" ? "DOPE Bird" : "MBTI type"} → Enter it manually
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </>
