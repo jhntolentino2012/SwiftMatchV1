@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useListJobs, useListCourses } from "@workspace/api-client-react";
-import { Briefcase, Building2, MapPin, DollarSign, ExternalLink, GraduationCap, ChevronRight } from "lucide-react";
+import { Briefcase, Building2, MapPin, ExternalLink, GraduationCap, ChevronRight } from "lucide-react";
 
 export default function ApplicantDashboard() {
   const { data: jobs, isLoading: loadingJobs } = useListJobs();
@@ -55,7 +55,7 @@ export default function ApplicantDashboard() {
                     
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                       <span className="text-sm font-semibold text-slate-800 flex items-center gap-1">
-                        <DollarSign className="w-4 h-4 text-slate-400" /> {job.salaryRange}
+                        {job.salaryRange}
                       </span>
                       <button className="text-accent font-medium text-sm flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         Apply Now <ChevronRight className="w-4 h-4" />

@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { JobSearchWidget } from "@/components/JobSearchWidget";
 import { useListJobs } from "@workspace/api-client-react";
-import { MapPin, Briefcase, DollarSign, Building2, ChevronRight, Search } from "lucide-react";
+import { MapPin, Briefcase, Building2, ChevronRight, Search } from "lucide-react";
 
 export default function JobsPage() {
   const { data: jobs = [], isLoading } = useListJobs();
@@ -75,7 +75,7 @@ export default function JobsPage() {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-sm text-slate-500">
                       <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" />{job.company}</span>
                       <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />{job.location}</span>
-                      {job.salaryRange && <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" />{job.salaryRange}</span>}
+                      {job.salaryRange && <span className="flex items-center gap-1.5">{job.salaryRange}</span>}
                     </div>
                     <p className="text-sm text-slate-500 mt-3 line-clamp-2">{job.description}</p>
                   </div>
