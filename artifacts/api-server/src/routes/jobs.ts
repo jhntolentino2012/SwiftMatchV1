@@ -254,6 +254,48 @@ router.get("/demo/count", async (req, res) => {
   }
 });
 
+router.put("/:id", requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+  try {
+    const [existing] = await db.select({ id: jobsTable.id, isDemo: jobsTable.isDemo })
+      .from(jobsTable).where(eq(jobsTable.id, id));
+    if (!existing) { res.status(404).json({ error: "Job not found" }); return; }
+    if (existing.isDemo) { res.status(403).json({ error: "Demo jobs cannot be edited." }); return; }
+
+    const body = req.body as Record<string, unknown>;
+    const updates: Partial<typeof jobsTable.$inferInsert> = {};
+
+    if (typeof body.title === "string" && body.title.trim()) updates.title = body.title.trim();
+    if (typeof body.company === "string" && body.company.trim()) updates.company = body.company.trim();
+    if (typeof body.location === "string") updates.location = body.location.trim();
+    if (typeof body.description === "string") updates.description = body.description.trim();
+    if (typeof body.salaryRange === "string") updates.salaryRange = body.salaryRange.trim();
+    if (typeof body.industry === "string" && body.industry.trim()) updates.industry = body.industry.trim();
+    if (typeof body.companyDescription === "string") updates.companyDescription = body.companyDescription.trim();
+    if (Array.isArray(body.requirements)) {
+      updates.requirements = (body.requirements as unknown[])
+        .filter((r): r is string => typeof r === "string" && r.trim() !== "")
+        .map(r => r.trim());
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "No valid fields to update." });
+      return;
+    }
+
+    const [updated] = await db.update(jobsTable).set(updates).where(eq(jobsTable.id, id)).returning();
+    req.log.info({ jobId: id }, "Job updated by employer");
+    res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update job");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   const params = GetJobParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
