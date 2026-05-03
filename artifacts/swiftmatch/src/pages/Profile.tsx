@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  User, MapPin, Briefcase, GraduationCap, Users, Share2, Settings,
+  User, Briefcase, GraduationCap, Users, Share2, Settings,
   Edit2, Building2, Phone, Mail, Globe, FileText, ListChecks,
   CheckCircle, Clock, ChevronRight, Save, ExternalLink, Linkedin, Facebook,
+  Camera, Pencil, X, Check, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -137,6 +138,8 @@ function LoadingSkeleton() {
   );
 }
 
+const PROFILE_PIC_KEY = (uid: number | string) => `sm_profile_pic_${uid}`;
+
 export default function ProfilePage() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
@@ -145,6 +148,16 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ApplicantProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
+
+  // ── Profile picture ──────────────────────────────────
+  const [picSrc, setPicSrc] = useState<string | null>(null);
+  const picInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Inline name edit ─────────────────────────────────
+  const [editingName, setEditingName] = useState(false);
+  const [editFirst, setEditFirst] = useState("");
+  const [editLast, setEditLast] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
 
   const [employer, setEmployer] = useState<EmployerProfile>(() => {
     try {
@@ -163,6 +176,10 @@ export default function ProfilePage() {
     }
     if (!user) return;
 
+    // Load saved profile picture
+    const saved = localStorage.getItem(PROFILE_PIC_KEY(user.id));
+    if (saved) setPicSrc(saved);
+
     const token = localStorage.getItem("sm_auth_token");
     if (!token) {
       setProfileLoading(false);
@@ -179,6 +196,51 @@ export default function ProfilePage() {
       })
       .finally(() => setProfileLoading(false));
   }, [user, loading]);
+
+  function handlePicChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setPicSrc(dataUrl);
+      localStorage.setItem(PROFILE_PIC_KEY(user.id), dataUrl);
+    };
+    reader.readAsDataURL(file);
+    // reset so same file can be re-selected
+    e.target.value = "";
+  }
+
+  function startEditName() {
+    setEditFirst(profile?.firstName ?? "");
+    setEditLast(profile?.lastName ?? "");
+    setEditingName(true);
+  }
+
+  function cancelEditName() {
+    setEditingName(false);
+  }
+
+  async function saveEditName() {
+    if (!editFirst.trim() || !editLast.trim()) return;
+    const token = localStorage.getItem("sm_auth_token");
+    if (!token) return;
+    setNameSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ firstName: editFirst.trim(), lastName: editLast.trim() }),
+      });
+      if (res.ok) {
+        const updated: ApplicantProfile = await res.json();
+        setProfile(updated);
+        setEditingName(false);
+      }
+    } finally {
+      setNameSaving(false);
+    }
+  }
 
   function saveEmployer() {
     localStorage.setItem(EMPLOYER_PROFILE_KEY, JSON.stringify(employer));
@@ -223,16 +285,84 @@ export default function ProfilePage() {
           <div className="absolute bottom-0 left-20 w-48 h-48 bg-accent/[0.04] rounded-full blur-2xl pointer-events-none" />
 
           <div className="relative flex flex-col sm:flex-row sm:items-center gap-5">
-            {/* Avatar */}
-            <div
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shrink-0 shadow-lg"
-              style={{ background: "linear-gradient(135deg, hsl(214 80% 34%), hsl(214 80% 55%))" }}
-            >
-              {initial}
+            {/* ── Avatar with upload ── */}
+            <div className="relative shrink-0 group/avatar">
+              <input
+                ref={picInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePicChange}
+              />
+              <button
+                onClick={() => picInputRef.current?.click()}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-lg block focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                title="Upload profile photo"
+              >
+                {picSrc ? (
+                  <img src={picSrc} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl font-bold text-white"
+                    style={{ background: "linear-gradient(135deg, hsl(214 80% 34%), hsl(214 80% 55%))" }}
+                  >
+                    {initial}
+                  </div>
+                )}
+                {/* Hover overlay */}
+                <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="w-5 h-5 text-white" />
+                </div>
+              </button>
             </div>
 
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary truncate">{displayName}</h1>
+              {/* ── Editable name headline ── */}
+              {editingName ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    autoFocus
+                    value={editFirst}
+                    onChange={e => setEditFirst(e.target.value)}
+                    placeholder="First name"
+                    className="font-display font-bold text-xl text-primary bg-slate-50 border border-primary/30 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30 w-32"
+                    onKeyDown={e => { if (e.key === "Enter") saveEditName(); if (e.key === "Escape") cancelEditName(); }}
+                  />
+                  <input
+                    value={editLast}
+                    onChange={e => setEditLast(e.target.value)}
+                    placeholder="Last name"
+                    className="font-display font-bold text-xl text-primary bg-slate-50 border border-primary/30 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30 w-32"
+                    onKeyDown={e => { if (e.key === "Enter") saveEditName(); if (e.key === "Escape") cancelEditName(); }}
+                  />
+                  <button
+                    onClick={saveEditName}
+                    disabled={nameSaving || !editFirst.trim() || !editLast.trim()}
+                    className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                  >
+                    {nameSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={cancelEditName}
+                    className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 group/name">
+                  <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary truncate">{displayName}</h1>
+                  {profile && (
+                    <button
+                      onClick={startEditName}
+                      className="opacity-0 group-hover/name:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary"
+                      title="Edit name"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              )}
               <p className="text-sm text-slate-400 mt-0.5">{user?.email}</p>
 
               <div className="flex flex-wrap items-center gap-2 mt-3">
