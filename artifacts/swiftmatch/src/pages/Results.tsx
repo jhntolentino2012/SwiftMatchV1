@@ -511,7 +511,11 @@ function CvMatchAnalysis() {
                 {analysis.cvProfile.yearsExperience && (
                   <div className="bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
                     <p className="text-[10px] font-bold text-orange-400 uppercase tracking-wide">Experience</p>
-                    <p className="text-xs font-semibold text-orange-800 mt-0.5">{analysis.cvProfile.yearsExperience}</p>
+                    <p className="text-xs font-semibold text-orange-800 mt-0.5">
+                      {/^\d+$/.test(String(analysis.cvProfile.yearsExperience).trim())
+                        ? `${analysis.cvProfile.yearsExperience} years`
+                        : analysis.cvProfile.yearsExperience}
+                    </p>
                   </div>
                 )}
                 {analysis.cvProfile.topSkills && analysis.cvProfile.topSkills.length > 0 && (
