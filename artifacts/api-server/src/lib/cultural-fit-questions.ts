@@ -308,10 +308,34 @@ export function getCulturalFitBank(industry: string): CFQuestion[] {
   return BASE_QUESTIONS.map((q, i) => ({ ...q, id: `cf_${slug}_${i + 1}` }));
 }
 
-function shuffle<T>(arr: T[]): T[] {
+// Deterministic PRNG (mulberry32) so we can seed with applicantId mixed with a
+// time salt. This guarantees each user gets their own ordering of the pool
+// (different applicants pulling at the same instant see different sequences),
+// while a fresh time salt on each pick keeps retakes non-repeating.
+function mulberry32(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hashSeed(applicantId: number, salt: number): number {
+  // FNV-1a-ish combine — cheap and good enough for shuffle entropy.
+  let h = 2166136261 ^ (applicantId | 0);
+  h = Math.imul(h ^ (salt | 0), 16777619);
+  h ^= h >>> 13;
+  return h >>> 0;
+}
+
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const rand = mulberry32(seed);
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -328,13 +352,15 @@ export function pickCulturalFitQuestions(
   industry: string,
   excludeIds: string[],
   count = CF_QUESTIONS_PER_ATTEMPT,
+  applicantId = 0,
 ): PickResult {
   const bank = getCulturalFitBank(industry);
   const exclude = new Set(excludeIds);
   const unused = bank.filter(q => !exclude.has(q.id));
   const exhausted = unused.length === 0;
   const pool = exhausted ? bank : unused;
-  const picked = shuffle(pool).slice(0, Math.min(count, pool.length));
+  const seed = hashSeed(applicantId, Date.now());
+  const picked = seededShuffle(pool, seed).slice(0, Math.min(count, pool.length));
   return {
     questions: picked.map(({ id, prompt, options }) => ({ id, prompt, options })),
     remainingPool: unused.length,

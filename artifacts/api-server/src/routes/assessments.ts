@@ -320,7 +320,7 @@ router.get("/cultural-fit/quiz", async (req, res) => {
   }
   try {
     const excludeIds = await getApplicantCFExcludeIds(applicantId, industry);
-    const pick = pickCulturalFitQuestions(industry, excludeIds, CF_QUESTIONS_PER_ATTEMPT);
+    const pick = pickCulturalFitQuestions(industry, excludeIds, CF_QUESTIONS_PER_ATTEMPT, applicantId);
     res.json({
       industry,
       questions: pick.questions,
@@ -433,7 +433,7 @@ router.get("/critical-thinking/quiz", async (req, res) => {
   }
   try {
     const excludeIds = await getApplicantCTExcludeIds(applicantId, industry);
-    const pick = pickCriticalThinkingQuestions(industry, excludeIds, CT_QUESTIONS_PER_ATTEMPT);
+    const pick = pickCriticalThinkingQuestions(industry, excludeIds, CT_QUESTIONS_PER_ATTEMPT, applicantId);
     res.json({
       industry,
       questions: pick.questions,
