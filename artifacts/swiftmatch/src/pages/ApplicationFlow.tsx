@@ -663,6 +663,7 @@ const PREF_INDUSTRIES = [
   "Creative Arts & Design","Logistics & Transportation","Telecommunications",
   "Media & Entertainment","Human Resources","Government & Public Sector",
   "Agriculture & Environment","Legal & Compliance","Architecture & Urban Planning",
+  "Virtual Assistance",
 ];
 
 const PREF_ROLES: Record<string, string[]> = {
@@ -686,6 +687,7 @@ const PREF_ROLES: Record<string, string[]> = {
   "Agriculture & Environment": ["Agricultural Extension Officer","Agronomist / Crop Scientist","Environmental Compliance Officer","Farm Manager / Supervisor","Veterinarian / Animal Health Officer","Fisheries / Aquaculture Officer","Director of Agriculture / Environment","Regional / Deputy Director","Director / Executive / C-Suite"],
   "Legal & Compliance": ["Associate Lawyer / Attorney","Paralegal / Legal Assistant","Compliance Officer","Corporate / In-house Counsel","Legal Researcher","Contracts Specialist","General Counsel / Legal Director","Chief Compliance Officer (CCO)","Director / Executive / C-Suite"],
   "Architecture & Urban Planning": ["Licensed Architect","Urban / Land Use Planner","Interior Designer","Landscape Architect","Heritage Conservation Specialist","Building / Construction Project Manager","Principal Architect / Design Director","VP / Head of Architecture","Director / Executive / C-Suite"],
+  "Virtual Assistance": ["General Virtual Assistant","Executive Virtual Assistant","E-commerce Virtual Assistant","Social Media Manager / VA","Customer Support VA","Lead Generation / Research VA","Bookkeeping VA","Real Estate VA","Project Manager / Operations Lead","Director / Executive / C-Suite"],
 };
 
 const CAREER_LEVELS = [

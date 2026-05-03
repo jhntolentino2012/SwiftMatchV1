@@ -25,6 +25,7 @@ export const PH_JOB_DIRECTORY: { industry: string; roles: string[]; locations: s
   { industry: "Agriculture & Environment", roles: ["Agronomist", "Farm Manager", "Agricultural Engineer", "Environmental Scientist", "Food Technologist", "Veterinarian"], locations: ["Davao City", "Laguna", "Clark, Pampanga", "Cagayan de Oro", "Bukidnon", "Iloilo City", "Batangas"] },
   { industry: "Legal & Compliance", roles: ["Corporate Lawyer", "Compliance Officer", "Legal Assistant", "Paralegal", "Data Privacy Officer", "Contract Specialist"], locations: ["Makati City", "BGC, Taguig", "Ortigas, Pasig", "Quezon City", "Manila", "Cebu City"] },
   { industry: "Architecture & Urban Planning", roles: ["Licensed Architect", "Urban Planner", "Interior Designer", "CAD Drafter", "BIM Specialist", "Landscape Architect"], locations: ["Makati City", "BGC, Taguig", "Quezon City", "Cebu City", "Davao City", "Clark, Pampanga"] },
+  { industry: "Virtual Assistance", roles: ["General Virtual Assistant", "Executive Virtual Assistant", "E-commerce Virtual Assistant (Shopify/Amazon)", "Social Media Manager / VA", "Customer Support VA", "Lead Generation / Research VA", "Bookkeeping VA", "Real Estate VA", "Appointment Setter", "Data Entry VA", "Email & Calendar Manager", "Content Moderator"], locations: ["Remote / Anywhere in Philippines", "Work from Home", "Cebu City", "Davao City", "Iloilo City", "Cagayan de Oro", "Bacolod City", "Makati City", "Quezon City", "Clark, Pampanga"] },
 ];
 
 const ALL_INDUSTRIES = PH_JOB_DIRECTORY.map(d => d.industry);

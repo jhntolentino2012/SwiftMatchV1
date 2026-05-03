@@ -547,6 +547,32 @@ const architecture: QuizQuestion[] = [
   q("arc_h06","hard","multiple_choice","What is the 'sick building syndrome' and what are its typical architectural and mechanical causes?",["A legal term for unsafe construction","A situation where occupants experience acute health and comfort effects linked to time spent in a building, typically caused by poor ventilation, chemical off-gassing, inadequate daylighting, or humidity issues","A structural failure mode","An insurance category for damaged buildings"]),
 ];
 
+/* ─── VIRTUAL ASSISTANCE ─── */
+const va: QuizQuestion[] = [
+  q("va_e01","easy","multiple_choice","Which tool is most commonly used for asynchronous client communication across time zones?",["Phone calls only","Slack, Email, or similar async messaging tools","SMS only","Fax"]),
+  q("va_e02","easy","multiple_choice","What does \"PST\" mean when a US client schedules a meeting?",["Philippine Standard Time","Pacific Standard Time","Pre-Scheduled Task","Pacific Sales Territory"]),
+  q("va_e03","easy","multiple_choice","Which platform is the de-facto standard for client video calls?",["Discord","Zoom","WhatsApp video","Facebook Messenger"]),
+  q("va_e04","easy","multiple_choice","A \"SOP\" in virtual assistance work is a:",["Single Operations Plan","Standard Operating Procedure","System Onboarding Process","Status Output Page"]),
+  q("va_e05","easy","multiple_choice","When given access to a client's inbox, the most professional first step is:",["Reply to every email immediately","Confirm the protocol for which emails you respond to, set up filters/labels, and document the workflow","Forward all emails to your personal inbox","Delete spam without asking"]),
+  q("va_e06","easy","multiple_choice","Which of these is NOT a typical virtual assistant responsibility?",["Calendar management","Email triage","Performing medical procedures","Lead research and data entry"]),
+  // MEDIUM
+  q("va_m01","medium","berlitz","Your client (a US-based startup founder) sends a frustrated email at 11pm Manila time: \"I'm in a meeting in 30 minutes and I cannot find the deck you said you'd prepare. This is unacceptable.\"\n\nThe deck was finished and sent 6 hours ago. What is the best next move?",["Reply defensively explaining you sent it","Reply within minutes with a calm acknowledgement, re-attach the deck and a direct shareable link, briefly note when it was originally sent, and ask if there is anything else you can prepare for the meeting","Wait until morning to reply","Forward the email to a colleague"],),
+  q("va_m02","medium","text","Describe how you would manage a client's calendar when they have stakeholders in Manila (PHT), New York (ET), and London (BST). What tools and conventions would you use to avoid scheduling conflicts?"),
+  q("va_m03","medium","multiple_choice","Which tool is best suited for managing tasks and deadlines across multiple clients?",["A single notebook","A project management tool such as Asana, Trello, ClickUp, or Notion with one board per client","Sticky notes on your monitor","Memory alone"]),
+  q("va_m04","medium","text","Describe a 30-minute onboarding workflow for a brand-new client: what information do you collect, what tools do you set up, and how do you document the engagement?"),
+  q("va_m05","medium","berlitz","A client asks you to log into their personal bank account and \"just transfer ₱50,000 to this supplier — I'll forward you the bank login.\"\n\nWhat is your professional response?",["Do it — the client asked","Decline to take direct credentials. Offer safer alternatives: bank-supplied authorised user access with limited permissions, the client initiating the transfer themselves while you draft and verify the recipient details, or use of an approved payment platform with a documented audit trail. Document the request and your response.","Do it but only this once","Forward the credentials to a colleague to handle"],),
+  q("va_m06","medium","multiple_choice","The safest way to handle a client's passwords is:",["Save them in a plain-text file on your desktop","Use a shared password manager (1Password, Bitwarden, LastPass) with role-based access and never store credentials in chat or email","Memorise them all","Email them to yourself for backup"]),
+  q("va_m07","medium","text","Explain how you would set up an effective email triage workflow for a busy executive who receives 200+ emails per day. Cover labels/folders, response SLAs, and what you escalate vs. handle yourself."),
+  q("va_m08","medium","multiple_choice","Which file-sharing practice is most professional with a new client?",["Email attachments only","Use a shared cloud folder (Google Drive, Dropbox, OneDrive) with clear naming conventions and view/edit access controls","Share via personal Facebook Messenger","Print and courier"]),
+  // HARD
+  q("va_h01","hard","text","Design a complete workflow for managing a client's social media accounts (Instagram, LinkedIn, X) for one month: content calendar, approval cycles, posting tools, analytics review, and risk controls (e.g. account compromise)."),
+  q("va_h02","hard","berlitz","While doing data entry for a client, you notice they are storing customer credit card numbers in plain text in a Google Sheet that several contractors can view. The client is dismissive when you raise it.\n\nDescribe your professional response.",["Stop using the sheet but say nothing","Document the issue in writing, explain the data privacy and PCI risks (and exposure under the Philippine Data Privacy Act / GDPR if applicable), recommend a safer pattern (tokenised storage, restricted access, deleting historical exposure), and decline to perform new tasks that touch the unsafe data until it is remediated. If the client refuses, consider ending the engagement.","Continue working but copy the data to your own spreadsheet for safety","Post the issue on social media to warn others"],),
+  q("va_h03","hard","multiple_choice","When a client wants you to subcontract part of your VA work to another freelancer, the most professional safeguard is:",["Skip any paperwork to move quickly","Have the subcontractor sign an NDA, share only need-to-know information, get the client's written approval, and document who has access to what","Share full client credentials with the subcontractor immediately","Hide the subcontracting from the client"]),
+  q("va_h04","hard","text","You are managing 5 clients simultaneously across 3 time zones. Describe a scaling strategy: how do you protect quality, prevent context-switching loss, decide when to raise rates or stop accepting new clients, and avoid burnout?"),
+  q("va_h05","hard","berlitz","A long-time client asks you to write fake 5-star Google reviews for their business using burner accounts. They offer a 30 percent rate increase.\n\nWhat is your response?",["Do it — the rate increase is generous","Decline clearly and in writing. Explain that fake reviews violate Google's policies and Philippine consumer protection norms, expose the client to delisting and legal risk, and conflict with your professional ethics. Offer legitimate alternatives such as a structured request-for-reviews workflow to real customers.","Do it but with your own accounts","Counter-offer for a 50 percent increase"],),
+  q("va_h06","hard","multiple_choice","Which framework is most commonly used by experienced VAs to triage a flood of incoming tasks?",["First-come, first-served always","The Eisenhower Matrix (urgent/important quadrants) combined with documented client SLAs","Whichever client paid most recently","Random selection"]),
+];
+
 /* ─── MASTER QUESTION BANK ─── */
 export const INDUSTRY_QUESTIONS: Record<string, QuizQuestion[]> = {
   "Technology / IT":          tech,
@@ -569,6 +595,7 @@ export const INDUSTRY_QUESTIONS: Record<string, QuizQuestion[]> = {
   "Agriculture & Environment": agriculture,
   "Legal & Compliance":       legal,
   "Architecture & Urban Planning": architecture,
+  "Virtual Assistance":       va,
 };
 
 /* ─── ROLES PER INDUSTRY ─── */
@@ -734,6 +761,16 @@ export const INDUSTRY_ROLES: Record<string, string[]> = {
     "Landscape Architect",
     "Heritage Conservation Specialist",
     "Building / Construction Project Manager",
+  ],
+  "Virtual Assistance": [
+    "General Virtual Assistant",
+    "Executive Virtual Assistant",
+    "E-commerce Virtual Assistant",
+    "Social Media Manager / VA",
+    "Customer Support VA",
+    "Lead Generation / Research VA",
+    "Bookkeeping VA",
+    "Real Estate VA",
   ],
 };
 
@@ -1098,6 +1135,11 @@ const ANSWER_KEY: Record<string, number> = {
   arc_e01: 1, arc_e02: 0, arc_e03: 0, arc_e04: 1, arc_e05: 1, arc_e06: 1,
   arc_m02: 1, arc_m03: 1, arc_m05: 1, arc_m06: 1, arc_m08: 1,
   arc_h02: 1, arc_h03: 1, arc_h06: 1,
+
+  /* VIRTUAL ASSISTANCE */
+  va_e01: 1, va_e02: 1, va_e03: 1, va_e04: 1, va_e05: 1, va_e06: 2,
+  va_m01: 1, va_m03: 1, va_m05: 1, va_m06: 1, va_m08: 1,
+  va_h02: 1, va_h03: 1, va_h05: 1, va_h06: 1,
 };
 
 /**

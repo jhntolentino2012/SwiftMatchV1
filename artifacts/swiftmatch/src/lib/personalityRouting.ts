@@ -53,6 +53,7 @@ const PEOPLE_INDUSTRIES = new Set<string>([
   "Logistics & Transportation",
   "Agriculture & Environment",
   "Healthcare / Medical",
+  "Virtual Assistance",
 ]);
 
 /* ── Role keyword overrides ─────────────────────────────────────────── */

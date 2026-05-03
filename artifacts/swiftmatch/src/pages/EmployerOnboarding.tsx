@@ -18,6 +18,7 @@ const INDUSTRIES = [
   "Creative Arts & Design","Logistics & Transportation","Telecommunications",
   "Media & Entertainment","Human Resources","Government & Public Sector",
   "Agriculture & Environment","Legal & Compliance","Architecture & Urban Planning",
+  "Virtual Assistance",
 ];
 
 const COMPANY_SIZES = [

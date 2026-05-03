@@ -32,6 +32,7 @@ const SLUG_MAP: Record<string, string> = {
   "Agriculture & Environment": "agri",
   "Legal & Compliance": "legal",
   "Architecture & Urban Planning": "arch",
+  "Virtual Assistance": "va",
 };
 
 export const CT_QUESTIONS_PER_INDUSTRY = 50;

@@ -41,6 +41,7 @@ function normalizeIndustry(raw: string): string {
   if (s.includes("agri") || s.includes("environment") || s.includes("farm")) return "Agriculture & Environment";
   if (s.includes("legal") || s.includes("complian") || s.includes("law")) return "Legal & Compliance";
   if (s.includes("architect") || s.includes("urban") || s.includes("planning")) return "Architecture & Urban Planning";
+  if (s.includes("virtual assist") || s.includes(" va ") || s === "va" || s.startsWith("va ") || s.endsWith(" va") || s.includes("remote assist")) return "Virtual Assistance";
   return raw;
 }
 
