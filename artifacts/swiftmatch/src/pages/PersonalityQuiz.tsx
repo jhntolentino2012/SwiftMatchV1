@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, ChevronRight, CheckCircle,
@@ -274,6 +274,21 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
   const [mbtiResult, setMbtiResult]     = useState<{ type: MBTIType; scores: Record<MBTIDim, { A: number; B: number }> } | null>(null);
 
   const savedLevel = localStorage.getItem(`sm_personality_level_${applicantId ?? "guest"}`);
+
+  // Auto-start the test when we have enough profile context — no manual level
+  // selection needed. The level still drives the question framework, but we
+  // pick it from `recommendedLevel` (career level on the applicant's profile)
+  // or fall back to the most recently used level. The user can still hit
+  // "Use a different level" inside the quiz to return to the picker.
+  useEffect(() => {
+    if (phase !== "select-level") return;
+    const target = recommendedLevel || savedLevel;
+    if (!target) return;
+    const opt = POSITION_OPTIONS.find(o => o.label === target);
+    if (opt) startQuiz(opt);
+    // Run once on mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function resolveFramework(optionTier: PositionTier): FrameworkRecommendation {
     return recommendPersonalityFramework({ industry, role, tier: optionTier });
@@ -860,6 +875,12 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
             <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
               <motion.div className="h-full bg-amber-500 rounded-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
             </div>
+            <button
+              onClick={() => setPhase("select-level")}
+              className="text-[11px] text-slate-400 hover:text-primary transition-colors mt-1"
+            >
+              Use a different level →
+            </button>
           </div>
         </div>
 
@@ -948,6 +969,12 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
           <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <motion.div className="h-full bg-blue-500 rounded-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
           </div>
+          <button
+            onClick={() => setPhase("select-level")}
+            className="text-[11px] text-slate-400 hover:text-primary transition-colors mt-1"
+          >
+            Use a different level →
+          </button>
         </div>
       </div>
 
