@@ -1117,8 +1117,54 @@ interface CandidateRow {
   overall: number;
 }
 
+function DecisionRadio({
+  candidateId, value, disabled, onChange,
+}: {
+  candidateId: number;
+  value: "pass" | "fail" | undefined;
+  disabled: boolean;
+  onChange: (d: "pass" | "fail") => void;
+}) {
+  const stop = (e: React.MouseEvent | React.ChangeEvent) => e.stopPropagation();
+  const base = "flex items-center gap-1 cursor-pointer text-[11px] font-semibold select-none";
+  const dot  = "w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-colors";
+  return (
+    <div className="flex items-center justify-center gap-2.5" onClick={stop}>
+      <label className={cn(base, disabled && "cursor-not-allowed opacity-50")}>
+        <input
+          type="radio"
+          name={`decision-${candidateId}`}
+          className="sr-only"
+          checked={value === "pass"}
+          disabled={disabled}
+          onChange={e => { stop(e); onChange("pass"); }}
+        />
+        <span className={cn(dot, value === "pass" ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white")}>
+          {value === "pass" && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+        </span>
+        <span className={cn(value === "pass" ? "text-emerald-700" : "text-slate-500")}>Pass</span>
+      </label>
+      <label className={cn(base, disabled && "cursor-not-allowed opacity-50")}>
+        <input
+          type="radio"
+          name={`decision-${candidateId}`}
+          className="sr-only"
+          checked={value === "fail"}
+          disabled={disabled}
+          onChange={e => { stop(e); onChange("fail"); }}
+        />
+        <span className={cn(dot, value === "fail" ? "border-rose-600 bg-rose-600" : "border-slate-300 bg-white")}>
+          {value === "fail" && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+        </span>
+        <span className={cn(value === "fail" ? "text-rose-700" : "text-slate-500")}>Fail</span>
+      </label>
+    </div>
+  );
+}
+
 function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boolean }) {
   const [candidates, setCandidates] = useState<CandidateRow[]>([]);
+  const [decisions, setDecisions]   = useState<Record<number, "pass" | "fail">>({});
   const [loadingPool, setLoadingPool] = useState(true);
   const [selected, setSelected]       = useState<CandidateRow | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
@@ -1317,6 +1363,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                     <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">AI.R</th>
                     <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Overall</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-32">Profile</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-32">Decision</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-28"></th>
                   </tr>
                 </thead>
@@ -1371,6 +1418,14 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                               </div>
                             ))}
                           </div>
+                        </td>
+                        <td className="px-3 py-3.5">
+                          <DecisionRadio
+                            candidateId={c.id}
+                            value={decisions[c.id]}
+                            disabled={locked}
+                            onChange={d => setDecisions(prev => ({ ...prev, [c.id]: d }))}
+                          />
                         </td>
                         <td className="px-4 py-3.5">
                           <button
@@ -1547,6 +1602,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                         <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Role</th>
                         <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Level</th>
                         <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide">Scores</th>
+                        <th className="text-center px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-32">Decision</th>
                         <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wide w-28"></th>
                       </tr>
                     </thead>
@@ -1609,6 +1665,14 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                             <td className="text-center px-3 py-3.5">{factorBadge(m.level)}</td>
                             <td className="text-center px-3 py-3.5">
                               {c.overall > 0 ? <ScoreBadge score={m.assessment} size="sm" /> : <span className="text-xs text-slate-300">—</span>}
+                            </td>
+                            <td className="px-3 py-3.5">
+                              <DecisionRadio
+                                candidateId={c.id}
+                                value={decisions[c.id]}
+                                disabled={locked}
+                                onChange={d => setDecisions(prev => ({ ...prev, [c.id]: d }))}
+                              />
                             </td>
                             <td className="px-4 py-3.5">
                               <button
