@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   CheckCircle, ChevronRight, Video, ClipboardList, Brain,
   Heart, Users, Lightbulb, Bot, ArrowLeft, Upload, Lock,
-  RotateCcw, TrendingUp, Briefcase,
+  RotateCcw, TrendingUp, Briefcase, Crown, Sparkles, FileEdit, Building2,
 } from "lucide-react";
 import KnowledgeQuiz from "./KnowledgeQuiz";
 import PersonalityQuiz from "./PersonalityQuiz";
