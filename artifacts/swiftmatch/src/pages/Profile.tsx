@@ -173,7 +173,7 @@ export default function ProfilePage() {
   const [editingTags, setEditingTags] = useState(false);
   const [editIndustry, setEditIndustry] = useState("");
   const [editRole, setEditRole] = useState("");
-  const [editLevel, setEditLevel] = useState("");
+  const [editLevel, setEditLevel] = useState<string[]>([]);
   const [editWorkSetup, setEditWorkSetup] = useState<string[]>([]);
   const [tagsSaving, setTagsSaving] = useState(false);
 
@@ -290,7 +290,9 @@ export default function ProfilePage() {
   function startEditTags() {
     setEditIndustry(profile?.targetIndustry ?? "");
     setEditRole(profile?.targetRole ?? "");
-    setEditLevel(profile?.careerLevel ?? "");
+    setEditLevel(
+      profile?.careerLevel ? profile.careerLevel.split(", ").map(s => s.trim()).filter(Boolean) : []
+    );
     setEditWorkSetup(
       profile?.workSetup ? profile.workSetup.split(", ").map(s => s.trim()).filter(Boolean) : []
     );
@@ -308,7 +310,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           targetIndustry: editIndustry || null,
           targetRole: editRole || null,
-          careerLevel: editLevel || null,
+          careerLevel: editLevel.length > 0 ? editLevel.join(", ") : null,
           workSetup: editWorkSetup.length > 0 ? editWorkSetup.join(", ") : null,
         }),
       });
@@ -547,17 +549,26 @@ export default function ProfilePage() {
                         onKeyDown={e => { if (e.key === "Escape") setEditingTags(false); }}
                       />
                     </div>
-                    {/* Career level */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Career Level</label>
-                      <input
-                        type="text"
-                        value={editLevel}
-                        onChange={e => setEditLevel(e.target.value)}
-                        placeholder="e.g. Senior / Experienced"
-                        className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        onKeyDown={e => { if (e.key === "Escape") setEditingTags(false); }}
-                      />
+                  </div>
+                  {/* Career level */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Career Level</label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Entry Level / Fresh Graduate","Associate / Junior Professional","Senior / Experienced Specialist","Team Leader / Supervisor","Manager / Department Head","Director / Executive / C-Suite"].map(lvl => {
+                        const selected = editLevel.includes(lvl);
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => setEditLevel(selected ? editLevel.filter(v => v !== lvl) : [...editLevel, lvl])}
+                            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                              selected ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   {/* Work Setup */}
@@ -610,11 +621,11 @@ export default function ProfilePage() {
                       {profile.targetIndustry}
                     </span>
                   )}
-                  {profile?.careerLevel && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full">
-                      {profile.careerLevel}
+                  {profile?.careerLevel && profile.careerLevel.split(", ").filter(Boolean).map(lvl => (
+                    <span key={lvl} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full">
+                      {lvl}
                     </span>
-                  )}
+                  ))}
                   {profile?.workSetup && profile.workSetup.split(", ").filter(Boolean).map(ws => (
                     <span key={ws} className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full">
                       {ws}

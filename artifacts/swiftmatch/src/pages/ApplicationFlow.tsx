@@ -45,7 +45,7 @@ export default function ApplicationFlow() {
     certificates: [] as any[],
     references: [] as any[],
     facebookUrl: "", linkedinUrl: "",
-    targetIndustry: "", targetRole: [] as string[], careerLevel: "",
+    targetIndustry: "", targetRole: [] as string[], careerLevel: [] as string[],
     workSetup: [] as string[],
     expectedSalary: "", salaryNegotiable: true, availabilityDate: "",
     status: "pending" as const
@@ -104,6 +104,7 @@ export default function ApplicationFlow() {
       const apiPayload = {
         ...formData,
         targetRole: formData.targetRole.length > 0 ? formData.targetRole.join(", ") : undefined,
+        careerLevel: formData.careerLevel.length > 0 ? (formData.careerLevel as string[]).join(", ") : undefined,
         workSetup: formData.workSetup.length > 0 ? formData.workSetup.join(", ") : undefined,
       };
       const applicant = await createApplicant({ data: apiPayload as any });
@@ -839,20 +840,29 @@ function StepPreferences({ data, update }: any) {
       <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-4">
         <div>
           <p className="text-sm font-bold text-primary mb-1">Career Level</p>
-          <p className="text-xs text-slate-500">This pre-selects the right personality assessment framework for you (DOPE for individual contributors, MBTI for leaders).</p>
+          <p className="text-xs text-slate-500">Select all levels that apply — this helps recruiters find the right match and pre-selects your personality assessment framework.</p>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-700">Your current or target career level</label>
-          <select
-            value={data.careerLevel}
-            onChange={(e: any) => update('careerLevel', e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary transition-colors"
-          >
-            <option value="">— Select level —</option>
-            {CAREER_LEVELS.map(lvl => (
-              <option key={lvl} value={lvl}>{lvl}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap gap-2">
+          {CAREER_LEVELS.map(lvl => {
+            const selected = (data.careerLevel as string[]).includes(lvl);
+            return (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => {
+                  const current = data.careerLevel as string[];
+                  update("careerLevel", selected ? current.filter((v: string) => v !== lvl) : [...current, lvl]);
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                  selected
+                    ? "bg-primary text-white border-primary shadow-sm"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"
+                }`}
+              >
+                {lvl}
+              </button>
+            );
+          })}
         </div>
       </div>
 
