@@ -249,12 +249,16 @@ export default function Landing() {
                 <p className="text-primary-foreground/80">A complete walkthrough of the assessment pipeline and employer dashboard.</p>
               </div>
               
-              <div className="aspect-video bg-background/5 rounded-2xl border border-primary-foreground/10 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden group cursor-pointer hover:bg-background/10 transition-colors">
-                <div className="w-20 h-20 rounded-full bg-accent text-white flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
-                  <Play className="w-8 h-8 ml-1" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Demo video coming soon</h3>
-                <p className="text-primary-foreground/60 max-w-md">2-minute product walkthrough · audio narrated</p>
+              <div className="aspect-video bg-black rounded-2xl border border-primary-foreground/10 overflow-hidden shadow-2xl">
+                <video
+                  src={`${import.meta.env.BASE_URL}swiftmatch-demo.mp4`}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full object-cover"
+                >
+                  Your browser does not support the video tag.
+                </video>
               </div>
             </div>
           </div>
