@@ -1041,45 +1041,28 @@ export default function ProfilePage() {
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Expertise</label>
-                          <p className="text-[11px] text-slate-400 mb-2">Click to select, or type a custom one and press Enter</p>
+                          <p className="text-[11px] text-slate-400 mb-2">Type an area of expertise and press Enter to add it as a bullet</p>
 
-                          {/* Preset suggestions */}
-                          {([
-                            { group: "Leadership", items: ["Team Leadership", "People Management", "Coaching & Mentoring", "Change Management", "Executive Leadership"] },
-                            { group: "Operations", items: ["Process Improvement", "Quality Assurance", "Performance Management", "Project Management", "Workforce Planning"] },
-                            { group: "Customer & Sales", items: ["Customer Success", "Client Relations", "Account Management", "Business Development", "Sales Strategy"] },
-                            { group: "Data & Tech", items: ["Data Analysis", "Digital Transformation", "AI Integration", "Reporting & Analytics", "Systems Administration"] },
-                            { group: "HR & Training", items: ["Talent Acquisition", "Training & Development", "Employee Engagement", "Compensation & Benefits"] },
-                          ] as { group: string; items: string[] }[]).map(({ group, items }) => (
-                            <div key={group} className="mb-3">
-                              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">{group}</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {items.map(item => {
-                                  const selected = editCareer.expertise.includes(item);
-                                  return (
-                                    <button key={item} type="button"
-                                      onClick={() => setEditCareer(c => ({
-                                        ...c,
-                                        expertise: selected
-                                          ? c.expertise.filter(e => e !== item)
-                                          : [...c.expertise, item],
-                                      }))}
-                                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
-                                        selected
-                                          ? "bg-accent text-white border-accent"
-                                          : "bg-white text-slate-600 border-slate-200 hover:border-accent/50 hover:text-accent"
-                                      }`}
-                                    >
-                                      {selected ? "✓ " : ""}{item}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
+                          {/* Bullet list of added items */}
+                          {editCareer.expertise.length > 0 && (
+                            <ul className="mb-3 space-y-1.5">
+                              {editCareer.expertise.map((tag, i) => (
+                                <li key={i} className="flex items-center gap-2 group">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                                  <span className="flex-1 text-sm text-slate-700">{tag}</span>
+                                  <button type="button"
+                                    onClick={() => setEditCareer(c => ({ ...c, expertise: c.expertise.filter((_, j) => j !== i) }))}
+                                    className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
 
-                          {/* Custom input */}
-                          <div className="flex gap-2 mt-1">
+                          {/* Free-form input */}
+                          <div className="flex gap-2">
                             <input
                               value={expertiseInput}
                               onChange={e => setExpertiseInput(e.target.value)}
@@ -1093,7 +1076,7 @@ export default function ProfilePage() {
                                   setExpertiseInput("");
                                 }
                               }}
-                              placeholder="Add custom expertise…"
+                              placeholder="e.g. Process Improvement, Team Coaching…"
                               className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
                             />
                             <button type="button"
@@ -1107,23 +1090,6 @@ export default function ProfilePage() {
                               className="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap"
                             >Add</button>
                           </div>
-
-                          {/* Selected tags summary */}
-                          {editCareer.expertise.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-slate-100">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Selected ({editCareer.expertise.length})</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {editCareer.expertise.map((tag, i) => (
-                                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-accent/[0.08] text-accent text-xs font-semibold rounded-full border border-accent/20">
-                                    {tag}
-                                    <button type="button" onClick={() => setEditCareer(c => ({ ...c, expertise: c.expertise.filter((_, j) => j !== i) }))} className="hover:text-red-500 transition-colors ml-0.5">
-                                      <X className="w-2.5 h-2.5" />
-                                    </button>
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Work Setup</label>
@@ -1169,13 +1135,14 @@ export default function ProfilePage() {
                         <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-slate-100 last:border-0">
                           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider sm:w-36 shrink-0 pt-0.5">Expertise</span>
                           {profile.expertise?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
+                            <ul className="space-y-1">
                               {profile.expertise.map((tag, i) => (
-                                <span key={i} className="px-2.5 py-1 bg-accent/[0.08] text-accent text-xs font-semibold rounded-full border border-accent/20">
+                                <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                                   {tag}
-                                </span>
+                                </li>
                               ))}
-                            </div>
+                            </ul>
                           ) : (
                             <button
                               onClick={startEditCareerPrefs}
