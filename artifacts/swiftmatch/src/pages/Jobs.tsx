@@ -462,7 +462,7 @@ export default function JobsPage() {
           </p>
           <JobSearchWidget />
 
-          {isEmployer && (
+          {isEmployer && isAdmin && (
             <div className="mt-4 flex items-center justify-between gap-3 bg-accent/8 border border-accent/20 rounded-xl px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-slate-700 min-w-0">
                 <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 shrink-0">
