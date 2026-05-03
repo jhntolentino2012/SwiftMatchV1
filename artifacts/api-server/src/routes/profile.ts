@@ -101,42 +101,4 @@ router.put("/", async (req, res) => {
   }
 });
 
-/* ── DELETE /profile/cv ────────────────────────────────
-   Removes all uploaded CV data (file, extracted text, share
-   token) from the applicant record for the logged-in user.
-─────────────────────────────────────────────────────── */
-router.delete("/cv", async (req, res) => {
-  const payload = requireAuth(req);
-  if (!payload) { res.status(401).json({ error: "Authentication required." }); return; }
-
-  try {
-    const [user] = await db.select().from(usersTable)
-      .where(eq(usersTable.id, payload.userId)).limit(1);
-    if (!user) { res.status(404).json({ error: "User not found." }); return; }
-
-    const [updated] = await db.update(applicantsTable)
-      .set({
-        cvFileBase64: null,
-        cvFileMime: null,
-        cvFileName: null,
-        cvText: null,
-        cvShareToken: null,
-      })
-      .where(eq(applicantsTable.email, user.email))
-      .returning();
-    if (!updated) { res.status(404).json({ error: "Applicant profile not found." }); return; }
-
-    req.log.info({ userId: payload.userId }, "CV data removed");
-    res.json({
-      ...updated,
-      phone: user.phone,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
-  } catch (err) {
-    req.log.error({ err }, "Failed to remove CV");
-    res.status(500).json({ error: "Internal server error." });
-  }
-});
-
 export default router;
