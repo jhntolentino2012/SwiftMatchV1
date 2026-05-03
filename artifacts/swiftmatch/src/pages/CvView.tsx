@@ -87,11 +87,21 @@ export default function CvViewPage() {
     }
   }
 
-  const availability = data?.availabilityDate
-    ? new Date(data.availabilityDate) <= new Date()
-      ? "Available now"
-      : `Available from ${new Date(data.availabilityDate).toLocaleDateString("en-PH", { month: "long", year: "numeric" })}`
-    : null;
+  const availability = (() => {
+    const raw = data?.availabilityDate?.trim();
+    if (!raw) return null;
+    // Accept friendly labels stored as the date field (e.g. "Immediate", "Available now").
+    if (/^(immediate|asap|now|available now|immediately)$/i.test(raw)) {
+      return "Available now";
+    }
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) {
+      // Unparseable string — show as-is rather than "Invalid Date".
+      return raw;
+    }
+    if (d <= new Date()) return "Available now";
+    return `Available from ${d.toLocaleDateString("en-PH", { month: "long", year: "numeric" })}`;
+  })();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -262,12 +272,38 @@ export default function CvViewPage() {
 
               {/* PDF embed */}
               {activeTab === "pdf" && isPdf && token && (
-                <div className="w-full" style={{ height: "780px" }}>
-                  <iframe
-                    src={`${BASE}/api/resume/original/${token}?inline=true`}
-                    title="CV PDF"
-                    className="w-full h-full border-0"
-                  />
+                <div className="w-full bg-slate-100" style={{ height: "780px" }}>
+                  <object
+                    data={`${BASE}/api/resume/original/${token}?inline=true`}
+                    type="application/pdf"
+                    className="w-full h-full"
+                    aria-label="CV PDF preview"
+                  >
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center px-6 gap-3">
+                      <FileIcon className="w-10 h-10 text-slate-400" />
+                      <div>
+                        <p className="font-semibold text-slate-700 text-sm">PDF preview unavailable in this browser</p>
+                        <p className="text-xs text-slate-500 mt-1">Open the file directly or switch to Text View.</p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <a
+                          href={`${BASE}/api/resume/original/${token}?inline=true`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg"
+                          style={{ background: "hsl(214 80% 34%)" }}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> Open PDF in new tab
+                        </a>
+                        <button
+                          onClick={() => setActiveTab("text")}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:border-primary/40 px-3 py-1.5 rounded-lg"
+                        >
+                          <FileText className="w-3.5 h-3.5" /> View Text
+                        </button>
+                      </div>
+                    </div>
+                  </object>
                 </div>
               )}
 
