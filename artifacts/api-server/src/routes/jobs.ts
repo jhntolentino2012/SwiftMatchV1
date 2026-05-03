@@ -131,6 +131,143 @@ const SEED_JOBS = [
     companyDescription: "Apex BPO Services has operated in the Philippines since 2010, providing voice and non-voice customer support solutions to leading banks and fintech companies worldwide. Our Ortigas site houses 800 agents working across two floors, supported by a dedicated training academy and a structured leadership pipeline. We believe in growing our own leaders — over 60% of our current managers started as frontline agents. Benefits include HMO, life insurance, paid leaves above statutory minimums, and a profit-sharing programme.",
     isDemo: true,
   },
+  // ── Mock companies (non-demo, always visible) ────────────────────────────
+  {
+    title: "E-Commerce Product Manager",
+    company: "LazTech Philippines",
+    location: "BGC, Taguig, Philippines",
+    description: "Own the product roadmap for our marketplace seller tools, driving feature discovery, prioritisation, and delivery in close partnership with engineering, design, and business teams. You will conduct user research with our 50,000+ active sellers, translate insights into clear product specs, and track success through rigorous experimentation and data analysis. This is a high-impact role at the centre of the Philippines' fastest-growing e-commerce platform.",
+    requirements: [
+      "4+ years of product management experience, ideally in e-commerce or marketplace platforms",
+      "Strong data analysis skills — comfortable with SQL and BI dashboards",
+      "Experience running A/B tests and interpreting experiment results",
+      "Excellent written and verbal communication; stakeholder management experience",
+      "Bachelor's degree in Business, Engineering, Computer Science, or related field"
+    ],
+    salaryRange: "PHP 90,000 - 130,000/month",
+    industry: "E-Commerce / Retail",
+    companyDescription: "LazTech Philippines is the country's leading homegrown e-commerce technology company, connecting over 2 million buyers with 50,000 sellers across Luzon, Visayas, and Mindanao. Founded in 2015, we have grown from a 10-person startup to a 600-strong team spanning product, engineering, operations, and logistics. We believe technology should make commerce easier for every Filipino — from sari-sari store owners to enterprise brands. Our BGC headquarters features flexible workspaces, free daily meals, and a competitive total rewards package including equity participation for all permanent employees.",
+    isDemo: false,
+  },
+  {
+    title: "Relationship Manager – Business Banking",
+    company: "Rizal Banking Group",
+    location: "Makati City, Philippines",
+    description: "Manage and grow a portfolio of SME and mid-market clients by identifying financial needs, structuring appropriate credit and deposit solutions, and delivering outstanding service that deepens long-term relationships. You will originate new business through referrals and networking, prepare credit proposals, and coordinate with internal teams to ensure seamless client onboarding and servicing. This is a revenue-generating role with an attractive variable incentive scheme.",
+    requirements: [
+      "3+ years of relationship management or corporate banking experience",
+      "Strong credit analysis and financial statement reading skills",
+      "Existing network of business clients preferred",
+      "Bachelor's degree in Finance, Accounting, Business Administration, or related field",
+      "Excellent communication and negotiation skills"
+    ],
+    salaryRange: "PHP 55,000 - 85,000/month",
+    industry: "Banking / Finance",
+    companyDescription: "Rizal Banking Group is a Philippine universal bank with 200+ branches nationwide, serving over 1.5 million individual and corporate clients since 1979. We are consistently ranked among the country's top 10 banks by total assets and have received multiple awards for digital innovation and corporate governance. Our culture of integrity, client focus, and continuous improvement has helped us navigate every economic cycle for more than four decades. We offer a comprehensive benefits package including HMO, group life insurance, housing and car loan privileges, and a robust performance bonus programme.",
+    isDemo: false,
+  },
+  {
+    title: "Network Engineer",
+    company: "GlobeEdge Telecom",
+    location: "Quezon City, Philippines",
+    description: "Design, deploy, and optimise fixed and mobile network infrastructure across our Metro Manila and provincial footprint. You will troubleshoot complex transmission and IP network incidents, lead capacity planning exercises, and collaborate with vendors to evaluate new technologies. The ideal candidate is energised by solving hard infrastructure problems and thrives in an always-on, mission-critical environment.",
+    requirements: [
+      "3+ years of experience in telecoms network engineering (IP/MPLS, transmission, or mobile core)",
+      "CCNA/CCNP or equivalent vendor certification required",
+      "Hands-on experience with Cisco, Huawei, or Nokia network equipment",
+      "Solid understanding of BGP, OSPF, and MPLS protocols",
+      "Willing to respond to on-call escalations during off-hours"
+    ],
+    salaryRange: "PHP 60,000 - 95,000/month",
+    industry: "Telecommunications",
+    companyDescription: "GlobeEdge Telecom is one of the Philippines' largest telecommunications companies, delivering mobile, broadband, and enterprise connectivity services to 40 million subscribers. With a 30-year operating history and ₱180 billion in annual revenues, we invest over ₱20 billion per year in network modernisation — including a nationwide 5G rollout currently underway. Our workforce of 8,000 engineers and support staff is our greatest asset. We provide best-in-class benefits including company phone and plan, educational assistance, and a generous performance incentive programme tied to network quality metrics.",
+    isDemo: false,
+  },
+  {
+    title: "Brand Manager",
+    company: "FoodFirst Philippines",
+    location: "Mandaluyong City, Philippines",
+    description: "Lead the strategy and execution of one of our flagship consumer food brands, overseeing above-the-line and below-the-line marketing activities, new product development pipelines, and trade promotions. You will manage the full P&L for your assigned brand, brief and evaluate creative agencies, conduct consumer research, and present quarterly business reviews to the regional leadership team. This is a genuine end-to-end brand ownership role with significant budget authority.",
+    requirements: [
+      "5+ years of brand management experience in FMCG",
+      "Proven track record of launching or repositioning consumer brands",
+      "Strong financial acumen — comfortable with P&L ownership and ROI modelling",
+      "Experience managing agencies and production budgets",
+      "Bachelor's degree in Marketing, Business, or related field; MBA preferred"
+    ],
+    salaryRange: "PHP 85,000 - 120,000/month",
+    industry: "FMCG / Consumer Goods",
+    companyDescription: "FoodFirst Philippines is a leading manufacturer and distributor of packaged food and beverage products with over 60 brands sold in 80,000 retail touchpoints nationwide. Part of a Southeast Asian conglomerate with $3B in group revenues, our Philippine operation employs 3,500 people across manufacturing, sales, and marketing. We are driven by a mission to nourish Filipino families with great-tasting, affordable, and nutritious products. Our marketing team is known for launching some of the Philippines' most memorable advertising campaigns and we provide world-class training through our global talent development programmes.",
+    isDemo: false,
+  },
+  {
+    title: "Property Sales Executive",
+    company: "Emerald Properties",
+    location: "Alabang, Muntinlupa / Field-based",
+    description: "Drive residential and commercial property sales for our premium township developments in Muntinlupa, Laguna, and Cavite. You will qualify and nurture leads from digital and referral channels, conduct site tours, prepare proposals, negotiate terms, and close transactions. Top performers enjoy a lucrative commission structure with no cap — our best Sales Executives earn over PHP 300,000 per month through commissions alone.",
+    requirements: [
+      "1+ year of real estate sales experience; fresh PRC Real Estate Brokers License holders welcome",
+      "Strong interpersonal and presentation skills",
+      "Highly self-motivated with a hunter mentality",
+      "Own vehicle and willingness to conduct field work",
+      "Proficiency in digital tools including CRM systems and social media prospecting"
+    ],
+    salaryRange: "PHP 25,000 base + uncapped commission",
+    industry: "Real Estate",
+    companyDescription: "Emerald Properties is one of the Philippines' most trusted property developers, with 25 years of experience delivering over 150 residential and mixed-use projects across Metro Manila, CALABARZON, and Central Luzon. Our portfolio spans affordable to premium segments — from compact condominiums for first-time buyers to gated communities and office parks. We are known for our on-time delivery record, green-certified building standards, and industry-leading after-sales service. Our sales force of 1,200 professionals across 15 area offices is supported by dedicated marketing budgets, CRM technology, and one of the most competitive commission structures in the industry.",
+    isDemo: false,
+  },
+  {
+    title: "Business Analyst – Digital Transformation",
+    company: "DataBridge Consulting",
+    location: "BGC, Taguig / Hybrid",
+    description: "Work alongside enterprise clients in banking, retail, and logistics to analyse current-state processes, define future-state requirements, and translate business needs into clear specifications for technology delivery teams. You will facilitate workshops, produce business cases, create process maps, and support user acceptance testing. You will be part of an elite consulting team that is redefining how Philippine enterprises adopt cloud, AI, and data platforms.",
+    requirements: [
+      "3+ years as a Business Analyst in technology consulting or a corporate IT/transformation function",
+      "CBAP or equivalent certification is a plus",
+      "Strong facilitation, documentation, and stakeholder management skills",
+      "Experience with process modelling tools (Visio, Lucidchart, BPMN)",
+      "Background in banking, logistics, or retail transformation projects preferred"
+    ],
+    salaryRange: "PHP 65,000 - 100,000/month",
+    industry: "IT Consulting",
+    companyDescription: "DataBridge Consulting is a Philippine-based technology and management consulting firm specialising in digital transformation for large enterprises and government agencies. Founded in 2011, our 400-strong team of analysts, architects, and project managers has delivered over 300 engagements across financial services, public sector, and logistics. We are a certified partner of leading cloud providers including AWS, Microsoft Azure, and Google Cloud. Our people-first culture offers flexible hybrid work, a clear career ladder from Analyst to Partner, project rotation opportunities across industries, and one of the most generous CPD allowances in the local consulting market.",
+    isDemo: false,
+  },
+  {
+    title: "Ground Operations Officer",
+    company: "SkyBridge Aviation Services",
+    location: "NAIA Terminal 1, Pasay City, Philippines",
+    description: "Coordinate safe, on-time aircraft turnarounds by supervising ramp handling, baggage loading, fuelling, catering, and pre-departure checks across your assigned flights. You will liaise with flight crew, airline station managers, and ground handling subcontractors to resolve operational issues in real time. The role demands calm decision-making under pressure, meticulous attention to safety protocols, and a collaborative team spirit across 24/7 rotating shifts.",
+    requirements: [
+      "Background in aviation, airport operations, or logistics",
+      "CAAP Ground Handling certification or willingness to obtain within 90 days",
+      "Ability to work rotating shifts including graveyard, weekends, and holidays",
+      "Strong verbal communication and radio protocol skills",
+      "Physically fit with valid NAIA airport security clearance (or ability to secure one)"
+    ],
+    salaryRange: "PHP 28,000 - 42,000/month",
+    industry: "Aviation / Transport",
+    companyDescription: "SkyBridge Aviation Services is the Philippines' largest independent ground handling company, supporting over 120 daily aircraft movements at NAIA, Mactan-Cebu, Clark, and Davao airports. With 1,800 certified ground handlers and ramp agents deployed across the country, we serve 18 airline clients including full-service carriers and budget airlines. Safety is non-negotiable at SkyBridge — we maintain a ISAGO-certified quality management system and invest ₱50 million annually in training and equipment. Benefits include shift differential pay, uniform and meal allowances, group life and accident insurance, and an internal promotion programme that fast-tracks high performers into supervisory roles.",
+    isDemo: false,
+  },
+  {
+    title: "Human Resources Business Partner",
+    company: "NovaCare Health Systems",
+    location: "Pasig City, Philippines",
+    description: "Partner with business unit leaders across two hospital campuses to deliver end-to-end HR support covering talent acquisition, performance management, employee relations, compensation benchmarking, and organisational development. You will translate business priorities into people strategies, coach line managers through complex HR issues, and lead HR projects such as engagement survey action planning and succession pipeline development.",
+    requirements: [
+      "5+ years of HR experience with at least 2 years as an HRBP or HR Generalist in a complex organisation",
+      "Healthcare industry experience is a strong advantage",
+      "Deep knowledge of Philippine Labor Code and DOLE regulations",
+      "Strong stakeholder management and influencing skills",
+      "Bachelor's degree in Psychology, Human Resources, or related field; CHRP/SHRM certification preferred"
+    ],
+    salaryRange: "PHP 65,000 - 90,000/month",
+    industry: "Healthcare",
+    companyDescription: "NovaCare Health Systems operates a network of three tertiary hospitals and seven ambulatory clinics across Metro Manila, employing over 5,000 healthcare and administrative professionals. Accredited by the DOH, PhilHealth, and the Joint Commission International, we are committed to delivering evidence-based, compassionate care to every patient. Our HR team is a genuine strategic partner — we have won consecutive Great Place to Work certifications and invest heavily in workforce wellbeing, including free annual executive check-ups, mental health support programmes, and a childcare subsidy for working parents.",
+    isDemo: false,
+  },
 ];
 
 async function ensureJobsSeeded() {
@@ -141,10 +278,9 @@ async function ensureJobsSeeded() {
     }
     return;
   }
-  // Patch: ensure BPO jobs exist even if the table was seeded before they were added
-  const bpoJobs = SEED_JOBS.filter(j => j.industry === "BPO / Call Center");
+  // Patch: insert any seed jobs not yet in the table (by title)
   const existingTitles = new Set(existing.map(j => j.title));
-  for (const job of bpoJobs) {
+  for (const job of SEED_JOBS) {
     if (!existingTitles.has(job.title)) {
       await db.insert(jobsTable).values(job);
     }
@@ -300,20 +436,30 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
+const OWNER_EMAILS_SET = new Set(
+  ["jhn.tolentino2012@gmail.com", ...(process.env["OWNER_EMAILS"]?.split(",") ?? [])]
+    .map(e => e.trim().toLowerCase()).filter(Boolean)
+);
+
 router.delete("/:id", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) {
     res.status(400).json({ error: "Invalid ID" });
     return;
   }
+  const callerEmail: string = ((req as any).user?.email ?? "").toLowerCase();
+  const isAdmin = OWNER_EMAILS_SET.has(callerEmail);
   try {
     const [existing] = await db.select({ id: jobsTable.id, isDemo: jobsTable.isDemo })
       .from(jobsTable).where(eq(jobsTable.id, id));
     if (!existing) { res.status(404).json({ error: "Job not found" }); return; }
-    if (existing.isDemo) { res.status(403).json({ error: "Demo jobs cannot be deleted." }); return; }
+    if (existing.isDemo && !isAdmin) {
+      res.status(403).json({ error: "Demo jobs cannot be deleted." });
+      return;
+    }
 
     await db.delete(jobsTable).where(eq(jobsTable.id, id));
-    req.log.info({ jobId: id }, "Job deleted by employer");
+    req.log.info({ jobId: id, isAdmin }, "Job deleted");
     res.json({ deleted: true });
   } catch (err) {
     req.log.error({ err }, "Failed to delete job");

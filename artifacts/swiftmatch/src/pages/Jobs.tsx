@@ -71,6 +71,24 @@ function hasValidToken(): boolean {
   }
 }
 
+const ADMIN_EMAIL = "jhn.tolentino2012@gmail.com";
+
+function isAdminSession(): boolean {
+  const token = localStorage.getItem("sm_auth_token");
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return (
+      typeof payload.email === "string" &&
+      payload.email.toLowerCase() === ADMIN_EMAIL &&
+      typeof payload.exp === "number" &&
+      payload.exp * 1000 > Date.now()
+    );
+  } catch {
+    return false;
+  }
+}
+
 const inputCls =
   "w-full border border-slate-200 rounded-xl bg-white text-sm placeholder:text-slate-400 " +
   "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all px-4 py-3";
@@ -80,6 +98,7 @@ export default function JobsPage() {
   const [, setLocation] = useLocation();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isEmployer, setIsEmployer] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -94,7 +113,10 @@ export default function JobsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => { setIsEmployer(isEmployerSession()); }, []);
+  useEffect(() => {
+    setIsEmployer(isEmployerSession());
+    setIsAdmin(isAdminSession());
+  }, []);
 
   function restoreEmployerSession(job: Job) {
     localStorage.setItem("sm_employer_profile", JSON.stringify({
@@ -241,6 +263,7 @@ export default function JobsPage() {
   }
 
   const canEditJob = isEmployer && selectedJob && !selectedJob.isDemo;
+  const canDeleteJob = (isEmployer && selectedJob && !selectedJob.isDemo) || (isAdmin && !!selectedJob);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -375,7 +398,7 @@ export default function JobsPage() {
                       <Pencil className="w-3.5 h-3.5" /> Edit Posting
                     </button>
                   )}
-                  {canEditJob && !editing && (
+                  {canDeleteJob && !editing && (
                     deleteConfirm ? (
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500 font-medium">Delete this posting?</span>
