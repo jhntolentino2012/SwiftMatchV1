@@ -6,6 +6,7 @@ import {
   Loader2, Plus, X, Eye, EyeOff, Pencil, MapPin, Banknote, CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BulletTextarea } from "@/components/BulletTextarea";
 
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
@@ -287,18 +288,13 @@ export default function EmployerOnboarding() {
                   title="About the Company"
                   sub='Appears in every job listing under "About [Your Company Name]" — help candidates understand who you are.'
                 />
-                <textarea
+                <BulletTextarea
                   value={company.description}
-                  onChange={setC("description")}
-                  placeholder={`Tell candidates about ${company.companyName || "your company"}'s culture, mission, benefits, and what makes it a great place to work. A strong company description increases application rates.`}
+                  onChange={v => setCompany(p => ({ ...p, description: v }))}
+                  placeholder={`Tell candidates about ${company.companyName || "your company"}'s culture, mission, benefits, and what makes it a great place to work.`}
                   rows={6}
-                  className={cn(inputCls, "resize-none bg-white")}
+                  className="bg-white"
                 />
-                {company.description.trim() && (
-                  <p className="text-[11px] text-primary/60 text-right">
-                    {company.description.trim().length} characters
-                  </p>
-                )}
               </div>
             </div>
           )}
@@ -420,18 +416,13 @@ export default function EmployerOnboarding() {
                       title="About the Job"
                       sub='Appears in the job listing under "About the Job" — describe the role, responsibilities, and day-to-day.'
                     />
-                    <textarea
+                    <BulletTextarea
                       value={job.description}
-                      onChange={setJ("description")}
-                      placeholder="Describe the role, key responsibilities, what success looks like, and what a typical day involves. Be specific to attract the right candidates."
+                      onChange={v => setJob(p => ({ ...p, description: v }))}
+                      placeholder="Describe the role, key responsibilities, what success looks like, and what a typical day involves."
                       rows={6}
-                      className={cn(inputCls, "resize-none bg-white")}
+                      className="bg-white"
                     />
-                    {job.description.trim() && (
-                      <p className="text-[11px] text-accent/60 text-right">
-                        {job.description.trim().length} characters
-                      </p>
-                    )}
                   </div>
 
                   {/* Requirements */}
@@ -476,12 +467,11 @@ export default function EmployerOnboarding() {
                     </div>
                     <div className="p-4">
                       {editingAboutCompany ? (
-                        <textarea
+                        <BulletTextarea
                           value={company.description}
-                          onChange={setC("description")}
-                          rows={5}
+                          onChange={v => setCompany(p => ({ ...p, description: v }))}
                           placeholder="Describe your company — culture, mission, benefits, and why candidates should join you."
-                          className={cn(inputCls, "resize-none")}
+                          rows={5}
                         />
                       ) : company.description.trim() ? (
                         <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line line-clamp-4">

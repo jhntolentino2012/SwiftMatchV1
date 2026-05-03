@@ -9,6 +9,7 @@ import {
   Pencil, Save, AlertCircle, Plus, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BulletTextarea } from "@/components/BulletTextarea";
 
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
@@ -386,14 +387,17 @@ export default function JobsPage() {
 
                     {/* About the Job */}
                     <div className="space-y-2 rounded-xl border border-accent/20 bg-accent/[0.03] p-4">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-2">
                         <Briefcase className="w-4 h-4 text-accent" />
                         <label className="text-sm font-bold text-accent">About the Job</label>
                       </div>
-                      <textarea value={editForm.description}
-                        onChange={e => setEF("description", e.target.value)}
-                        rows={6} className={cn(inputCls, "resize-none bg-white")}
-                        placeholder="Describe the role and responsibilities..." />
+                      <BulletTextarea
+                        value={editForm.description}
+                        onChange={v => setEF("description", v)}
+                        placeholder="Describe the role and responsibilities…"
+                        rows={6}
+                        className="bg-white"
+                      />
                     </div>
 
                     {/* Requirements */}
@@ -421,14 +425,17 @@ export default function JobsPage() {
 
                     {/* About the Company */}
                     <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.03] p-4">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-2">
                         <Building2 className="w-4 h-4 text-primary" />
                         <label className="text-sm font-bold text-primary">About the Company</label>
                       </div>
-                      <textarea value={editForm.companyDescription}
-                        onChange={e => setEF("companyDescription", e.target.value)}
-                        rows={5} className={cn(inputCls, "resize-none bg-white")}
-                        placeholder="Describe your company — culture, mission, benefits..." />
+                      <BulletTextarea
+                        value={editForm.companyDescription}
+                        onChange={v => setEF("companyDescription", v)}
+                        placeholder="Describe your company — culture, mission, benefits…"
+                        rows={5}
+                        className="bg-white"
+                      />
                     </div>
                   </div>
                 ) : (
