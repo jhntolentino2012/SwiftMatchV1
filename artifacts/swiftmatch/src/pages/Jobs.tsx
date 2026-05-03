@@ -82,6 +82,18 @@ function isEmployerSession(): boolean {
   return !!localStorage.getItem("sm_employer_profile");
 }
 
+function getEmployerCompany(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("sm_employer_profile");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.companyName === "string" ? parsed.companyName : null;
+  } catch {
+    return null;
+  }
+}
+
 function hasValidToken(): boolean {
   const token = localStorage.getItem("sm_auth_token");
   if (!token) return false;
@@ -121,6 +133,7 @@ export default function JobsPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isEmployer, setIsEmployer] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [employerCompany, setEmployerCompany] = useState<string | null>(null);
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -141,10 +154,18 @@ export default function JobsPage() {
   useEffect(() => {
     setIsEmployer(isEmployerSession());
     setIsAdmin(isAdminSession());
+    setEmployerCompany(getEmployerCompany());
   }, []);
 
+  /** True only if the current employer session belongs to THIS job's company. */
+  function ownsJob(job: { company: string }): boolean {
+    return isEmployer
+      && !!employerCompany
+      && employerCompany.trim().toLowerCase() === job.company.trim().toLowerCase();
+  }
+
   async function handleApply(job: Job) {
-    if (isEmployer) return;
+    if (ownsJob(job)) return;
     if (!hasValidToken()) {
       setLocation(`${BASE}/signup?next=/jobs`);
       return;
@@ -191,6 +212,13 @@ export default function JobsPage() {
       contactPhone: "",
     }));
     setIsEmployer(true);
+    setEmployerCompany(job.company);
+  }
+
+  function exitEmployerMode() {
+    localStorage.removeItem("sm_employer_profile");
+    setIsEmployer(false);
+    setEmployerCompany(null);
   }
 
   const params = new URLSearchParams(
@@ -414,8 +442,8 @@ export default function JobsPage() {
     }
   }
 
-  const canEditJob = ((isEmployer || isAdmin) && selectedJob && !selectedJob.isDemo) as boolean;
-  const canDeleteJob = (isEmployer && selectedJob && !selectedJob.isDemo) || (isAdmin && !!selectedJob);
+  const canEditJob = !!(selectedJob && !selectedJob.isDemo && (isAdmin || ownsJob(selectedJob)));
+  const canDeleteJob = !!(selectedJob && ((isAdmin) || (!selectedJob.isDemo && ownsJob(selectedJob))));
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -460,12 +488,12 @@ export default function JobsPage() {
                       <span className="text-xs text-slate-400 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {timeAgo(job.createdAt)}
                       </span>
-                      {!job.isDemo && isEmployer && (
+                      {!job.isDemo && ownsJob(job) && (
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
                           Your posting
                         </span>
                       )}
-                      {!job.isDemo && !isEmployer && (
+                      {!job.isDemo && !ownsJob(job) && (
                         <button
                           onClick={e => { e.stopPropagation(); restoreEmployerSession(job); }}
                           className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 hover:bg-primary/8 hover:text-primary hover:border-primary/20 transition-colors"
@@ -490,7 +518,7 @@ export default function JobsPage() {
                       View more
                     </button>
                   </div>
-                  {!isEmployer && !isAdmin && (
+                  {!ownsJob(job) && (
                     <div className="shrink-0">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleApply(job); }}
