@@ -94,6 +94,21 @@ export default function JobsPage() {
 
   useEffect(() => { setIsEmployer(isEmployerSession()); }, []);
 
+  function restoreEmployerSession(job: Job) {
+    localStorage.setItem("sm_employer_profile", JSON.stringify({
+      companyName: job.company,
+      industry: job.industry,
+      companySize: "",
+      location: job.location,
+      website: "",
+      description: job.companyDescription || "",
+      contactPerson: "",
+      contactEmail: "",
+      contactPhone: "",
+    }));
+    setIsEmployer(true);
+  }
+
   const params = new URLSearchParams(
     typeof window !== "undefined" ? window.location.search : ""
   );
@@ -251,6 +266,14 @@ export default function JobsPage() {
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
                           Your posting
                         </span>
+                      )}
+                      {!job.isDemo && !isEmployer && (
+                        <button
+                          onClick={e => { e.stopPropagation(); restoreEmployerSession(job); }}
+                          className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 hover:bg-primary/8 hover:text-primary hover:border-primary/20 transition-colors"
+                        >
+                          Re-enter as employer
+                        </button>
                       )}
                     </div>
                     <h3 className="font-display font-bold text-lg text-primary group-hover:text-accent transition-colors">

@@ -185,6 +185,8 @@ export default function ProfilePage() {
   const [cvUploadSuccess, setCvUploadSuccess] = useState(false);
   const [cvDragOver, setCvDragOver] = useState(false);
   const [cvLinkCopied, setCvLinkCopied] = useState(false);
+  const [cvRemoving, setCvRemoving] = useState(false);
+  const [cvRemoveConfirm, setCvRemoveConfirm] = useState(false);
 
   // ── Inline tag (career) edit ──────────────────────────
   const [editingTags, setEditingTags] = useState(false);
@@ -301,6 +303,27 @@ export default function ProfilePage() {
       }
     } finally {
       setHeadlineSaving(false);
+    }
+  }
+
+  async function handleCvRemove() {
+    const token = localStorage.getItem("sm_auth_token");
+    if (!token) return;
+    setCvRemoving(true);
+    try {
+      const res = await fetch(`${BASE}/api/profile/cv`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(p => p ? { ...p, ...data } : p);
+        setCvRemoveConfirm(false);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setCvRemoving(false);
     }
   }
 
@@ -1302,14 +1325,44 @@ export default function ProfilePage() {
                               {profile.cvText.length.toLocaleString()} characters extracted — ready for AI match analysis
                             </p>
                           </div>
-                          <button
-                            onClick={() => cvInputRef.current?.click()}
-                            disabled={cvUploading}
-                            className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-primary border border-slate-200 hover:border-primary/40 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
-                          >
-                            {cvUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                            Replace
-                          </button>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => cvInputRef.current?.click()}
+                              disabled={cvUploading || cvRemoving}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-primary border border-slate-200 hover:border-primary/40 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                            >
+                              {cvUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                              Replace
+                            </button>
+                            {cvRemoveConfirm ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-slate-500">Remove CV?</span>
+                                <button
+                                  onClick={handleCvRemove}
+                                  disabled={cvRemoving}
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-50"
+                                >
+                                  {cvRemoving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                                  Yes, remove
+                                </button>
+                                <button
+                                  onClick={() => setCvRemoveConfirm(false)}
+                                  disabled={cvRemoving}
+                                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setCvRemoveConfirm(true)}
+                                disabled={cvUploading || cvRemoving}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-red-500 border border-slate-200 hover:border-red-300 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                              >
+                                <X className="w-3 h-3" /> Remove
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Shareable link */}
