@@ -23,3 +23,9 @@ id = "o5h5k1gi0zhxsRPATMu9l"
 uri = "file://exports/swiftmatch-buildathon-static.tar.gz"
 type = "unspecified"
 title = "SwiftMatch Buildathon — Static Site Bundle"
+
+[[outputs]]
+id = "Jnfz67UjyB51NyqpVuQAY"
+uri = "file://exports/swiftmatch-buildathon-static.zip"
+type = "unspecified"
+title = "SwiftMatch Buildathon — Static Site (ZIP for Cloudflare Pages)"
