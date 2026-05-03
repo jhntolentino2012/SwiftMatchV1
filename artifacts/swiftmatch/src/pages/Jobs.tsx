@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { JobSearchWidget } from "@/components/JobSearchWidget";
 import { useListJobs } from "@workspace/api-client-react";
@@ -57,7 +57,18 @@ function buildFullDescription(baseDesc: string, workSetup: string[], employmentT
 
 function isEmployerSession(): boolean {
   if (typeof window === "undefined") return false;
-  return !!localStorage.getItem("sm_auth_token") && !!localStorage.getItem("sm_employer_profile");
+  return !!localStorage.getItem("sm_employer_profile");
+}
+
+function hasValidToken(): boolean {
+  const token = localStorage.getItem("sm_auth_token");
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return typeof payload.exp === "number" && payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
 }
 
 const inputCls =
@@ -66,6 +77,7 @@ const inputCls =
 
 export default function JobsPage() {
   const { data: rawJobs = [], isLoading, refetch } = useListJobs();
+  const [, setLocation] = useLocation();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isEmployer, setIsEmployer] = useState(false);
 
@@ -78,6 +90,7 @@ export default function JobsPage() {
   });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [needsSignIn, setNeedsSignIn] = useState(false);
 
   useEffect(() => { setIsEmployer(isEmployerSession()); }, []);
 
@@ -103,6 +116,10 @@ export default function JobsPage() {
   const activeFilters = [filterIndustry, filterLocation].filter(Boolean);
 
   function openEdit(job: Job) {
+    if (!hasValidToken()) {
+      setNeedsSignIn(true);
+      return;
+    }
     const { baseDesc, workSetup, employmentType } = parseJobDescription(job.description);
     setEditForm({
       title: job.title,
@@ -117,10 +134,11 @@ export default function JobsPage() {
       employmentType,
     });
     setSaveError("");
+    setNeedsSignIn(false);
     setEditing(true);
   }
 
-  function cancelEdit() { setEditing(false); setSaveError(""); }
+  function cancelEdit() { setEditing(false); setSaveError(""); setNeedsSignIn(false); }
 
   function setEF<K extends keyof typeof editForm>(k: K, v: typeof editForm[K]) {
     setEditForm(p => ({ ...p, [k]: v }));
@@ -164,12 +182,18 @@ export default function JobsPage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+      if (res.status === 401) {
+        // Token expired mid-session — show sign-in prompt
+        setEditing(false);
+        setNeedsSignIn(true);
+        return;
+      }
       if (!res.ok) throw new Error(data.error || "Save failed");
 
-      // Update selected job in place
       const updated: Job = { ...selectedJob, ...data };
       setSelectedJob(updated);
       setEditing(false);
+      setNeedsSignIn(false);
       refetch();
     } catch (err: any) {
       setSaveError(err.message || "Could not save changes.");
@@ -317,6 +341,25 @@ export default function JobsPage() {
             {/* ── Scrollable Body ── */}
             <div className="flex-1 overflow-y-auto">
               <div className="max-w-3xl mx-auto px-6 py-8">
+
+                {/* Sign-in required banner */}
+                {needsSignIn && !editing && (
+                  <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-amber-800">Sign in required to edit</p>
+                      <p className="text-xs text-amber-700 mt-0.5">
+                        Your session has expired or you haven't signed in yet. Sign in with your employer account to edit this posting.
+                      </p>
+                      <button
+                        onClick={() => setLocation(`${BASE}/signin?next=/jobs`)}
+                        className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-colors"
+                      >
+                        Sign In to Edit
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {editing ? (
                   /* ──── Edit Mode ──── */
@@ -501,9 +544,19 @@ export default function JobsPage() {
                 ) : (
                   <>
                     <p className="text-xs text-slate-400">
-                      {canEditJob ? "Signed in as employer — you can edit this posting." : "Create a free profile to apply — takes less than 5 minutes."}
+                      {needsSignIn
+                        ? "Sign in to edit this job posting."
+                        : canEditJob
+                          ? "Signed in as employer — you can edit this posting."
+                          : "Create a free profile to apply — takes less than 5 minutes."}
                     </p>
-                    {canEditJob ? (
+                    {needsSignIn ? (
+                      <button
+                        onClick={() => setLocation(`${BASE}/signin?next=/jobs`)}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shrink-0">
+                        Sign In to Edit
+                      </button>
+                    ) : canEditJob ? (
                       <button onClick={() => openEdit(selectedJob)}
                         className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shrink-0">
                         <Pencil className="w-4 h-4" /> Edit Posting
