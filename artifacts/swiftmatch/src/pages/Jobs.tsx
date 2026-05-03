@@ -7,11 +7,21 @@ import {
   MapPin, Briefcase, Building2, ChevronRight, Search,
   CheckCircle2, Clock, Banknote, ArrowUpRight, X,
   Pencil, Save, AlertCircle, Plus, Loader2, Trash2,
+  ClipboardList, CheckSquare, Square, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BulletTextarea } from "@/components/BulletTextarea";
 
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+
+type CustomQuestion = {
+  id: string;
+  text: string;
+  type: "multiple_choice" | "text";
+  options?: string[];
+  correctAnswers: string[];
+  points?: number;
+};
 
 type Job = {
   id: number;
@@ -23,9 +33,21 @@ type Job = {
   salaryRange: string;
   industry: string;
   companyDescription?: string;
+  customQuestions?: CustomQuestion[];
   isDemo?: boolean;
   createdAt: string;
 };
+
+function newQuestion(): CustomQuestion {
+  return {
+    id: `q_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    text: "",
+    type: "multiple_choice",
+    options: ["", ""],
+    correctAnswers: [],
+    points: 1,
+  };
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -106,6 +128,7 @@ export default function JobsPage() {
     title: "", company: "", location: "", salaryRange: "",
     industry: "", description: "", companyDescription: "",
     requirements: [""], workSetup: [] as string[], employmentType: [] as string[],
+    customQuestions: [] as CustomQuestion[],
   });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -208,6 +231,7 @@ export default function JobsPage() {
       requirements: job.requirements.length > 0 ? [...job.requirements] : [""],
       workSetup,
       employmentType,
+      customQuestions: job.customQuestions ? [...job.customQuestions] : [],
     });
     setSaveError("");
     setNeedsSignIn(false);
@@ -254,6 +278,85 @@ export default function JobsPage() {
     const r = [...editForm.requirements]; r[i] = val; setEF("requirements", r);
   }
 
+  // ── Custom assessment question helpers (functional updates to avoid stale state) ─
+  function mutateQs(fn: (qs: CustomQuestion[]) => CustomQuestion[]) {
+    setEditForm(p => ({ ...p, customQuestions: fn(p.customQuestions) }));
+  }
+  function addCustomQ() { mutateQs(qs => [...qs, newQuestion()]); }
+  function removeCustomQ(i: number) { mutateQs(qs => qs.filter((_, idx) => idx !== i)); }
+  function updateCustomQ(i: number, patch: Partial<CustomQuestion>) {
+    mutateQs(qs => {
+      const next = [...qs];
+      next[i] = { ...next[i], ...patch };
+      if (patch.type === "text") {
+        delete next[i].options;
+        if (next[i].correctAnswers.length === 0) next[i].correctAnswers = [];
+      }
+      if (patch.type === "multiple_choice" && (!next[i].options || next[i].options!.length < 2)) {
+        next[i].options = ["", ""];
+        next[i].correctAnswers = [];
+      }
+      return next;
+    });
+  }
+  function setCustomQOption(i: number, optIdx: number, val: string) {
+    mutateQs(qs => {
+      const next = [...qs];
+      const opts = [...(next[i].options ?? [])];
+      const oldVal = opts[optIdx];
+      opts[optIdx] = val;
+      next[i] = {
+        ...next[i],
+        options: opts,
+        correctAnswers: next[i].correctAnswers.map(a => (a === oldVal ? val : a)),
+      };
+      return next;
+    });
+  }
+  function addCustomQOption(i: number) {
+    mutateQs(qs => {
+      const next = [...qs];
+      next[i] = { ...next[i], options: [...(next[i].options ?? []), ""] };
+      return next;
+    });
+  }
+  function removeCustomQOption(i: number, optIdx: number) {
+    mutateQs(qs => {
+      const next = [...qs];
+      const opts = (next[i].options ?? []).filter((_, idx) => idx !== optIdx);
+      const removed = (next[i].options ?? [])[optIdx];
+      next[i] = {
+        ...next[i],
+        options: opts,
+        correctAnswers: next[i].correctAnswers.filter(a => a !== removed),
+      };
+      return next;
+    });
+  }
+  function toggleMCCorrect(i: number, opt: string) {
+    mutateQs(qs => {
+      const next = [...qs];
+      const has = next[i].correctAnswers.includes(opt);
+      next[i] = {
+        ...next[i],
+        correctAnswers: has
+          ? next[i].correctAnswers.filter(a => a !== opt)
+          : [...next[i].correctAnswers, opt],
+      };
+      return next;
+    });
+  }
+  function setTextCorrect(i: number, val: string) {
+    mutateQs(qs => {
+      const next = [...qs];
+      next[i] = {
+        ...next[i],
+        correctAnswers: val.split("|").map(s => s.trim()).filter(Boolean),
+      };
+      return next;
+    });
+  }
+
   async function handleSave() {
     if (!selectedJob) return;
     setSaving(true); setSaveError("");
@@ -269,6 +372,18 @@ export default function JobsPage() {
         description: fullDescription,
         companyDescription: editForm.companyDescription.trim(),
         requirements: editForm.requirements.map(r => r.trim()).filter(Boolean),
+        customQuestions: editForm.customQuestions
+          .map(q => ({
+            ...q,
+            text: q.text.trim(),
+            options: q.options?.map(o => o.trim()).filter(Boolean),
+            correctAnswers: q.correctAnswers.map(a => a.trim()).filter(Boolean),
+          }))
+          .filter(q =>
+            q.text &&
+            q.correctAnswers.length > 0 &&
+            (q.type === "text" || (q.options && q.options.length >= 2))
+          ),
       };
       const res = await fetch(`${BASE}/api/jobs/${selectedJob.id}`, {
         method: "PUT",
@@ -299,7 +414,7 @@ export default function JobsPage() {
     }
   }
 
-  const canEditJob = isEmployer && selectedJob && !selectedJob.isDemo;
+  const canEditJob = ((isEmployer || isAdmin) && selectedJob && !selectedJob.isDemo) as boolean;
   const canDeleteJob = (isEmployer && selectedJob && !selectedJob.isDemo) || (isAdmin && !!selectedJob);
 
   return (
@@ -623,6 +738,116 @@ export default function JobsPage() {
                         className="bg-white"
                       />
                     </div>
+
+                    {/* Custom Assessment Questions */}
+                    <div className="space-y-3 rounded-xl border border-accent/30 bg-accent/[0.04] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <ClipboardList className="w-4 h-4 text-accent" />
+                          <label className="text-sm font-bold text-accent">Custom Assessment Questions</label>
+                        </div>
+                        <span className="text-xs text-slate-500">
+                          {editForm.customQuestions.length} question{editForm.customQuestions.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Applicants will answer these after the K&E quiz. Multiple-choice answers are matched exactly. For free-text, separate accepted answers with <code className="px-1 bg-white rounded">|</code>.
+                      </p>
+
+                      {editForm.customQuestions.map((q, i) => (
+                        <div key={q.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                {i + 1}
+                              </span>
+                              <select
+                                value={q.type}
+                                onChange={e => updateCustomQ(i, { type: e.target.value as CustomQuestion["type"] })}
+                                className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white"
+                              >
+                                <option value="multiple_choice">Multiple choice</option>
+                                <option value="text">Free-form text</option>
+                              </select>
+                            </div>
+                            <button type="button" onClick={() => removeCustomQ(i)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <textarea
+                            value={q.text}
+                            onChange={e => updateCustomQ(i, { text: e.target.value })}
+                            placeholder="Question text…"
+                            rows={2}
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                          />
+
+                          {q.type === "multiple_choice" ? (
+                            <div className="space-y-2">
+                              <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                                <CheckSquare className="w-3 h-3" /> Tap the box to mark correct answer(s)
+                              </div>
+                              {(q.options ?? []).map((opt, optIdx) => {
+                                const isCorrect = !!opt && q.correctAnswers.includes(opt);
+                                return (
+                                  <div key={optIdx} className="flex items-center gap-2">
+                                    <button type="button"
+                                      onClick={() => opt && toggleMCCorrect(i, opt)}
+                                      disabled={!opt}
+                                      className={cn(
+                                        "shrink-0 w-7 h-7 rounded-md border flex items-center justify-center transition-colors",
+                                        isCorrect
+                                          ? "bg-emerald-500 border-emerald-500 text-white"
+                                          : "border-slate-300 hover:border-emerald-400 disabled:opacity-40"
+                                      )}
+                                      title={isCorrect ? "Correct answer" : "Mark as correct"}
+                                    >
+                                      {isCorrect ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                    </button>
+                                    <input
+                                      value={opt}
+                                      onChange={e => setCustomQOption(i, optIdx, e.target.value)}
+                                      placeholder={`Option ${optIdx + 1}`}
+                                      className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                    />
+                                    {(q.options ?? []).length > 2 && (
+                                      <button type="button" onClick={() => removeCustomQOption(i, optIdx)}
+                                        className="p-1.5 text-slate-400 hover:text-red-500">
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              <button type="button" onClick={() => addCustomQOption(i)}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80">
+                                <Plus className="w-3 h-3" /> Add option
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                                <FileText className="w-3 h-3" /> Accepted answer(s) — separate with <code className="px-1 bg-slate-100 rounded">|</code>
+                              </label>
+                              <input
+                                value={q.correctAnswers.join(" | ")}
+                                onChange={e => setTextCorrect(i, e.target.value)}
+                                placeholder="e.g. Manila | Metro Manila | NCR"
+                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                              />
+                              <p className="text-[11px] text-slate-400">Matching is case-insensitive.</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      <button type="button" onClick={addCustomQ}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent/80 transition-colors">
+                        <Plus className="w-3.5 h-3.5" /> Add question
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   /* ──── View Mode ──── */
@@ -649,6 +874,21 @@ export default function JobsPage() {
                         </div>
                       )}
                     </section>
+
+                    {selectedJob.customQuestions && selectedJob.customQuestions.length > 0 && (
+                      <>
+                        <div className="border-t border-slate-100" />
+                        <section className="rounded-xl bg-accent/5 border border-accent/20 p-4">
+                          <div className="flex items-center gap-2">
+                            <ClipboardList className="w-4 h-4 text-accent" />
+                            <h3 className="font-display font-bold text-accent text-sm">Custom Assessment Included</h3>
+                          </div>
+                          <p className="text-xs text-slate-600 mt-1.5">
+                            This role includes {selectedJob.customQuestions.length} recruiter-set question{selectedJob.customQuestions.length === 1 ? "" : "s"} after the K&E quiz.
+                          </p>
+                        </section>
+                      </>
+                    )}
 
                     <div className="border-t border-slate-100" />
 

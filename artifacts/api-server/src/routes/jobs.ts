@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db, jobsTable, jobApplicationsTable, applicantsTable } from "@workspace/db";
+import type { CustomQuestion } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { GetJobParams } from "@workspace/api-zod";
 import jwt from "jsonwebtoken";
@@ -10,6 +11,43 @@ function jwtSecret(): string {
   const s = process.env["SESSION_SECRET"];
   if (!s) throw new Error("SESSION_SECRET is not set");
   return s;
+}
+
+/** Strip recruiter answer keys from a job object before sending to public/applicant clients. */
+function stripJobAnswerKeys<T extends { customQuestions?: CustomQuestion[] | null }>(job: T): T {
+  if (!job.customQuestions || job.customQuestions.length === 0) return job;
+  return {
+    ...job,
+    customQuestions: job.customQuestions.map(q => {
+      const { correctAnswers: _ca, ...rest } = q as CustomQuestion;
+      return rest as unknown as CustomQuestion;
+    }),
+  };
+}
+
+function sanitizeCustomQuestions(raw: unknown[]): CustomQuestion[] {
+  const out: CustomQuestion[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const q = item as Record<string, unknown>;
+    const text = typeof q.text === "string" ? q.text.trim() : "";
+    const type = q.type === "multiple_choice" || q.type === "text" ? q.type : null;
+    if (!text || !type) continue;
+    const correctAnswers = Array.isArray(q.correctAnswers)
+      ? (q.correctAnswers as unknown[]).filter((s): s is string => typeof s === "string" && s.trim() !== "").map(s => s.trim())
+      : [];
+    if (correctAnswers.length === 0) continue;
+    const options = type === "multiple_choice" && Array.isArray(q.options)
+      ? (q.options as unknown[]).filter((s): s is string => typeof s === "string" && s.trim() !== "").map(s => s.trim())
+      : undefined;
+    if (type === "multiple_choice" && (!options || options.length < 2)) continue;
+    const id = typeof q.id === "string" && q.id ? q.id : `q_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const points = typeof q.points === "number" && q.points > 0 ? q.points : 1;
+    const cq: CustomQuestion = { id, text, type, correctAnswers, points };
+    if (options) cq.options = options;
+    out.push(cq);
+  }
+  return out;
 }
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -312,9 +350,12 @@ router.post("/", async (req, res) => {
     employmentType ? `\nEmployment Type: ${employmentType}` : "",
   ].join("");
   try {
+    const customQuestions = Array.isArray(body.customQuestions)
+      ? sanitizeCustomQuestions(body.customQuestions)
+      : [];
     const [job] = await db.insert(jobsTable).values({
       title, company, location, description: fullDescription,
-      requirements, salaryRange, industry, companyDescription, isDemo: false,
+      requirements, salaryRange, industry, companyDescription, customQuestions, isDemo: false,
     }).returning();
     req.log.info({ jobId: job.id }, "New employer job created");
     res.status(201).json({ ...job, createdAt: job.createdAt.toISOString() });
@@ -333,7 +374,7 @@ router.get("/", async (req, res) => {
     const jobs = realJobs.length > 0
       ? realJobs
       : await db.select().from(jobsTable).orderBy(desc(jobsTable.createdAt));
-    res.json(jobs.map(j => ({ ...j, createdAt: j.createdAt.toISOString() })));
+    res.json(jobs.map(j => stripJobAnswerKeys({ ...j, createdAt: j.createdAt.toISOString() })));
   } catch (err) {
     req.log.error({ err }, "Failed to list jobs");
     res.status(500).json({ error: "Internal server error" });
@@ -421,6 +462,9 @@ router.put("/:id", requireAuth, async (req, res) => {
         .filter((r): r is string => typeof r === "string" && r.trim() !== "")
         .map(r => r.trim());
     }
+    if (Array.isArray(body.customQuestions)) {
+      updates.customQuestions = sanitizeCustomQuestions(body.customQuestions);
+    }
 
     if (Object.keys(updates).length === 0) {
       res.status(400).json({ error: "No valid fields to update." });
@@ -505,6 +549,37 @@ router.post("/:id/apply", requireAuth, async (req, res) => {
   }
 });
 
+// ── GET /jobs/applications/me  (applicant JWT — own applications with scores) ─
+router.get("/applications/me", requireAuth, async (req, res) => {
+  const callerEmail: string = ((req as any).user?.email ?? "").toLowerCase();
+  try {
+    const [applicant] = await db.select({ id: applicantsTable.id })
+      .from(applicantsTable).where(eq(applicantsTable.email, callerEmail)).limit(1);
+    if (!applicant) { res.json([]); return; }
+    const apps = await db
+      .select({
+        id: jobApplicationsTable.id,
+        jobId: jobApplicationsTable.jobId,
+        jobTitle: jobApplicationsTable.jobTitle,
+        company: jobApplicationsTable.company,
+        industry: jobApplicationsTable.industry,
+        status: jobApplicationsTable.status,
+        keScore: jobApplicationsTable.keScore,
+        customScore: jobApplicationsTable.customScore,
+        customCorrectCount: jobApplicationsTable.customCorrectCount,
+        customTotalCount: jobApplicationsTable.customTotalCount,
+        createdAt: jobApplicationsTable.createdAt,
+      })
+      .from(jobApplicationsTable)
+      .where(eq(jobApplicationsTable.applicantId, applicant.id))
+      .orderBy(desc(jobApplicationsTable.createdAt));
+    res.json(apps.map(a => ({ ...a, createdAt: a.createdAt.toISOString() })));
+  } catch (err) {
+    req.log.error({ err }, "Failed to list applicant's applications");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── GET /jobs/:id/applications  (admin only) ─────────────────────────────────
 router.get("/:id/applications", requireAuth, async (req, res) => {
   const jobId = Number(req.params.id);
@@ -523,6 +598,9 @@ router.get("/:id/applications", requireAuth, async (req, res) => {
         industry: jobApplicationsTable.industry,
         status: jobApplicationsTable.status,
         keScore: jobApplicationsTable.keScore,
+        customScore: jobApplicationsTable.customScore,
+        customCorrectCount: jobApplicationsTable.customCorrectCount,
+        customTotalCount: jobApplicationsTable.customTotalCount,
         createdAt: jobApplicationsTable.createdAt,
         firstName: applicantsTable.firstName,
         lastName: applicantsTable.lastName,
@@ -534,6 +612,107 @@ router.get("/:id/applications", requireAuth, async (req, res) => {
     res.json(applications.map(a => ({ ...a, createdAt: a.createdAt.toISOString() })));
   } catch (err) {
     req.log.error({ err }, "Failed to list job applications");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── GET /jobs/:id/custom-assessment  (applicant view — correctAnswers stripped) ──
+router.get("/:id/custom-assessment", async (req, res) => {
+  const jobId = Number(req.params.id);
+  if (!Number.isInteger(jobId) || jobId < 1) { res.status(400).json({ error: "Invalid ID" }); return; }
+  try {
+    const [job] = await db.select({
+      id: jobsTable.id, title: jobsTable.title, company: jobsTable.company,
+      customQuestions: jobsTable.customQuestions,
+    }).from(jobsTable).where(eq(jobsTable.id, jobId)).limit(1);
+    if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+    const sanitized = (job.customQuestions ?? []).map(q => ({
+      id: q.id, text: q.text, type: q.type, options: q.options ?? [], points: q.points ?? 1,
+    }));
+    res.json({ jobId: job.id, jobTitle: job.title, company: job.company, questions: sanitized });
+  } catch (err) {
+    req.log.error({ err }, "Failed to load custom assessment");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── POST /jobs/:id/custom-assessment/submit  (applicant JWT, auto-grades) ────
+router.post("/:id/custom-assessment/submit", requireAuth, async (req, res) => {
+  const jobId = Number(req.params.id);
+  if (!Number.isInteger(jobId) || jobId < 1) { res.status(400).json({ error: "Invalid ID" }); return; }
+  const callerEmail: string = ((req as any).user?.email ?? "").toLowerCase();
+  try {
+    const [applicant] = await db.select({ id: applicantsTable.id })
+      .from(applicantsTable).where(eq(applicantsTable.email, callerEmail)).limit(1);
+    // Note: applicant profile is optional — submission still grades and returns the score,
+    // but only persists to job_applications if an applicant profile exists.
+
+    const [job] = await db.select({
+      customQuestions: jobsTable.customQuestions,
+      title: jobsTable.title,
+      company: jobsTable.company,
+      industry: jobsTable.industry,
+    }).from(jobsTable).where(eq(jobsTable.id, jobId)).limit(1);
+    if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+
+    const questions = job.customQuestions ?? [];
+    if (questions.length === 0) {
+      res.status(400).json({ error: "This job has no custom assessment." });
+      return;
+    }
+
+    const submittedAnswers = (req.body?.answers ?? {}) as Record<string, string>;
+    const graded = questions.map(q => {
+      const raw = String(submittedAnswers[q.id] ?? "").trim();
+      const accepted = (q.correctAnswers ?? []).map(s => String(s).trim().toLowerCase()).filter(Boolean);
+      const given = raw.toLowerCase();
+      const correct = !!given && accepted.includes(given);
+      return { questionId: q.id, answer: raw, correct };
+    });
+    const correctCount = graded.filter(g => g.correct).length;
+    const totalCount = questions.length;
+    const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
+    if (applicant) {
+      await db.insert(jobApplicationsTable).values({
+        applicantId: applicant.id,
+        jobId,
+        jobTitle: job.title,
+        company: job.company,
+        industry: job.industry,
+        status: "assessed",
+        customScore: score,
+        customCorrectCount: correctCount,
+        customTotalCount: totalCount,
+        customAnswers: graded,
+      }).onConflictDoUpdate({
+        target: [jobApplicationsTable.applicantId, jobApplicationsTable.jobId],
+        set: {
+          status: "assessed",
+          customScore: score,
+          customCorrectCount: correctCount,
+          customTotalCount: totalCount,
+          customAnswers: graded,
+        },
+      });
+    }
+
+    res.json({
+      score, correctCount, totalCount,
+      breakdown: graded.map(g => {
+        const q = questions.find(qq => qq.id === g.questionId);
+        return {
+          questionId: g.questionId,
+          questionText: q?.text ?? "",
+          type: q?.type ?? "text",
+          yourAnswer: g.answer,
+          correctAnswers: q?.correctAnswers ?? [],
+          correct: g.correct,
+        };
+      }),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to submit custom assessment");
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -551,7 +730,7 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({ error: "Job not found" });
       return;
     }
-    res.json({ ...job, createdAt: job.createdAt.toISOString() });
+    res.json(stripJobAnswerKeys({ ...job, createdAt: job.createdAt.toISOString() }));
   } catch (err) {
     req.log.error({ err }, "Failed to get job");
     res.status(500).json({ error: "Internal server error" });

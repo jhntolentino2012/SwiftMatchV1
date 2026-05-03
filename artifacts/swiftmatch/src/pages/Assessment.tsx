@@ -215,6 +215,18 @@ export default function AssessmentCenter() {
               await fetchResults();
               setShowKEQuiz(false);
               toast({ title: "Knowledge quiz complete!", description: `You scored ${score}%. Results saved to your profile.` });
+              // If this came from a job application, check for a recruiter custom assessment
+              if (jobContext?.jobId) {
+                try {
+                  const r = await fetch(`${BASE_URL}/api/jobs/${jobContext.jobId}/custom-assessment`);
+                  if (r.ok) {
+                    const payload = await r.json();
+                    if (Array.isArray(payload.questions) && payload.questions.length > 0) {
+                      window.location.href = `${BASE_URL}/custom-assessment?jobId=${jobContext.jobId}`;
+                    }
+                  }
+                } catch { /* silent */ }
+              }
             }}
             onBack={() => setShowKEQuiz(false)}
           />

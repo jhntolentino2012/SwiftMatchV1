@@ -8,6 +8,7 @@ import ApplicationFlow from "./pages/ApplicationFlow";
 import ApplicantDashboard from "./pages/Dashboard";
 import EmployerPortal from "./pages/EmployerPortal";
 import AssessmentCenter from "./pages/Assessment";
+import CustomAssessment from "./pages/CustomAssessment";
 import ResultsPage from "./pages/Results";
 import JobsPage from "./pages/Jobs";
 import SignUp from "./pages/SignUp";
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/employer" component={EmployerPortal} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/assessment" component={AssessmentCenter} />
+      <Route path="/custom-assessment" component={CustomAssessment} />
       <Route path="/results" component={ResultsPage} />
       <Route path="/signup" component={SignUp} />
       <Route path="/signin" component={SignIn} />

@@ -46,6 +46,18 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Random questions per applicant: `pickQuiz` shuffle in backend already randomizes 10 questions (3 easy, 4 medium, 3 hard) per session
 - Retake cooldown: 1-month cooldown enforced in `ke-quiz/submit`; bypassed for owner email
 
+### Recruiter Custom Assessment (per-job)
+- `jobs.custom_questions` JSONB; each `CustomQuestion` = `{ id, prompt, type: "multiple_choice" | "text", options?, correctAnswers[] }`
+- `job_applications` extra columns: `custom_score`, `custom_correct_count`, `custom_total_count`, `custom_answers` JSONB
+- Recruiter UI: `Jobs.tsx` editor — orange-bordered question builder, MC checkbox toggle for correct option, text type with `|`-separated accepted answers. All mutators use functional `setState` to avoid stale-closure drops on rapid clicks.
+- `canEditJob` = admin OR employer-owner.
+- `POST/PUT /api/jobs[/id]` accept `customQuestions`; `sanitizeCustomQuestions` validates structure + types.
+- **Public reads sanitized**: `GET /api/jobs` and `GET /api/jobs/:id` strip `correctAnswers` from every question via `stripJobAnswerKeys`. Recruiter editor reloads its full answer keys via the authenticated PUT round-trip when needed (the editor sees only the current draft it constructs).
+- `GET /api/jobs/:id/custom-assessment` (no auth) returns sanitized questions for applicant view.
+- `POST /api/jobs/:id/custom-assessment/submit` (auth): grades case-insensitive trimmed equality (MC = correctAnswers[0]; text = any of `|`-separated accepted answers). Always returns `{ score, correctCount, totalCount, breakdown[] }`. Persists via atomic `INSERT ... ON CONFLICT (applicant_id, job_id) DO UPDATE` only when an applicant profile exists for the JWT email; otherwise grades and returns score without persisting.
+- `GET /api/jobs/applications/me` returns the caller's own job_applications rows including custom score fields.
+- Frontend pages: `CustomAssessment.tsx` (quiz + result breakdown view), `Assessment.tsx` redirects to `/custom-assessment?jobId=X` after K&E if job has custom questions, `Results.tsx` renders `<MyJobApplications />` listing per-job K&E + Custom badges.
+
 ### Employer Interface
 - Placeholder page (coming soon)
 

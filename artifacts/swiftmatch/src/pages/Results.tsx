@@ -1646,6 +1646,84 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
 /* ══════════════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════════════ */
+type ApplicationRow = {
+  id: number;
+  jobId: number;
+  jobTitle: string;
+  company: string;
+  industry: string;
+  status: string;
+  keScore: number | null;
+  customScore: number | null;
+  customCorrectCount: number | null;
+  customTotalCount: number | null;
+  createdAt: string;
+};
+
+function MyJobApplications() {
+  const [apps, setApps] = useState<ApplicationRow[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("sm_auth_token");
+    if (!token) { setLoading(false); return; }
+    fetch(`${BASE_URL}/api/jobs/applications/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : []))
+      .then((data: ApplicationRow[]) => setApps(Array.isArray(data) ? data : []))
+      .catch(() => setApps([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || !apps || apps.length === 0) return null;
+
+  return (
+    <section className="mt-8 bg-white rounded-2xl border border-slate-200 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Briefcase className="w-5 h-5 text-primary" />
+        <h2 className="font-display text-lg font-bold text-primary">My Job Applications</h2>
+      </div>
+      <p className="text-xs text-slate-500 mb-4">
+        Your scores per job, including any recruiter-specific custom assessments.
+      </p>
+      <div className="space-y-3">
+        {apps.map(a => (
+          <div key={a.id} className="border border-slate-200 rounded-xl p-4 flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-slate-900 truncate">{a.jobTitle}</div>
+              <div className="text-xs text-slate-500 truncate">{a.company} • {a.industry}</div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {a.keScore !== null && (
+                <div className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold">
+                  K&E {a.keScore}%
+                </div>
+              )}
+              {a.customScore !== null ? (
+                <div className="px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-xs font-semibold flex items-center gap-1.5">
+                  <ClipboardList className="w-3 h-3" />
+                  Custom {a.customScore}%
+                  {a.customCorrectCount !== null && a.customTotalCount !== null && (
+                    <span className="text-accent/70 font-normal">
+                      ({a.customCorrectCount}/{a.customTotalCount})
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <Link href={`/custom-assessment?jobId=${a.jobId}`}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">
+                  Take custom assessment
+                </Link>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function ResultsPage() {
   const [audience, setAudience] = useState<Audience>("applicant");
   const { user } = useAuth();
@@ -1760,13 +1838,16 @@ export default function ResultsPage() {
             Loading your report…
           </div>
         ) : audience === "applicant"
-          ? <ApplicantReport
-              locked={!isPremium}
-              applicant={profileData}
-              scores={profileScores ?? undefined}
-              hasProfile={hasProfile}
-              hasResults={hasResults}
-            />
+          ? <>
+              <ApplicantReport
+                locked={!isPremium}
+                applicant={profileData}
+                scores={profileScores ?? undefined}
+                hasProfile={hasProfile}
+                hasResults={hasResults}
+              />
+              <MyJobApplications />
+            </>
           : <EmployerReport locked={!isPremium} isPremium={isPremium} />
         }
 
