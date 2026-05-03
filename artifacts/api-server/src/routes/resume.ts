@@ -480,6 +480,7 @@ router.get("/view/:token", async (req, res) => {
       availabilityDate: applicant.availabilityDate ?? null,
       cvText: applicant.cvText,
       cvFileName: applicant.cvFileName ?? null,
+      cvFileMime: applicant.cvFileMime ?? null,
       hasOriginal: !!(applicant.cvFileBase64 && applicant.cvFileMime),
     });
   } catch (err: any) {
@@ -517,8 +518,12 @@ router.get("/original/:token", async (req, res) => {
       ? applicant.cvFileName.replace(/[^a-zA-Z0-9._\- ]/g, "_")
       : `${applicant.firstName}_${applicant.lastName}_CV`;
 
+    const inline = req.query.inline === "true";
     res.setHeader("Content-Type", applicant.cvFileMime);
-    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
+    res.setHeader(
+      "Content-Disposition",
+      `${inline ? "inline" : "attachment"}; filename="${safeFilename}"`
+    );
     res.setHeader("Content-Length", buffer.length);
     res.setHeader("Cache-Control", "private, max-age=3600");
     res.send(buffer);

@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useParams } from "wouter";
 import {
   FileText, Briefcase, MapPin, GraduationCap, CheckCircle, Clock,
-  Loader2, AlertCircle, Download, ExternalLink, Copy, Check,
+  Loader2, AlertCircle, Download, ExternalLink, Copy, Check, FileIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ type CvData = {
   availabilityDate: string | null;
   cvText: string;
   cvFileName: string | null;
+  cvFileMime: string | null;
   hasOriginal: boolean;
 };
 
@@ -40,12 +41,22 @@ export default function CvViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"pdf" | "text">("pdf");
+
+  const isPdf = !!(data?.hasOriginal && data?.cvFileMime === "application/pdf");
 
   useEffect(() => {
     if (!token) { setError("Invalid link."); setLoading(false); return; }
     fetch(`${BASE}/api/resume/view/${token}`)
       .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(d.error || "Not found")))
-      .then(d => setData(d))
+      .then(d => {
+        setData(d);
+        if (d.hasOriginal && d.cvFileMime === "application/pdf") {
+          setActiveTab("pdf");
+        } else {
+          setActiveTab("text");
+        }
+      })
       .catch(err => setError(typeof err === "string" ? err : "CV not found or link has expired."))
       .finally(() => setLoading(false));
   }, [token]);
@@ -191,26 +202,65 @@ export default function CvViewPage() {
               </div>
             </div>
 
-            {/* CV Text card */}
+            {/* CV card */}
             <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <h2 className="font-display font-bold text-sm text-primary flex items-center gap-2 uppercase tracking-wide">
-                  <FileText className="w-4 h-4 text-accent" /> CV / Resume
-                </h2>
-                <div className="flex items-center gap-3">
-                  {data.cvFileName && (
-                    <span className="text-xs text-slate-400 hidden sm:block">{data.cvFileName}</span>
+              {/* Card header with tabs */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 gap-3">
+                <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                  {isPdf && (
+                    <button
+                      onClick={() => setActiveTab("pdf")}
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md transition-all",
+                        activeTab === "pdf"
+                          ? "bg-white text-primary shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      )}
+                    >
+                      <FileIcon className="w-3.5 h-3.5" /> PDF View
+                    </button>
                   )}
-                  <span className="text-xs text-slate-400">
-                    {data.cvText.length.toLocaleString()} chars extracted
+                  <button
+                    onClick={() => setActiveTab("text")}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md transition-all",
+                      activeTab === "text"
+                        ? "bg-white text-primary shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    )}
+                  >
+                    <FileText className="w-3.5 h-3.5" /> Text View
+                  </button>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  {data.cvFileName && (
+                    <span className="text-xs text-slate-400 hidden sm:block truncate max-w-[160px]">{data.cvFileName}</span>
+                  )}
+                  <span className="text-xs text-slate-400 whitespace-nowrap">
+                    {data.cvText.length.toLocaleString()} chars
                   </span>
                 </div>
               </div>
-              <div className="p-6">
-                <pre className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed font-sans">
-                  {data.cvText}
-                </pre>
-              </div>
+
+              {/* PDF embed */}
+              {activeTab === "pdf" && isPdf && token && (
+                <div className="w-full" style={{ height: "780px" }}>
+                  <iframe
+                    src={`${BASE}/api/resume/original/${token}?inline=true`}
+                    title="CV PDF"
+                    className="w-full h-full border-0"
+                  />
+                </div>
+              )}
+
+              {/* Text view */}
+              {activeTab === "text" && (
+                <div className="p-6">
+                  <pre className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed font-sans">
+                    {data.cvText}
+                  </pre>
+                </div>
+              )}
             </div>
 
             {/* Footer CTA */}
