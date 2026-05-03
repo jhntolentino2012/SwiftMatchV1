@@ -752,19 +752,17 @@ export default function ProfilePage() {
                 <div className="lg:col-span-2 space-y-5">
 
                   <SectionCard title="Career Preferences" icon={Settings}>
-                    <div className="grid sm:grid-cols-2">
-                      <InfoRow label="Target Industry" value={profile.targetIndustry} />
-                      <InfoRow label="Target Role" value={profile.targetRole} />
-                      <InfoRow label="Career Level" value={profile.careerLevel} />
-                      <InfoRow
-                        label="Expected Salary"
-                        value={
-                          profile.expectedSalary
-                            ? `${profile.expectedSalary}${profile.salaryNegotiable ? " (negotiable)" : ""}`
-                            : null
-                        }
-                      />
-                    </div>
+                    <InfoRow label="Target Industry" value={profile.targetIndustry} />
+                    <InfoRow label="Target Role" value={profile.targetRole} />
+                    <InfoRow label="Career Level" value={profile.careerLevel} />
+                    <InfoRow
+                      label="Expected Salary"
+                      value={
+                        profile.expectedSalary
+                          ? `${profile.expectedSalary}${profile.salaryNegotiable ? " (negotiable)" : ""}`
+                          : null
+                      }
+                    />
                   </SectionCard>
 
                   {profile.skills.length > 0 && (
