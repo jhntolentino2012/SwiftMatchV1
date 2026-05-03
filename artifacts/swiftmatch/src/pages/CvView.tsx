@@ -18,6 +18,7 @@ type CvData = {
   careerLevel: string | null;
   workSetup: string | null;
   skills: string[];
+  expertise: string[];
   availabilityDate: string | null;
   cvText: string;
   cvFileName: string | null;
@@ -196,6 +197,18 @@ export default function CvViewPage() {
                   {data.skills.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {data.skills.map(s => <SkillBadge key={s} label={s} />)}
+                    </div>
+                  )}
+                  {data.expertise?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Expertise</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {data.expertise.map(e => (
+                          <span key={e} className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-accent/[0.08] text-accent border border-accent/20">
+                            {e}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

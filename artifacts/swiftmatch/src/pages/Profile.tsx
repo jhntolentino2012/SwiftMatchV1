@@ -31,6 +31,7 @@ type ApplicantProfile = {
   email: string;
   phone: string;
   skills: string[];
+  expertise: string[];
   employmentHistory: any[];
   certificates: any[];
   references: any[];
@@ -423,8 +424,9 @@ export default function ProfilePage() {
   const [editingCareerPrefs, setEditingCareerPrefs] = useState(false);
   const [editCareer, setEditCareer] = useState({
     targetIndustry: "", targetRole: "", careerLevel: [] as string[],
-    workSetup: [] as string[], expectedSalary: "", salaryNegotiable: true,
+    expertise: [] as string[], workSetup: [] as string[], expectedSalary: "", salaryNegotiable: true,
   });
+  const [expertiseInput, setExpertiseInput] = useState("");
   const [careerPrefsSaving, setCareerPrefsSaving] = useState(false);
 
   const CAREER_LEVEL_LABELS = [
@@ -456,12 +458,14 @@ export default function ProfilePage() {
       careerLevel: profile?.careerLevel
         ? profile.careerLevel.split(", ").map(s => normalizeCareerLevel(s.trim())).filter(s => CAREER_LEVEL_LABELS.includes(s))
         : [],
+      expertise: profile?.expertise ?? [],
       workSetup: profile?.workSetup
         ? profile.workSetup.split(", ").map(s => s.trim()).filter(Boolean)
         : [],
       expectedSalary: profile?.expectedSalary ?? "",
       salaryNegotiable: profile?.salaryNegotiable ?? true,
     });
+    setExpertiseInput("");
     setEditingCareerPrefs(true);
   }
 
@@ -477,6 +481,7 @@ export default function ProfilePage() {
           targetIndustry: editCareer.targetIndustry || null,
           targetRole: editCareer.targetRole || null,
           careerLevel: editCareer.careerLevel.length > 0 ? editCareer.careerLevel.join(", ") : null,
+          expertise: editCareer.expertise,
           workSetup: editCareer.workSetup.length > 0 ? editCareer.workSetup.join(", ") : null,
           expectedSalary: editCareer.expectedSalary || null,
           salaryNegotiable: editCareer.salaryNegotiable,
@@ -1035,6 +1040,50 @@ export default function ProfilePage() {
                           </div>
                         </div>
                         <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Expertise</label>
+                          <p className="text-[11px] text-slate-400 mb-2">Add areas of expertise (press Enter or comma to add)</p>
+                          <div className="flex gap-2 mb-2">
+                            <input
+                              value={expertiseInput}
+                              onChange={e => setExpertiseInput(e.target.value)}
+                              onKeyDown={e => {
+                                if ((e.key === "Enter" || e.key === ",") && expertiseInput.trim()) {
+                                  e.preventDefault();
+                                  const tag = expertiseInput.trim().replace(/,+$/, "");
+                                  if (tag && !editCareer.expertise.includes(tag)) {
+                                    setEditCareer(c => ({ ...c, expertise: [...c.expertise, tag] }));
+                                  }
+                                  setExpertiseInput("");
+                                }
+                              }}
+                              placeholder="e.g. Process Improvement, Team Coaching…"
+                              className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            />
+                            <button type="button"
+                              onClick={() => {
+                                const tag = expertiseInput.trim();
+                                if (tag && !editCareer.expertise.includes(tag)) {
+                                  setEditCareer(c => ({ ...c, expertise: [...c.expertise, tag] }));
+                                }
+                                setExpertiseInput("");
+                              }}
+                              className="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap"
+                            >Add</button>
+                          </div>
+                          {editCareer.expertise.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {editCareer.expertise.map((tag, i) => (
+                                <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-accent/[0.08] text-accent text-xs font-semibold rounded-full border border-accent/20">
+                                  {tag}
+                                  <button type="button" onClick={() => setEditCareer(c => ({ ...c, expertise: c.expertise.filter((_, j) => j !== i) }))} className="hover:text-red-500 transition-colors ml-0.5">
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div>
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Work Setup</label>
                           <div className="flex flex-wrap gap-2">
                             {["Onsite","Work from Home","Hybrid"].map(ws => {
@@ -1075,6 +1124,18 @@ export default function ProfilePage() {
                         <InfoRow label="Target Industry" value={profile.targetIndustry} />
                         <InfoRow label="Target Role" value={profile.targetRole} />
                         <InfoRow label="Career Level" value={profile.careerLevel} />
+                        {profile.expertise?.length > 0 && (
+                          <div className="flex flex-col gap-1.5 py-3 border-b border-slate-50 last:border-b-0">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Expertise</span>
+                            <div className="flex flex-wrap gap-1.5 mt-0.5">
+                              {profile.expertise.map((tag, i) => (
+                                <span key={i} className="px-2.5 py-1 bg-accent/[0.08] text-accent text-xs font-semibold rounded-full border border-accent/20">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <InfoRow label="Work Setup" value={profile.workSetup} />
                         <InfoRow label="Expected Salary"
                           value={profile.expectedSalary ? `${profile.expectedSalary}${profile.salaryNegotiable ? " (negotiable)" : ""}` : null} />

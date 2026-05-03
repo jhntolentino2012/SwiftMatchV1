@@ -25,6 +25,7 @@ type Applicant = {
   skills: string[];
   expectedSalary?: string | null;
   availabilityDate: string;
+  expertise: string[];
   cvText?: string | null;
   cvShareToken?: string | null;
   cvFileName?: string | null;
@@ -233,6 +234,20 @@ function CandidateCard({ applicant }: { applicant: Applicant }) {
           {applicant.skills.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {applicant.skills.slice(0, 5).map(s => <SkillBadge key={s} label={s} />)}
+            </div>
+          )}
+          {applicant.expertise?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {applicant.expertise.slice(0, 4).map(e => (
+                <span key={e} className="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-full bg-accent/[0.08] text-accent border border-accent/20">
+                  {e}
+                </span>
+              ))}
+              {applicant.expertise.length > 4 && (
+                <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-500">
+                  +{applicant.expertise.length - 4} more
+                </span>
+              )}
             </div>
           )}
         </div>
