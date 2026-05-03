@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 export interface QuizQuestion {
   id: string;
   difficulty: "easy" | "medium" | "hard";
@@ -904,15 +906,60 @@ export const ROLE_QUESTION_MAP: Record<string, Record<string, string[]>> = {
 };
 
 
-export function pickQuiz(
+/**
+ * Cryptographically unbiased Fisher–Yates shuffle.
+ * Uses node:crypto.randomInt instead of Math.random for uniform distribution
+ * and to avoid the modulo-bias of plain `Math.floor(Math.random() * n)`.
+ */
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = randomInt(0, i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Per-(industry,role) ring buffer of the last N issued question-set hashes.
+ * Used to softly avoid handing out a duplicate set when many applicants take
+ * the quiz close together. Entries expire after 60s.
+ */
+const RECENT_TTL_MS = 60_000;
+const RECENT_MAX_PER_KEY = 20;
+const recentIssued = new Map<string, { hash: string; at: number }[]>();
+
+function setHash(qs: QuizQuestion[]): string {
+  return qs.map(q => q.id).sort().join("|");
+}
+
+function getRecent(key: string): Set<string> {
+  const now = Date.now();
+  const arr = (recentIssued.get(key) ?? []).filter(e => now - e.at < RECENT_TTL_MS);
+  recentIssued.set(key, arr);
+  return new Set(arr.map(e => e.hash));
+}
+
+function rememberIssued(key: string, hash: string): void {
+  const arr = recentIssued.get(key) ?? [];
+  arr.push({ hash, at: Date.now() });
+  while (arr.length > RECENT_MAX_PER_KEY) arr.shift();
+  recentIssued.set(key, arr);
+}
+
+/** Shuffle answer options so order doesn't reveal the correct answer by position. */
+function shuffleOptions(q: QuizQuestion): QuizQuestion {
+  if (q.type !== "multiple_choice" || !q.options || q.options.length < 2) return q;
+  return { ...q, options: shuffle([...q.options]) };
+}
+
+function pickInternal(
   industry: string,
-  excludeIds: string[] = [],
-  role?: string,
+  excludeIds: string[],
+  role: string | undefined,
 ): QuizQuestion[] {
   const bank = INDUSTRY_QUESTIONS[industry] ?? tech;
   const excluded = new Set(excludeIds);
 
-  // Build set of role-priority question IDs
   const roleIds: Set<string> = role
     ? new Set((ROLE_QUESTION_MAP[industry] as Record<string, string[]>)?.[role] ?? [])
     : new Set();
@@ -923,7 +970,6 @@ export function pickQuiz(
     const source = pool.length >= count ? pool : fallback;
 
     if (roleIds.size > 0) {
-      // Sort: role-priority questions first, then general
       const prioritised = source.filter(q => roleIds.has(q.id));
       const general     = source.filter(q => !roleIds.has(q.id));
       const combined = [...shuffle([...prioritised]), ...shuffle([...general])];
@@ -942,10 +988,22 @@ export function pickQuiz(
   return shuffle(selected);
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+export function pickQuiz(
+  industry: string,
+  excludeIds: string[] = [],
+  role?: string,
+): QuizQuestion[] {
+  const recentKey = `${industry}::${role ?? "_"}`;
+  const recent = getRecent(recentKey);
+
+  // Try up to 4 times to avoid handing out an identical set issued in the last 60s.
+  let chosen = pickInternal(industry, excludeIds, role);
+  for (let attempt = 0; attempt < 3 && recent.has(setHash(chosen)); attempt++) {
+    chosen = pickInternal(industry, excludeIds, role);
   }
-  return arr;
+
+  rememberIssued(recentKey, setHash(chosen));
+
+  // Shuffle each question's answer options so position doesn't leak the answer.
+  return chosen.map(shuffleOptions);
 }
