@@ -27,6 +27,7 @@ type Applicant = {
   availabilityDate: string;
   cvText?: string | null;
   cvShareToken?: string | null;
+  cvFileName?: string | null;
   status: string;
   createdAt: string;
 };
@@ -48,21 +49,23 @@ function SkillBadge({ label }: { label: string }) {
   );
 }
 
-function CvPanel({ applicantId, name }: { applicantId: number; name: string }) {
-  const [cvText, setCvText] = useState<string | null | "loading" | "error">("loading");
+type CvPanelData = { cvText: string | null; cvFileName: string | null; };
+
+function CvPanel({ applicantId, name, cvShareToken }: { applicantId: number; name: string; cvShareToken?: string | null }) {
+  const [state, setState] = useState<CvPanelData | "loading" | "error">("loading");
 
   useEffect(() => {
     const token = getToken();
-    if (!token) { setCvText("error"); return; }
+    if (!token) { setState("error"); return; }
     fetch(`${BASE}/api/resume/cv/${applicantId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setCvText(data.cvText ?? null))
-      .catch(() => setCvText("error"));
+      .then(data => setState({ cvText: data.cvText ?? null, cvFileName: data.cvFileName ?? null }))
+      .catch(() => setState("error"));
   }, [applicantId]);
 
-  if (cvText === "loading") {
+  if (state === "loading") {
     return (
       <div className="flex items-center justify-center py-10 gap-2 text-slate-400 text-sm">
         <Loader2 className="w-4 h-4 animate-spin" /> Loading CV…
@@ -70,7 +73,7 @@ function CvPanel({ applicantId, name }: { applicantId: number; name: string }) {
     );
   }
 
-  if (cvText === "error") {
+  if (state === "error") {
     return (
       <div className="flex items-center gap-2 py-6 text-red-500 text-sm">
         <AlertCircle className="w-4 h-4 shrink-0" /> Could not load CV. Please try again.
@@ -78,7 +81,7 @@ function CvPanel({ applicantId, name }: { applicantId: number; name: string }) {
     );
   }
 
-  if (!cvText) {
+  if (!state.cvText) {
     return (
       <div className="flex items-center gap-3 py-6 text-slate-400 text-sm">
         <Clock className="w-4 h-4 shrink-0" /> {name} hasn't uploaded a CV yet.
@@ -86,26 +89,51 @@ function CvPanel({ applicantId, name }: { applicantId: number; name: string }) {
     );
   }
 
+  const { cvText, cvFileName } = state;
+  const ext = cvFileName?.split(".").pop()?.toUpperCase();
+
+  function downloadOriginal() {
+    if (!cvShareToken) return;
+    const a = document.createElement("a");
+    a.href = `${BASE}/api/resume/original/${cvShareToken}`;
+    a.download = cvFileName ?? `${name.replace(/\s+/g, "_")}_CV`;
+    a.click();
+  }
+
+  function downloadTxt() {
+    const blob = new Blob([cvText!], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name.replace(/\s+/g, "_")}_CV.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          {cvText.length.toLocaleString()} characters extracted
+          {cvFileName && <span className="text-slate-500 normal-case font-medium mr-2">{cvFileName}</span>}
+          {cvText.length.toLocaleString()} chars extracted
         </p>
-        <button
-          onClick={() => {
-            const blob = new Blob([cvText], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${name.replace(/\s+/g, "_")}_CV.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
-        >
-          <Download className="w-3.5 h-3.5" /> Download TXT
-        </button>
+        <div className="flex items-center gap-2">
+          {cvShareToken && (
+            <button
+              onClick={downloadOriginal}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white px-2.5 py-1.5 rounded-lg transition-colors"
+              style={{ background: "hsl(214 80% 34%)" }}
+            >
+              <Download className="w-3.5 h-3.5" /> Download {ext ?? "Original"}
+            </button>
+          )}
+          <button
+            onClick={downloadTxt}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-primary border border-slate-200 hover:border-primary/40 rounded-lg px-2.5 py-1.5 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" /> TXT
+          </button>
+        </div>
       </div>
       <pre className="whitespace-pre-wrap text-xs text-slate-700 leading-relaxed font-sans bg-slate-50 border border-slate-100 rounded-xl p-4 max-h-96 overflow-y-auto">
         {cvText}
@@ -216,7 +244,7 @@ function CandidateCard({ applicant }: { applicant: Applicant }) {
           <h4 className="font-display font-bold text-xs text-primary uppercase tracking-wide flex items-center gap-1.5 mb-3">
             <FileText className="w-3.5 h-3.5 text-accent" /> CV / Resume
           </h4>
-          <CvPanel applicantId={applicant.id} name={displayName} />
+          <CvPanel applicantId={applicant.id} name={displayName} cvShareToken={applicant.cvShareToken} />
         </div>
       )}
     </div>

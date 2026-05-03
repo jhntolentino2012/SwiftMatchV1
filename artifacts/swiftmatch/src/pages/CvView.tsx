@@ -20,6 +20,8 @@ type CvData = {
   skills: string[];
   availabilityDate: string | null;
   cvText: string;
+  cvFileName: string | null;
+  hasOriginal: boolean;
 };
 
 function SkillBadge({ label }: { label: string }) {
@@ -57,13 +59,20 @@ export default function CvViewPage() {
 
   function handleDownload() {
     if (!data) return;
-    const blob = new Blob([data.cvText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${data.name.replace(/\s+/g, "_")}_CV.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (data.hasOriginal && token) {
+      const a = document.createElement("a");
+      a.href = `${BASE}/api/resume/original/${token}`;
+      a.download = data.cvFileName ?? `${data.name.replace(/\s+/g, "_")}_CV`;
+      a.click();
+    } else {
+      const blob = new Blob([data.cvText], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${data.name.replace(/\s+/g, "_")}_CV.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   }
 
   const availability = data?.availabilityDate
@@ -97,7 +106,8 @@ export default function CvViewPage() {
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg transition-colors"
                 style={{ background: "hsl(214 80% 34%)" }}
               >
-                <Download className="w-3.5 h-3.5" /> Download
+                <Download className="w-3.5 h-3.5" />
+                {data.hasOriginal ? `Download ${data.cvFileName?.split(".").pop()?.toUpperCase() ?? "Original"}` : "Download TXT"}
               </button>
             </div>
           )}
@@ -187,9 +197,14 @@ export default function CvViewPage() {
                 <h2 className="font-display font-bold text-sm text-primary flex items-center gap-2 uppercase tracking-wide">
                   <FileText className="w-4 h-4 text-accent" /> CV / Resume
                 </h2>
-                <p className="text-xs text-slate-400">
-                  {data.cvText.length.toLocaleString()} characters extracted
-                </p>
+                <div className="flex items-center gap-3">
+                  {data.cvFileName && (
+                    <span className="text-xs text-slate-400 hidden sm:block">{data.cvFileName}</span>
+                  )}
+                  <span className="text-xs text-slate-400">
+                    {data.cvText.length.toLocaleString()} chars extracted
+                  </span>
+                </div>
               </div>
               <div className="p-6">
                 <pre className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed font-sans">

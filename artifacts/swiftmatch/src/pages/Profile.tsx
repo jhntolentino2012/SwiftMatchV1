@@ -45,6 +45,7 @@ type ApplicantProfile = {
   availabilityDate: string;
   headline?: string | null;
   cvText?: string | null;
+  cvFileName?: string | null;
   cvShareToken?: string | null;
   status: string;
   createdAt: string;
@@ -1202,7 +1203,9 @@ export default function ProfilePage() {
                               : <CheckCircle className="w-5 h-5 text-green-600" />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm text-slate-800">CV uploaded and indexed</p>
+                            <p className="font-semibold text-sm text-slate-800">
+                              {profile.cvFileName ?? "CV uploaded and indexed"}
+                            </p>
                             <p className="text-xs text-slate-500 mt-0.5">
                               {profile.cvText.length.toLocaleString()} characters extracted — ready for AI match analysis
                             </p>

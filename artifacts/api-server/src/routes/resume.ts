@@ -196,7 +196,13 @@ router.post("/parse", upload.single("resume"), async (req, res) => {
             .from(applicantsTable).where(eq(applicantsTable.email, user.email)).limit(1);
           const shareToken = existing?.cvShareToken ?? crypto.randomUUID();
           await db.update(applicantsTable)
-            .set({ cvText: rawText.slice(0, 12000), cvShareToken: shareToken })
+            .set({
+              cvText: rawText.slice(0, 12000),
+              cvShareToken: shareToken,
+              cvFileBase64: req.file!.buffer.toString("base64"),
+              cvFileMime: req.file!.mimetype,
+              cvFileName: req.file!.originalname,
+            })
             .where(eq(applicantsTable.email, user.email));
           req.log.info({ userId: payload.userId }, "Stored CV text for applicant");
         }
@@ -246,14 +252,20 @@ router.post("/store-cv", upload.single("resume"), async (req, res) => {
     const shareToken = existing.cvShareToken ?? crypto.randomUUID();
 
     const updated = await db.update(applicantsTable)
-      .set({ cvText: rawText.slice(0, 12000), cvShareToken: shareToken })
+      .set({
+        cvText: rawText.slice(0, 12000),
+        cvShareToken: shareToken,
+        cvFileBase64: req.file.buffer.toString("base64"),
+        cvFileMime: req.file.mimetype,
+        cvFileName: req.file.originalname,
+      })
       .where(eq(applicantsTable.email, user.email))
-      .returning({ id: applicantsTable.id, cvShareToken: applicantsTable.cvShareToken });
+      .returning({ id: applicantsTable.id, cvShareToken: applicantsTable.cvShareToken, cvFileName: applicantsTable.cvFileName });
 
     if (!updated.length) { res.status(404).json({ error: "Applicant profile not found." }); return; }
 
     req.log.info({ applicantId: updated[0].id }, "CV text stored via store-cv");
-    res.json({ success: true, cvShareToken: updated[0].cvShareToken });
+    res.json({ success: true, cvShareToken: updated[0].cvShareToken, cvFileName: updated[0].cvFileName });
   } catch (err: any) {
     req.log.error({ err }, "store-cv error");
     res.status(500).json({ error: err.message || "Failed to store CV." });
@@ -445,6 +457,9 @@ router.get("/view/:token", async (req, res) => {
       skills: applicantsTable.skills,
       availabilityDate: applicantsTable.availabilityDate,
       cvText: applicantsTable.cvText,
+      cvFileName: applicantsTable.cvFileName,
+      cvFileBase64: applicantsTable.cvFileBase64,
+      cvFileMime: applicantsTable.cvFileMime,
       cvShareToken: applicantsTable.cvShareToken,
     }).from(applicantsTable).where(eq(applicantsTable.cvShareToken, token)).limit(1);
 
@@ -464,10 +479,52 @@ router.get("/view/:token", async (req, res) => {
       skills: applicant.skills ?? [],
       availabilityDate: applicant.availabilityDate ?? null,
       cvText: applicant.cvText,
+      cvFileName: applicant.cvFileName ?? null,
+      hasOriginal: !!(applicant.cvFileBase64 && applicant.cvFileMime),
     });
   } catch (err: any) {
     req.log.error({ err }, "CV view error");
     res.status(500).json({ error: "Failed to load CV." });
+  }
+});
+
+/* ══════════════════════════════════════════════════════
+   GET /resume/original/:token
+   Public — streams the original uploaded CV file so
+   both applicants and recruiters can download/view it
+   in the exact format it was uploaded (PDF, Word, etc.).
+══════════════════════════════════════════════════════ */
+router.get("/original/:token", async (req, res) => {
+  const { token } = req.params;
+  if (!token || token.length < 10) { res.status(400).json({ error: "Invalid token." }); return; }
+
+  try {
+    const [applicant] = await db.select({
+      firstName: applicantsTable.firstName,
+      lastName: applicantsTable.lastName,
+      cvFileBase64: applicantsTable.cvFileBase64,
+      cvFileMime: applicantsTable.cvFileMime,
+      cvFileName: applicantsTable.cvFileName,
+    }).from(applicantsTable).where(eq(applicantsTable.cvShareToken, token)).limit(1);
+
+    if (!applicant || !applicant.cvFileBase64 || !applicant.cvFileMime) {
+      res.status(404).json({ error: "Original file not available. Please re-upload your CV." });
+      return;
+    }
+
+    const buffer = Buffer.from(applicant.cvFileBase64, "base64");
+    const safeFilename = applicant.cvFileName
+      ? applicant.cvFileName.replace(/[^a-zA-Z0-9._\- ]/g, "_")
+      : `${applicant.firstName}_${applicant.lastName}_CV`;
+
+    res.setHeader("Content-Type", applicant.cvFileMime);
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
+    res.setHeader("Content-Length", buffer.length);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(buffer);
+  } catch (err: any) {
+    req.log.error({ err }, "Original CV download error");
+    res.status(500).json({ error: "Failed to download file." });
   }
 });
 
@@ -495,6 +552,7 @@ router.get("/cv/:applicantId", async (req, res) => {
       email: applicantsTable.email,
       headline: applicantsTable.headline,
       cvText: applicantsTable.cvText,
+      cvFileName: applicantsTable.cvFileName,
     }).from(applicantsTable).where(eq(applicantsTable.id, applicantId)).limit(1);
 
     if (!applicant) { res.status(404).json({ error: "Applicant not found." }); return; }
@@ -504,6 +562,7 @@ router.get("/cv/:applicantId", async (req, res) => {
       name: `${applicant.firstName} ${applicant.lastName}`,
       headline: applicant.headline ?? null,
       cvText: applicant.cvText ?? null,
+      cvFileName: applicant.cvFileName ?? null,
     });
   } catch (err: any) {
     req.log.error({ err }, "CV fetch error");
