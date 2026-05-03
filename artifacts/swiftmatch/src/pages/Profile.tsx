@@ -13,23 +13,6 @@ import { cn } from "@/lib/utils";
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 const EMPLOYER_PROFILE_KEY = "sm_employer_profile";
 
-const PREF_INDUSTRIES = [
-  "Technology / IT","BPO / Call Center","Healthcare / Medical","Finance / Banking",
-  "Marketing / Advertising","Real Estate & Construction","Manufacturing & Engineering",
-  "Retail & E-commerce","Education & Training","Hospitality & Tourism","Food & Beverage",
-  "Creative Arts & Design","Logistics & Transportation","Telecommunications",
-  "Media & Entertainment","Human Resources","Government & Public Sector",
-  "Agriculture & Environment","Legal & Compliance","Architecture & Urban Planning",
-];
-
-const CAREER_LEVELS = [
-  "Entry Level / Fresh Graduate",
-  "Associate / Junior Professional",
-  "Senior / Experienced Specialist",
-  "Team Leader / Supervisor",
-  "Manager / Department Head",
-  "Director / Executive / C-Suite",
-];
 
 type ApplicantProfile = {
   id: number;
@@ -428,14 +411,14 @@ export default function ProfilePage() {
                     {/* Industry */}
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Industry</label>
-                      <select
+                      <input
+                        type="text"
                         value={editIndustry}
                         onChange={e => setEditIndustry(e.target.value)}
+                        placeholder="e.g. BPO / Call Center"
                         className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      >
-                        <option value="">— None —</option>
-                        {PREF_INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
-                      </select>
+                        onKeyDown={e => { if (e.key === "Escape") setEditingTags(false); }}
+                      />
                     </div>
                     {/* Role */}
                     <div>
@@ -452,14 +435,14 @@ export default function ProfilePage() {
                     {/* Career level */}
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Career Level</label>
-                      <select
+                      <input
+                        type="text"
                         value={editLevel}
                         onChange={e => setEditLevel(e.target.value)}
+                        placeholder="e.g. Senior / Experienced"
                         className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      >
-                        <option value="">— None —</option>
-                        {CAREER_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                      </select>
+                        onKeyDown={e => { if (e.key === "Escape") setEditingTags(false); }}
+                      />
                     </div>
                   </div>
                   <div className="flex items-center gap-2 pt-1">
