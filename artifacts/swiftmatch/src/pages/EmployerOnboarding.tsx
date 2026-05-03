@@ -4,6 +4,7 @@ import { Navigation } from "@/components/Navigation";
 import {
   Building2, User, Briefcase, Check, ChevronRight, ChevronLeft,
   Loader2, Plus, X, Eye, EyeOff, Pencil, MapPin, Banknote, CheckCircle2,
+  ClipboardList, Lock, Crown, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BulletTextarea } from "@/components/BulletTextarea";
@@ -25,9 +26,10 @@ const COMPANY_SIZES = [
 ];
 
 const STEPS = [
-  { label: "Company",  icon: Building2 },
-  { label: "Contact",  icon: User },
-  { label: "Job Post", icon: Briefcase },
+  { label: "Company",       icon: Building2,     premium: false },
+  { label: "Contact",       icon: User,          premium: false },
+  { label: "Job Post",      icon: Briefcase,     premium: false },
+  { label: "Custom Quiz",   icon: ClipboardList, premium: true  },
 ];
 
 function FieldGroup({
@@ -217,22 +219,34 @@ export default function EmployerOnboarding() {
             const active = step === i;
             return (
               <div key={i} className="flex items-center">
-                <div className="flex flex-col items-center gap-1.5 w-24">
+                <div className="flex flex-col items-center gap-1.5 w-24 relative">
                   <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
-                    isDone ? "bg-primary border-primary" : active ? "bg-white border-primary" : "bg-white border-slate-200"
+                    "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all relative",
+                    s.premium
+                      ? "bg-white border-dashed border-accent/40"
+                      : isDone ? "bg-primary border-primary" : active ? "bg-white border-primary" : "bg-white border-slate-200"
                   )}>
-                    {isDone
+                    {isDone && !s.premium
                       ? <Check className="w-4 h-4 text-white" />
-                      : <Icon className={cn("w-4 h-4", active ? "text-primary" : "text-slate-300")} />}
+                      : <Icon className={cn("w-4 h-4",
+                          s.premium ? "text-accent/60" : active ? "text-primary" : "text-slate-300")} />}
+                    {s.premium && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-accent text-white rounded-full w-4 h-4 flex items-center justify-center">
+                        <Lock className="w-2.5 h-2.5" />
+                      </span>
+                    )}
                   </div>
                   <span className={cn("text-[11px] font-semibold",
+                    s.premium ? "text-accent/70" :
                     active ? "text-primary" : isDone ? "text-primary/70" : "text-slate-300")}>
                     {s.label}
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={cn("h-0.5 w-12 mb-5 transition-all", step > i ? "bg-primary" : "bg-slate-200")} />
+                  <div className={cn("h-0.5 w-12 mb-5 transition-all",
+                    STEPS[i + 1]?.premium
+                      ? "bg-gradient-to-r from-slate-200 to-accent/20"
+                      : step > i ? "bg-primary" : "bg-slate-200")} />
                 )}
               </div>
             );
@@ -590,6 +604,81 @@ export default function EmployerOnboarding() {
             </div>
           )}
 
+          {/* ──── Step 3: Custom Assessment (Premium — locked) ──── */}
+          {step === 3 && (
+            <div className="space-y-6">
+              <SectionLabel
+                icon={ClipboardList}
+                title="Custom Assessment (Optional)"
+                sub="Add recruiter-set questions applicants answer right after the K&E quiz."
+              />
+
+              <div className="relative rounded-2xl border-2 border-dashed border-accent/30 bg-gradient-to-br from-accent/5 via-white to-primary/5 p-6 sm:p-8 overflow-hidden">
+                <div className="absolute top-4 right-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-white text-[11px] font-extrabold uppercase tracking-wider shadow-md">
+                  <Crown className="w-3 h-3" /> Premium
+                </div>
+
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                    <Lock className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-bold text-primary text-lg mb-1">
+                      Build a custom quiz for this role
+                    </h4>
+                    <p className="text-sm text-slate-500 leading-relaxed">
+                      Filter applicants automatically with role-specific questions you write yourself. Each candidate's score is shown alongside their K&amp;E results.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Feature list */}
+                <ul className="grid sm:grid-cols-2 gap-2.5 mb-6 text-sm">
+                  {[
+                    "Multiple choice & short answer questions",
+                    "Set accepted answers and points per question",
+                    "Auto-graded with the K&E assessment",
+                    "Filter & rank applicants by quiz score",
+                  ].map(f => (
+                    <li key={f} className="flex items-start gap-2 text-slate-600">
+                      <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Disabled preview field */}
+                <div className="bg-white/70 border border-slate-200 rounded-xl p-4 mb-5 select-none pointer-events-none opacity-60">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Sample Question 1</span>
+                    <span className="text-[10px] text-slate-400">Multiple choice · 1pt</span>
+                  </div>
+                  <div className="h-9 rounded-lg bg-slate-100 mb-2" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="h-7 rounded-md bg-slate-100" />
+                    <div className="h-7 rounded-md bg-slate-100" />
+                    <div className="h-7 rounded-md bg-slate-100" />
+                    <div className="h-7 rounded-md bg-slate-100" />
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <button
+                  type="button"
+                  disabled
+                  title="Available with the Premium plan"
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent/30 text-white font-bold rounded-xl cursor-not-allowed text-sm"
+                >
+                  <Sparkles className="w-4 h-4" /> Upgrade to Premium to unlock
+                </button>
+
+                <p className="text-[11px] text-center text-slate-400 mt-3">
+                  You can post this job now and add a custom assessment later once you upgrade.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* ── Navigation ── */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">
             <button
@@ -600,13 +689,17 @@ export default function EmployerOnboarding() {
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
 
-            {step < 2 ? (
+            {step < 3 ? (
               <button
                 onClick={() => setStep(s => s + 1)}
-                disabled={step === 0 ? !step0Valid() : !step1Valid()}
+                disabled={
+                  step === 0 ? !step0Valid()
+                  : step === 1 ? !step1Valid()
+                  : !step2Valid()
+                }
                 className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-40 transition-all"
               >
-                Continue <ChevronRight className="w-4 h-4" />
+                {step === 2 ? <>Next: Custom Quiz <ChevronRight className="w-4 h-4" /></> : <>Continue <ChevronRight className="w-4 h-4" /></>}
               </button>
             ) : (
               <button
