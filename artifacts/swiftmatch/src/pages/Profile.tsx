@@ -1124,18 +1124,25 @@ export default function ProfilePage() {
                         <InfoRow label="Target Industry" value={profile.targetIndustry} />
                         <InfoRow label="Target Role" value={profile.targetRole} />
                         <InfoRow label="Career Level" value={profile.careerLevel} />
-                        {profile.expertise?.length > 0 && (
-                          <div className="flex flex-col gap-1.5 py-3 border-b border-slate-50 last:border-b-0">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Expertise</span>
-                            <div className="flex flex-wrap gap-1.5 mt-0.5">
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-slate-100 last:border-0">
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider sm:w-36 shrink-0 pt-0.5">Expertise</span>
+                          {profile.expertise?.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
                               {profile.expertise.map((tag, i) => (
                                 <span key={i} className="px-2.5 py-1 bg-accent/[0.08] text-accent text-xs font-semibold rounded-full border border-accent/20">
                                   {tag}
                                 </span>
                               ))}
                             </div>
-                          </div>
-                        )}
+                          ) : (
+                            <button
+                              onClick={startEditCareerPrefs}
+                              className="text-xs text-primary/60 hover:text-primary transition-colors flex items-center gap-1 font-medium"
+                            >
+                              + Add expertise
+                            </button>
+                          )}
+                        </div>
                         <InfoRow label="Work Setup" value={profile.workSetup} />
                         <InfoRow label="Expected Salary"
                           value={profile.expectedSalary ? `${profile.expectedSalary}${profile.salaryNegotiable ? " (negotiable)" : ""}` : null} />
