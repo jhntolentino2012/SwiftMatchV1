@@ -185,7 +185,7 @@ const realestate: QuizQuestion[] = [
 
 /* ─── MANUFACTURING & ENGINEERING ─── */
 const manufacturing: QuizQuestion[] = [
-  q("mfg_e01","easy","multiple_choice","What does 'OEE' stand for in manufacturing?",["Overall Equipment Efficiency","Operational Engine Effectiveness","Output Evaluation Engine","Overall Engineering Excellence"]),
+  q("mfg_e01","easy","multiple_choice","What does 'OEE' stand for in manufacturing?",["Overall Equipment Effectiveness","Operational Engine Efficiency","Output Evaluation Engine","Overall Engineering Excellence"]),
   q("mfg_e02","easy","multiple_choice","What is the purpose of a P&ID drawing?",["Show the exterior design of a plant","Illustrate piping, instrumentation, and process flow relationships","Outline the HR structure of a facility","Detail the electrical wiring layout"]),
   q("mfg_e03","easy","multiple_choice","What does '5S' methodology stand for?",["Sort, Set, Shine, Standardise, Sustain","Safety, Speed, Skill, Specification, System","Sort, Scan, Sequence, Schedule, Submit","Scale, Survey, Standardise, Secure, Sustain"]),
   q("mfg_e04","easy","multiple_choice","What is the function of a PLC in an automated manufacturing line?",["Power supply unit for heavy equipment","Programmable Logic Controller — controls automated processes","Pressure and Load Calibrator","Production Lifecycle Counter"]),
@@ -989,22 +989,131 @@ function pickInternal(
 }
 
 /**
+ * Authoritative answer key. Maps a question id to the index of the correct
+ * option in the SOURCE bank (pre-shuffle). Free-text questions have no entry
+ * here — they are not auto-graded and earn the difficulty weight on any
+ * non-empty response (subject to future manual / AI review).
+ *
+ * Berlitz questions with empty `options` ("","") are scenario prompts that
+ * applicants answer narratively; treat them as free-text.
+ */
+const ANSWER_KEY: Record<string, number> = {
+  /* TECHNOLOGY / IT */
+  tech_e01: 1, tech_e02: 1, tech_e03: 1, tech_e04: 3, tech_e05: 0, tech_e06: 2,
+  tech_m01: 2, tech_m03: 2, tech_m04: 0, tech_m05: 2, tech_m07: 1, tech_m08: 1,
+  tech_h02: 1, tech_h03: 1, tech_h05: 1, tech_h06: 1,
+
+  /* BPO / CALL CENTER */
+  bpo_e01: 0, bpo_e02: 1, bpo_e03: 1, bpo_e04: 0, bpo_e05: 1, bpo_e06: 0,
+  bpo_m01: 1, bpo_m02: 1, bpo_m04: 2, bpo_m06: 2, bpo_m07: 1, bpo_m08: 1,
+  bpo_h03: 1, bpo_h05: 1, bpo_h06: 1,
+  bpo_om_e01: 0, bpo_om_e02: 2, bpo_om_m01: 1, bpo_om_m02: 1, bpo_om_h01: 1,
+
+  /* HEALTHCARE / MEDICAL */
+  hc_e01: 1, hc_e02: 2, hc_e03: 1, hc_e04: 2, hc_e05: 1, hc_e06: 2,
+  hc_m01: 1, hc_m02: 1, hc_m04: 2, hc_m06: 2, hc_m07: 1, hc_m08: 1,
+  hc_h02: 1, hc_h03: 2, hc_h05: 1, hc_h06: 1,
+
+  /* FINANCE / BANKING */
+  fin_e01: 1, fin_e02: 2, fin_e03: 1, fin_e04: 1, fin_e05: 2, fin_e06: 1,
+  fin_m01: 1, fin_m03: 1, fin_m04: 1, fin_m06: 1, fin_m07: 1, fin_m08: 2,
+  fin_h03: 1, fin_h05: 1, fin_h06: 1,
+
+  /* MARKETING / ADVERTISING */
+  mkt_e01: 0, mkt_e02: 1, mkt_e03: 3, mkt_e04: 1, mkt_e05: 1, mkt_e06: 2,
+  mkt_m01: 0, mkt_m03: 1, mkt_m04: 2, mkt_m06: 1, mkt_m07: 1, mkt_m08: 1,
+  mkt_h03: 1, mkt_h05: 1, mkt_h06: 1,
+
+  /* REAL ESTATE & CONSTRUCTION */
+  re_e01: 1, re_e02: 1, re_e03: 1, re_e04: 0, re_e05: 1, re_e06: 1,
+  re_m02: 1, re_m03: 1, re_m04: 1, re_m06: 1, re_m07: 0, re_m08: 1,
+  re_h02: 1, re_h03: 1, re_h05: 2, re_h06: 1,
+
+  /* MANUFACTURING & ENGINEERING */
+  mfg_e01: 0, mfg_e02: 1, mfg_e03: 0, mfg_e04: 1, mfg_e05: 1, mfg_e06: 1,
+  mfg_m01: 0, mfg_m03: 1, mfg_m04: 1, mfg_m06: 1, mfg_m07: 1, mfg_m08: 1,
+  mfg_h03: 1, mfg_h06: 1,
+
+  /* RETAIL & E-COMMERCE */
+  ret_e01: 0, ret_e02: 1, ret_e03: 0, ret_e04: 1, ret_e05: 0, ret_e06: 1,
+  ret_m01: 1, ret_m02: 1, ret_m04: 1, ret_m06: 1, ret_m07: 1, ret_m08: 1,
+  ret_h03: 1, ret_h05: 1, ret_h06: 1,
+
+  /* EDUCATION & TRAINING */
+  edu_e01: 1, edu_e02: 1, edu_e03: 1, edu_e04: 1, edu_e05: 1, edu_e06: 1,
+  edu_m01: 1, edu_m03: 2, edu_m05: 1, edu_m06: 1, edu_m08: 1,
+  edu_h02: 1, edu_h03: 1, edu_h05: 1, edu_h06: 2,
+
+  /* HOSPITALITY & TOURISM */
+  hosp_e01: 0, hosp_e02: 2, hosp_e03: 1, hosp_e04: 1, hosp_e05: 1, hosp_e06: 0,
+  hosp_m01: 1, hosp_m02: 1, hosp_m04: 1, hosp_m07: 1, hosp_m08: 1,
+  hosp_h02: 1, hosp_h03: 1, hosp_h06: 1,
+
+  /* FOOD & BEVERAGE */
+  fb_e01: 1, fb_e02: 0, fb_e03: 1, fb_e04: 0, fb_e05: 1, fb_e06: 2,
+  fb_m02: 1, fb_m03: 1, fb_m05: 1, fb_m06: 1, fb_m07: 0,
+  fb_h03: 1, fb_h05: 1, fb_h06: 1,
+
+  /* CREATIVE ARTS & DESIGN */
+  cre_e01: 0, cre_e02: 1, cre_e03: 1, cre_e04: 1, cre_e05: 1, cre_e06: 0,
+  cre_m02: 1, cre_m03: 1, cre_m05: 1, cre_m06: 1, cre_m08: 1,
+  cre_h03: 1, cre_h06: 2,
+
+  /* LOGISTICS & TRANSPORTATION */
+  log_e01: 1, log_e02: 1, log_e03: 1, log_e04: 1, log_e05: 1, log_e06: 0,
+  log_m02: 1, log_m03: 1, log_m05: 1, log_m06: 1, log_m07: 0,
+  log_h03: 1, log_h06: 2,
+
+  /* TELECOMMUNICATIONS */
+  tel_e01: 1, tel_e02: 2, tel_e03: 0, tel_e04: 1, tel_e05: 1, tel_e06: 1,
+  tel_m02: 1, tel_m03: 1, tel_m05: 1, tel_m06: 1, tel_m07: 1,
+  tel_h03: 1, tel_h06: 1,
+
+  /* MEDIA & ENTERTAINMENT */
+  med_e01: 1, med_e02: 1, med_e03: 1, med_e04: 1, med_e05: 1, med_e06: 0,
+  med_m01: 1, med_m03: 1, med_m05: 1, med_m06: 1, med_m08: 1,
+  med_h03: 1, med_h06: 2,
+
+  /* HUMAN RESOURCES */
+  hr_e01: 1, hr_e02: 1, hr_e03: 1, hr_e04: 1, hr_e05: 1, hr_e06: 1,
+  hr_m01: 1, hr_m03: 1, hr_m05: 1, hr_m06: 1, hr_m08: 1,
+  hr_h03: 2, hr_h06: 1,
+
+  /* GOVERNMENT & PUBLIC SECTOR */
+  gov_e01: 1, gov_e02: 1, gov_e03: 1, gov_e04: 0, gov_e05: 1, gov_e06: 1,
+  gov_m02: 1, gov_m03: 1, gov_m05: 1, gov_m06: 1, gov_m08: 2,
+  gov_h02: 1, gov_h03: 1, gov_h06: 2,
+
+  /* AGRICULTURE & ENVIRONMENT */
+  agr_e01: 1, agr_e02: 1, agr_e03: 1, agr_e04: 0, agr_e05: 1, agr_e06: 1,
+  agr_m02: 1, agr_m03: 1, agr_m05: 1, agr_m06: 1, agr_m08: 1,
+  agr_h03: 1, agr_h06: 1,
+
+  /* LEGAL & COMPLIANCE */
+  leg_e01: 1, leg_e02: 1, leg_e03: 1, leg_e04: 1, leg_e05: 1, leg_e06: 1,
+  leg_m01: 1, leg_m03: 1, leg_m05: 1, leg_m06: 1, leg_m08: 2,
+  leg_h03: 1, leg_h06: 2,
+
+  /* ARCHITECTURE & URBAN PLANNING */
+  arc_e01: 1, arc_e02: 0, arc_e03: 0, arc_e04: 1, arc_e05: 1, arc_e06: 1,
+  arc_m02: 1, arc_m03: 1, arc_m05: 1, arc_m06: 1, arc_m08: 1,
+  arc_h02: 1, arc_h03: 1, arc_h06: 1,
+};
+
+/**
  * Server-side grading. Trusts the canonical question bank, NOT the client.
  *
- * IMPORTANT: The question bank does not yet carry explicit answer keys
- * (no per-question `correctIndex`). Until those keys are authored,
- * auto-grading correctness for multiple-choice / berlitz questions is not
- * possible — `options[0]` is NOT a reliable convention for the correct
- * answer in this bank.
+ * For questions in `ANSWER_KEY`: the applicant's submitted answer text is
+ * compared (case-insensitive, trimmed) to the source-bank option at the
+ * recorded `ANSWER_KEY[id]` index. This works correctly even though options
+ * were shuffled when issued to the applicant — the comparison is by text,
+ * not by index.
  *
- * Current policy: a non-empty answer earns the question's weight. The
- * `correctCount` field reflects the same (any submitted answer counts).
- * Once `correctIndex` is added per gradable question, switch the inner
- * branch to compare against the canonical correct option.
+ * For questions NOT in `ANSWER_KEY` (free-text, unmapped berlitz scenarios):
+ * any non-empty answer earns full credit (these need future manual review).
  *
- * `maxScore` is the canonical total for the entire industry bank's
- * difficulty distribution of an issued quiz (3 easy + 4 medium + 3 hard
- * = 20), NOT the count of submitted answers — this prevents inflating
+ * `maxScore` is the canonical total for an issued quiz (3 easy + 4 medium +
+ * 3 hard = 20), NOT computed from submitted answers — this prevents inflating
  * the percentage by submitting only easy questions.
  */
 const ISSUED_QUIZ_MAX_SCORE = 3 * 1 + 4 * 2 + 3 * 3; // = 20
@@ -1036,9 +1145,19 @@ export function gradeQuizAnswers(
     const trimmed = raw.trim();
     if (!trimmed) continue;
 
-    // TODO: when `correctIndex` is added per question, replace this with
-    //       an actual options[correctIndex]-vs-trimmed comparison.
-    const isCorrect = true;
+    let isCorrect = false;
+    const correctIdx = ANSWER_KEY[qId];
+    if (
+      typeof correctIdx === "number"
+      && Array.isArray(q.options)
+      && q.options[correctIdx] !== undefined
+    ) {
+      const correctText = q.options[correctIdx].trim().toLowerCase();
+      isCorrect = trimmed.toLowerCase() === correctText;
+    } else {
+      // Free-text or unmapped scenario — credit non-empty (needs manual review).
+      isCorrect = true;
+    }
 
     if (isCorrect) {
       rawScore += weights[q.difficulty];
@@ -1047,7 +1166,7 @@ export function gradeQuizAnswers(
   }
 
   const maxScore = ISSUED_QUIZ_MAX_SCORE;
-  const cappedRaw = Math.min(rawScore, maxScore); // safety cap
+  const cappedRaw = Math.min(rawScore, maxScore);
   const score = Math.round((cappedRaw / maxScore) * 100);
   return { score, rawScore: cappedRaw, maxScore, correctCount, totalGradable };
 }
