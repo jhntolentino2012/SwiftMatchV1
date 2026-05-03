@@ -229,7 +229,7 @@ router.post("/ke-quiz/submit", async (req, res) => {
 
 // Personality quiz result
 router.post("/personality/submit", async (req, res) => {
-  const { applicantId, positionLabel, tier, result } = req.body;
+  const { applicantId, positionLabel, tier, framework: clientFramework, result, rationale } = req.body;
   if (!applicantId || !result) {
     res.status(400).json({ error: "Missing required fields" });
     return;
@@ -243,14 +243,25 @@ router.post("/personality/submit", async (req, res) => {
         return;
       }
     }
-    const framework = tier === "leadership" ? "Myers-Briggs (MBTI)" : "DOPE Bird Test";
+    // Prefer the framework decided by the client's industry/role/tier router.
+    // Fall back to tier-only mapping for backward compatibility.
+    const frameworkLabel = clientFramework === "MBTI"
+      ? "Myers-Briggs (MBTI)"
+      : clientFramework === "DOPE"
+        ? "DOPE Bird Test"
+        : (tier === "leadership" ? "Myers-Briggs (MBTI)" : "DOPE Bird Test");
+    const feedbackParts = [
+      `Personality type: ${result}.`,
+      `Position level: ${positionLabel ?? "Not specified"}.`,
+    ];
+    if (rationale && typeof rationale === "string") feedbackParts.push(`Routing: ${rationale}`);
     const [saved] = await db.insert(assessmentResultsTable).values({
       applicantId,
       assessmentId: 2,
-      assessmentTitle: `Personality & Work Style — ${framework}`,
+      assessmentTitle: `Personality & Work Style — ${frameworkLabel}`,
       score: 100,
       passed: true,
-      feedback: `Personality type: ${result}. Position level: ${positionLabel ?? "Not specified"}.`,
+      feedback: feedbackParts.join(" "),
     }).returning();
     res.json({ ...saved, completedAt: saved.completedAt.toISOString() });
   } catch (err) {

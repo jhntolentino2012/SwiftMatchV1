@@ -244,6 +244,8 @@ export default function AssessmentCenter() {
           <PersonalityQuiz
             applicantId={applicantId}
             recommendedLevel={user?.careerLevel || undefined}
+            industry={jobContext?.industry || effectiveIndustry || undefined}
+            role={effectiveRole || user?.targetRole || undefined}
             onComplete={async () => {
               await fetchResults();
               setShowPersonalityQuiz(false);

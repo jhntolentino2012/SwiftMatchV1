@@ -2,9 +2,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, ChevronRight, CheckCircle,
-  RotateCcw, Loader2, Heart, Star, Briefcase,
+  RotateCcw, Loader2, Heart, Star, Briefcase, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  recommendPersonalityFramework,
+  type Framework,
+  type FrameworkRecommendation,
+} from "@/lib/personalityRouting";
 
 /* ══════════════════════════════════════════════════════
    POSITION LEVEL TIERS
@@ -248,13 +253,17 @@ type Phase = "select-level" | "manual-entry" | "quiz" | "result";
 interface Props {
   applicantId?: number | null;
   recommendedLevel?: string;
+  industry?: string | null;
+  role?: string | null;
   onComplete?: (result: string) => void;
   onBack?: () => void;
 }
 
-export default function PersonalityQuiz({ applicantId, recommendedLevel, onComplete, onBack }: Props) {
+export default function PersonalityQuiz({ applicantId, recommendedLevel, industry, role, onComplete, onBack }: Props) {
   const [phase, setPhase]               = useState<Phase>("select-level");
   const [tier, setTier]                 = useState<PositionTier | null>(null);
+  const [framework, setFramework]       = useState<Framework>("DOPE");
+  const [recommendation, setRecommendation] = useState<FrameworkRecommendation | null>(null);
   const [positionLabel, setPositionLabel] = useState<string>("");
   const [current, setCurrent]           = useState(0);
   const [dopeAnswers, setDopeAnswers]   = useState<Record<string, Bird>>({});
@@ -266,8 +275,15 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
 
   const savedLevel = localStorage.getItem(`sm_personality_level_${applicantId ?? "guest"}`);
 
+  function resolveFramework(optionTier: PositionTier): FrameworkRecommendation {
+    return recommendPersonalityFramework({ industry, role, tier: optionTier });
+  }
+
   function startQuiz(option: typeof POSITION_OPTIONS[0]) {
+    const rec = resolveFramework(option.tier);
     setTier(option.tier);
+    setFramework(rec.framework);
+    setRecommendation(rec);
     setPositionLabel(option.label);
     localStorage.setItem(`sm_personality_level_${applicantId ?? "guest"}`, option.label);
     setCurrent(0);
@@ -277,7 +293,10 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
   }
 
   function startManual(option: typeof POSITION_OPTIONS[0]) {
+    const rec = resolveFramework(option.tier);
     setTier(option.tier);
+    setFramework(rec.framework);
+    setRecommendation(rec);
     setPositionLabel(option.label);
     localStorage.setItem(`sm_personality_level_${applicantId ?? "guest"}`, option.label);
     setSubmitError(null);
@@ -288,7 +307,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
     setSubmitting(true);
     setSubmitError(null);
 
-    if (tier === "entry") {
+    if (framework === "DOPE") {
       const bird = resultLabel.split(" ")[0] as Bird;
       const scores: Record<Bird, number> = { Eagle: 0, Peacock: 0, Dove: 0, Owl: 0 };
       scores[bird] = DOPE_QUESTIONS.length;
@@ -315,7 +334,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
         const resp = await fetch("/api/assessments/personality/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ applicantId, positionLabel, tier, result: resultLabel, manual: true }),
+          body: JSON.stringify({ applicantId, positionLabel, tier, framework, result: resultLabel, manual: true, rationale: recommendation?.rationale }),
         });
         if (resp.status === 429) {
           const body = await resp.json().catch(() => ({}));
@@ -335,7 +354,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
     onComplete?.(resultLabel);
   }
 
-  const questions = tier === "entry" ? DOPE_QUESTIONS : MBTI_QUESTIONS;
+  const questions = framework === "DOPE" ? DOPE_QUESTIONS : MBTI_QUESTIONS;
   const totalQ    = questions.length;
 
   function answerDope(qId: string, bird: Bird) {
@@ -350,7 +369,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
     setSubmitting(true);
     let resultLabel = "";
 
-    if (tier === "entry") {
+    if (framework === "DOPE") {
       const scores: Record<Bird, number> = { Eagle: 0, Peacock: 0, Dove: 0, Owl: 0 };
       for (const q of DOPE_QUESTIONS) {
         const ans = dopeAnswers[q.id];
@@ -382,7 +401,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
         const resp = await fetch("/api/assessments/personality/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ applicantId, positionLabel, tier, result: resultLabel, answers: tier === "entry" ? dopeAnswers : mbtiAnswers }),
+          body: JSON.stringify({ applicantId, positionLabel, tier, framework, result: resultLabel, answers: framework === "DOPE" ? dopeAnswers : mbtiAnswers, rationale: recommendation?.rationale }),
         });
         if (resp.status === 429) {
           const body = await resp.json().catch(() => ({}));
@@ -413,7 +432,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
         <div>
           <h2 className="text-xl font-display font-bold text-primary mb-1">Enter Your Known Result</h2>
           <p className="text-sm text-muted-foreground">
-            {tier === "entry"
+            {framework === "DOPE"
               ? "Select your DOPE Bird personality type below."
               : "Select your MBTI type below."}
           </p>
@@ -424,7 +443,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
           <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{submitError}</div>
         )}
 
-        {tier === "entry" ? (
+        {framework === "DOPE" ? (
           /* DOPE bird picker */
           <div className="grid grid-cols-2 gap-3">
             {BIRDS.map(bird => {
@@ -512,6 +531,22 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
           </div>
         )}
 
+        {(industry || role) && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <div className="text-xs text-primary/90 leading-relaxed">
+              <p className="font-semibold mb-0.5">Auto-routed for your profile</p>
+              <p className="text-primary/70">
+                Based on
+                {industry ? <> industry <strong>{industry}</strong></> : null}
+                {industry && role ? " and " : ""}
+                {role ? <> role <strong>{role}</strong></> : null}
+                , the test below will be picked automatically when you choose your level.
+              </p>
+            </div>
+          </div>
+        )}
+
         {(() => {
           const recommendedOpt = recommendedLevel
             ? POSITION_OPTIONS.find(o => o.label === recommendedLevel)
@@ -520,47 +555,57 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
             ? POSITION_OPTIONS.filter(o => o.label !== recommendedLevel)
             : POSITION_OPTIONS;
 
+          const renderFrameworkBadge = (fw: Framework) => (
+            <span className={cn(
+              "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
+              fw === "DOPE" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+            )}>
+              {fw === "DOPE" ? "DOPE Test" : "MBTI Test"}
+            </span>
+          );
+
           return (
             <>
               {/* Recommended level (matched from profile) */}
-              {recommendedOpt && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Matched to your profile</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold border border-accent/20">Recommended</span>
-                  </div>
-                  <div className="rounded-2xl border-2 border-primary bg-primary/5 overflow-hidden">
-                    <button
-                      onClick={() => startQuiz(recommendedOpt)}
-                      className="w-full text-left px-5 py-4 text-sm transition-all hover:bg-primary/10"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-bold text-primary">{recommendedOpt.label}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{recommendedOpt.sublabel}</p>
-                        </div>
-                        <div className="shrink-0 flex items-center gap-2">
-                          <span className={cn(
-                            "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
-                            recommendedOpt.tier === "entry" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                          )}>
-                            {recommendedOpt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
-                          </span>
-                          <span className="text-xs text-primary/60">Start here →</span>
-                        </div>
-                      </div>
-                    </button>
-                    <div className="border-t border-primary/10 px-5 py-2">
+              {recommendedOpt && (() => {
+                const recFw = resolveFramework(recommendedOpt.tier);
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary">Matched to your profile</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold border border-accent/20">Recommended</span>
+                    </div>
+                    <div className="rounded-2xl border-2 border-primary bg-primary/5 overflow-hidden">
                       <button
-                        onClick={() => startManual(recommendedOpt)}
-                        className="text-xs text-primary/60 hover:text-primary font-medium transition-colors"
+                        onClick={() => startQuiz(recommendedOpt)}
+                        className="w-full text-left px-5 py-4 text-sm transition-all hover:bg-primary/10"
                       >
-                        I already know my {recommendedOpt.tier === "entry" ? "DOPE Bird" : "MBTI type"} → Enter it manually
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-bold text-primary">{recommendedOpt.label}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{recommendedOpt.sublabel}</p>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-2">
+                            {renderFrameworkBadge(recFw.framework)}
+                            <span className="text-xs text-primary/60">Start here →</span>
+                          </div>
+                        </div>
+                        {recFw.source !== "default" && (
+                          <p className="text-[11px] text-primary/70 mt-2 leading-snug">{recFw.rationale}</p>
+                        )}
                       </button>
+                      <div className="border-t border-primary/10 px-5 py-2">
+                        <button
+                          onClick={() => startManual(recommendedOpt)}
+                          className="text-xs text-primary/60 hover:text-primary font-medium transition-colors"
+                        >
+                          I already know my {recFw.framework === "DOPE" ? "DOPE Bird" : "MBTI type"} → Enter it manually
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Catchy divider */}
               {recommendedOpt && (
@@ -575,40 +620,38 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
 
               {/* Other / all position options */}
               <div className="space-y-3">
-                {otherOptions.map(opt => (
-                  <div
-                    key={opt.label}
-                    className="rounded-2xl border border-slate-200 overflow-hidden hover:border-primary/50 transition-colors"
-                  >
-                    <button
-                      onClick={() => startQuiz(opt)}
-                      className="w-full text-left px-5 py-4 text-sm hover:bg-primary/5 transition-colors"
+                {otherOptions.map(opt => {
+                  const optFw = resolveFramework(opt.tier);
+                  return (
+                    <div
+                      key={opt.label}
+                      className="rounded-2xl border border-slate-200 overflow-hidden hover:border-primary/50 transition-colors"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-primary">{opt.label}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{opt.sublabel}</p>
-                        </div>
-                        <div className="shrink-0">
-                          <span className={cn(
-                            "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full",
-                            opt.tier === "entry" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                          )}>
-                            {opt.tier === "entry" ? "DOPE Test" : "MBTI Test"}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                    <div className="border-t border-slate-100 px-5 py-2">
                       <button
-                        onClick={() => startManual(opt)}
-                        className="text-xs text-slate-400 hover:text-primary font-medium transition-colors"
+                        onClick={() => startQuiz(opt)}
+                        className="w-full text-left px-5 py-4 text-sm hover:bg-primary/5 transition-colors"
                       >
-                        I already know my {opt.tier === "entry" ? "DOPE Bird" : "MBTI type"} → Enter it manually
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-primary">{opt.label}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{opt.sublabel}</p>
+                          </div>
+                          <div className="shrink-0">
+                            {renderFrameworkBadge(optFw.framework)}
+                          </div>
+                        </div>
                       </button>
+                      <div className="border-t border-slate-100 px-5 py-2">
+                        <button
+                          onClick={() => startManual(opt)}
+                          className="text-xs text-slate-400 hover:text-primary font-medium transition-colors"
+                        >
+                          I already know my {optFw.framework === "DOPE" ? "DOPE Bird" : "MBTI type"} → Enter it manually
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           );
@@ -630,7 +673,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
 
   /* ── RESULT SCREEN ── */
   if (phase === "result") {
-    if (tier === "entry" && dopeResult) {
+    if (framework === "DOPE" && dopeResult) {
       const meta = BIRD_META[dopeResult.primary];
       const secMeta = BIRD_META[dopeResult.secondary];
       const totalAnswered = Object.keys(dopeAnswers).length;
@@ -709,7 +752,7 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
       );
     }
 
-    if (tier === "leadership" && mbtiResult) {
+    if (framework === "MBTI" && mbtiResult) {
       const meta = MBTI_META[mbtiResult.type] ?? {
         tagline: `${mbtiResult.type} — Unique Leadership Profile`,
         summary: "A distinctive blend of leadership traits.",
@@ -793,13 +836,13 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, onCompl
   }
 
   /* ── QUIZ ── */
-  const answered = tier === "entry"
+  const answered = framework === "DOPE"
     ? Object.keys(dopeAnswers).length
     : Object.keys(mbtiAnswers).length;
   const allAnswered = answered === totalQ;
   const progress    = ((current + 1) / totalQ) * 100;
 
-  if (tier === "entry") {
+  if (framework === "DOPE") {
     const dq = DOPE_QUESTIONS[current];
     return (
       <div className="space-y-5">
