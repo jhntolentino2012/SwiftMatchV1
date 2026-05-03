@@ -609,14 +609,6 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
                           <p className="text-[11px] text-primary/70 mt-2 leading-snug">{recFw.rationale}</p>
                         )}
                       </button>
-                      <div className="border-t border-primary/10 px-5 py-2">
-                        <button
-                          onClick={() => startManual(recommendedOpt)}
-                          className="text-xs text-primary/60 hover:text-primary font-medium transition-colors"
-                        >
-                          I already know my {recFw.framework === "DOPE" ? "DOPE Bird" : "MBTI type"} → Enter it manually
-                        </button>
-                      </div>
                     </div>
                   </div>
                 );
@@ -656,14 +648,6 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
                           </div>
                         </div>
                       </button>
-                      <div className="border-t border-slate-100 px-5 py-2">
-                        <button
-                          onClick={() => startManual(opt)}
-                          className="text-xs text-slate-400 hover:text-primary font-medium transition-colors"
-                        >
-                          I already know my {optFw.framework === "DOPE" ? "DOPE Bird" : "MBTI type"} → Enter it manually
-                        </button>
-                      </div>
                     </div>
                   );
                 })}
