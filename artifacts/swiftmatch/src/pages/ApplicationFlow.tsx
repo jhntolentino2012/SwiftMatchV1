@@ -46,6 +46,7 @@ export default function ApplicationFlow() {
     references: [] as any[],
     facebookUrl: "", linkedinUrl: "",
     targetIndustry: "", targetRole: [] as string[], careerLevel: "",
+    workSetup: [] as string[],
     expectedSalary: "", salaryNegotiable: true, availabilityDate: "",
     status: "pending" as const
   });
@@ -103,6 +104,7 @@ export default function ApplicationFlow() {
       const apiPayload = {
         ...formData,
         targetRole: formData.targetRole.length > 0 ? formData.targetRole.join(", ") : undefined,
+        workSetup: formData.workSetup.length > 0 ? formData.workSetup.join(", ") : undefined,
       };
       const applicant = await createApplicant({ data: apiPayload as any });
       // Persist applicant ID so the Assessment page can use it
@@ -775,6 +777,36 @@ function StepPreferences({ data, update }: any) {
               disabled={!data.targetIndustry}
             />
           </div>
+        </div>
+      </div>
+
+      {/* Work Setup Preference */}
+      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
+        <div>
+          <p className="text-sm font-bold text-primary mb-1">Work Setup Preference</p>
+          <p className="text-xs text-slate-500">Select all arrangements you are open to.</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {["Onsite", "Work from Home", "Hybrid"].map(option => {
+            const selected = (data.workSetup as string[]).includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  const current = data.workSetup as string[];
+                  update("workSetup", selected ? current.filter((v: string) => v !== option) : [...current, option]);
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                  selected
+                    ? "bg-primary text-white border-primary shadow-sm"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"
+                }`}
+              >
+                {option}
+              </button>
+            );
+          })}
         </div>
       </div>
 

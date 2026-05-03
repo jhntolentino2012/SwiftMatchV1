@@ -25,6 +25,7 @@ export const applicantsTable = pgTable("applicants", {
   targetIndustry: text("target_industry"),
   targetRole: text("target_role"),
   careerLevel: text("career_level"),
+  workSetup: text("work_setup"),
   expectedSalary: text("expected_salary"),
   salaryNegotiable: boolean("salary_negotiable").notNull().default(true),
   availabilityDate: text("availability_date").notNull(),

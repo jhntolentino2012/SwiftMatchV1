@@ -71,7 +71,7 @@ router.put("/", async (req, res) => {
       "skills", "employmentHistory", "certificates", "references",
       "facebookUrl", "linkedinUrl",
       "headline",
-      "targetIndustry", "targetRole", "careerLevel",
+      "targetIndustry", "targetRole", "careerLevel", "workSetup",
       "expectedSalary", "salaryNegotiable", "availabilityDate",
     ];
 

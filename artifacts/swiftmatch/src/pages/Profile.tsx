@@ -38,6 +38,7 @@ type ApplicantProfile = {
   targetIndustry?: string | null;
   targetRole?: string | null;
   careerLevel?: string | null;
+  workSetup?: string | null;
   expectedSalary?: string | null;
   salaryNegotiable: boolean;
   availabilityDate: string;
@@ -755,6 +756,7 @@ export default function ProfilePage() {
                     <InfoRow label="Target Industry" value={profile.targetIndustry} />
                     <InfoRow label="Target Role" value={profile.targetRole} />
                     <InfoRow label="Career Level" value={profile.careerLevel} />
+                    <InfoRow label="Work Setup" value={profile.workSetup} />
                     <InfoRow
                       label="Expected Salary"
                       value={
