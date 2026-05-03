@@ -6,7 +6,11 @@ import jwt from "jsonwebtoken";
 
 const router: IRouter = Router();
 
-const JWT_SECRET = process.env["JWT_SECRET"] || "swiftmatch-dev-secret";
+function jwtSecret(): string {
+  const s = process.env["SESSION_SECRET"];
+  if (!s) throw new Error("SESSION_SECRET is not set");
+  return s;
+}
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const auth = req.headers.authorization;
@@ -15,7 +19,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
     return;
   }
   try {
-    const payload = jwt.verify(auth.slice(7), JWT_SECRET) as { userId: number; email: string };
+    const payload = jwt.verify(auth.slice(7), jwtSecret()) as { userId: number; email: string };
     (req as any).user = payload;
     next();
   } catch {
