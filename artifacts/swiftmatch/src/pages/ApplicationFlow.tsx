@@ -526,7 +526,7 @@ function StepSkills({ data, update }: any) {
 }
 
 function StepEmployment({ data, update }: any) {
-  const addRecord = () => update('employmentHistory', [...data.employmentHistory, { companyName:'', position:'', yearsStayed:'', reasonForLeaving:'' }]);
+  const addRecord = () => update('employmentHistory', [...data.employmentHistory, { companyName:'', position:'', yearsStayed:'', reasonForLeaving:'', workSetup: [] }]);
   const updateRecord = (index: number, field: string, val: string) => {
     const arr = [...data.employmentHistory];
     arr[index][field] = val;
@@ -548,6 +548,31 @@ function StepEmployment({ data, update }: any) {
               options={['Career Growth', 'Better Opportunity', 'Company Closure', 'Relocation', 'Layoff/Redundancy', 'Other']}
               value={emp.reasonForLeaving} onChange={(e:any)=>updateRecord(i,'reasonForLeaving',e.target.value)} 
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">Work Setup</label>
+            <div className="flex flex-wrap gap-2">
+              {["Onsite", "Work from Home", "Hybrid"].map(option => {
+                const selected = Array.isArray(emp.workSetup) ? emp.workSetup.includes(option) : false;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      const current: string[] = Array.isArray(emp.workSetup) ? emp.workSetup : [];
+                      updateRecord(i, 'workSetup', (selected ? current.filter(v => v !== option) : [...current, option]) as any);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      selected
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       ))}
