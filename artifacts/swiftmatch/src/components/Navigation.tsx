@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { LogIn, ClipboardList, BarChart2, UserPlus, Search, LogOut } from "lucide-react";
+import { LogIn, ClipboardList, BarChart2, UserPlus, Search, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -15,6 +16,11 @@ export function Navigation() {
   const [location] = useLocation();
   const isHome = location === "/";
   const { user, logout } = useAuth();
+  const [isEmployer, setIsEmployer] = useState(false);
+
+  useEffect(() => {
+    setIsEmployer(!!localStorage.getItem("sm_employer_profile"));
+  }, [location]);
 
   return (
     <header className={cn(
@@ -70,6 +76,20 @@ export function Navigation() {
                 </Link>
               );
             })}
+            {isEmployer && user && (
+              <Link
+                href="/candidates"
+                className={cn(
+                  "flex items-center gap-1.5 px-4 py-2 rounded-lg transition-colors",
+                  location === "/candidates"
+                    ? "text-primary bg-primary/8 font-semibold"
+                    : "text-muted-foreground hover:text-primary hover:bg-slate-100"
+                )}
+              >
+                <Users className="w-3.5 h-3.5" />
+                Candidates
+              </Link>
+            )}
           </nav>
 
           {/* Right actions */}

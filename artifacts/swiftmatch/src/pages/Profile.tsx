@@ -6,7 +6,8 @@ import {
   User, Briefcase, GraduationCap, Users, Share2, Settings,
   Edit2, Building2, Phone, Mail, Globe, FileText, ListChecks,
   CheckCircle, Clock, ChevronRight, Save, ExternalLink, Linkedin, Facebook,
-  Camera, Pencil, X, Check, Loader2, BadgeCheck, MapPin,
+  Camera, Pencil, X, Check, Loader2, BadgeCheck, MapPin, Upload, RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -173,6 +174,13 @@ export default function ProfilePage() {
   const [editHeadlineText, setEditHeadlineText] = useState("");
   const [headlineSaving, setHeadlineSaving] = useState(false);
 
+  // ── CV upload ────────────────────────────────────────
+  const cvInputRef = useRef<HTMLInputElement>(null);
+  const [cvUploading, setCvUploading] = useState(false);
+  const [cvUploadError, setCvUploadError] = useState<string | null>(null);
+  const [cvUploadSuccess, setCvUploadSuccess] = useState(false);
+  const [cvDragOver, setCvDragOver] = useState(false);
+
   // ── Inline tag (career) edit ──────────────────────────
   const [editingTags, setEditingTags] = useState(false);
   const [editIndustry, setEditIndustry] = useState("");
@@ -288,6 +296,34 @@ export default function ProfilePage() {
       }
     } finally {
       setHeadlineSaving(false);
+    }
+  }
+
+  async function handleCvUpload(file: File) {
+    const token = localStorage.getItem("sm_auth_token");
+    if (!token) return;
+    setCvUploading(true);
+    setCvUploadError(null);
+    setCvUploadSuccess(false);
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
+      const res = await fetch(`${BASE}/api/resume/store-cv`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) { setCvUploadError(data.error || "Upload failed."); return; }
+      // Refresh profile to get updated cvText
+      const profileRes = await fetch(`${BASE}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
+      if (profileRes.ok) { setProfile(await profileRes.json()); }
+      setCvUploadSuccess(true);
+      setTimeout(() => setCvUploadSuccess(false), 4000);
+    } catch {
+      setCvUploadError("Upload failed. Please try again.");
+    } finally {
+      setCvUploading(false);
     }
   }
 
@@ -1136,39 +1172,93 @@ export default function ProfilePage() {
                     </SectionCard>
                   )}
 
-                  {/* CV Status */}
+                  {/* CV / Resume */}
                   <SectionCard title="CV / Resume" icon={FileText}>
-                    {profile.cvText ? (
-                      <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
-                          <CheckCircle className="w-5 h-5 text-green-600" />
+                    <input
+                      ref={cvInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f); e.target.value = ""; }}
+                    />
+
+                    {/* Uploaded state */}
+                    {profile.cvText && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                            {cvUploadSuccess
+                              ? <CheckCircle className="w-5 h-5 text-green-600 animate-bounce" />
+                              : <CheckCircle className="w-5 h-5 text-green-600" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-slate-800">CV uploaded and indexed</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {profile.cvText.length.toLocaleString()} characters extracted — ready for AI match analysis
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => cvInputRef.current?.click()}
+                            disabled={cvUploading}
+                            className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-primary border border-slate-200 hover:border-primary/40 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                          >
+                            {cvUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            Replace
+                          </button>
                         </div>
-                        <div>
-                          <p className="font-semibold text-sm text-slate-800">
-                            CV uploaded and indexed
+                        {cvUploadSuccess && (
+                          <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" /> CV replaced successfully
                           </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {profile.cvText.length.toLocaleString()} characters extracted — ready for AI match analysis
+                        )}
+                        {cvUploadError && (
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> {cvUploadError}
                           </p>
-                        </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-                          <Clock className="w-5 h-5 text-amber-500" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm text-slate-800">No CV uploaded yet</p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Upload your CV on the Results page to unlock AI match analysis
-                          </p>
-                        </div>
-                        <Link
-                          href="/results"
-                          className="shrink-0 text-xs font-semibold text-accent hover:underline flex items-center gap-1"
+                    )}
+
+                    {/* No CV state — drop zone */}
+                    {!profile.cvText && (
+                      <div className="space-y-3">
+                        <div
+                          onClick={() => !cvUploading && cvInputRef.current?.click()}
+                          onDragOver={e => { e.preventDefault(); setCvDragOver(true); }}
+                          onDragLeave={() => setCvDragOver(false)}
+                          onDrop={e => {
+                            e.preventDefault(); setCvDragOver(false);
+                            const f = e.dataTransfer.files?.[0];
+                            if (f) handleCvUpload(f);
+                          }}
+                          className={cn(
+                            "border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-colors",
+                            cvDragOver ? "border-primary bg-primary/5" : "border-slate-200 hover:border-primary/50 hover:bg-slate-50",
+                            cvUploading && "pointer-events-none opacity-60"
+                          )}
                         >
-                          Go to Results <ChevronRight className="w-3 h-3" />
-                        </Link>
+                          {cvUploading ? (
+                            <>
+                              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                              <p className="text-sm font-medium text-slate-600">Uploading and extracting text…</p>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-12 h-12 rounded-xl bg-primary/8 flex items-center justify-center">
+                                <Upload className="w-5 h-5 text-primary" />
+                              </div>
+                              <div className="text-center">
+                                <p className="font-semibold text-sm text-slate-800">Upload your CV</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Drag & drop or click to browse — PDF, Word, or TXT</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        {cvUploadError && (
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> {cvUploadError}
+                          </p>
+                        )}
                       </div>
                     )}
                   </SectionCard>

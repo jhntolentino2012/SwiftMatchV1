@@ -17,6 +17,7 @@ import ResetPassword from "./pages/ResetPassword";
 import EmailConfirmed from "./pages/EmailConfirmed";
 import ProfilePage from "./pages/Profile";
 import EmployerOnboarding from "./pages/EmployerOnboarding";
+import CandidatesPage from "./pages/Candidates";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/email-confirmed" component={EmailConfirmed} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/employer/onboarding" component={EmployerOnboarding} />
+      <Route path="/candidates" component={CandidatesPage} />
       <Route component={NotFound} />
     </Switch>
   );

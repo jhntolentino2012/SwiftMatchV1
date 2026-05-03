@@ -412,4 +412,44 @@ Return JSON with exactly these fields: overallAlignment (integer 50-85), summary
   }
 });
 
+/* ══════════════════════════════════════════════════════
+   GET /resume/cv/:applicantId
+   Returns CV text for a specific applicant.
+   Requires auth (any signed-in user — used by recruiters).
+══════════════════════════════════════════════════════ */
+router.get("/cv/:applicantId", async (req, res) => {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Authentication required." }); return; }
+  try { jwt.verify(authHeader.slice(7), jwtSecret()); }
+  catch { res.status(401).json({ error: "Invalid or expired token." }); return; }
+
+  const applicantId = Number(req.params.applicantId);
+  if (!Number.isInteger(applicantId) || applicantId < 1) {
+    res.status(400).json({ error: "Invalid applicant ID." }); return;
+  }
+
+  try {
+    const [applicant] = await db.select({
+      id: applicantsTable.id,
+      firstName: applicantsTable.firstName,
+      lastName: applicantsTable.lastName,
+      email: applicantsTable.email,
+      headline: applicantsTable.headline,
+      cvText: applicantsTable.cvText,
+    }).from(applicantsTable).where(eq(applicantsTable.id, applicantId)).limit(1);
+
+    if (!applicant) { res.status(404).json({ error: "Applicant not found." }); return; }
+
+    res.json({
+      id: applicant.id,
+      name: `${applicant.firstName} ${applicant.lastName}`,
+      headline: applicant.headline ?? null,
+      cvText: applicant.cvText ?? null,
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "CV fetch error");
+    res.status(500).json({ error: "Failed to fetch CV." });
+  }
+});
+
 export default router;
