@@ -461,6 +461,27 @@ export default function JobsPage() {
               : "Discover opportunities across industries and locations"}
           </p>
           <JobSearchWidget />
+
+          {isEmployer && (
+            <div className="mt-4 flex items-center justify-between gap-3 bg-accent/8 border border-accent/20 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2 text-sm text-slate-700 min-w-0">
+                <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 shrink-0">
+                  Employer mode
+                </span>
+                <span className="truncate text-slate-500">
+                  {employerCompany
+                    ? <>Signed in as <strong className="text-slate-700">{employerCompany}</strong>. Apply isn't available in employer mode.</>
+                    : <>You're in employer mode. Apply isn't available.</>}
+                </span>
+              </div>
+              <button
+                onClick={exitEmployerMode}
+                className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-primary border border-primary/30 hover:bg-primary hover:text-white transition-colors"
+              >
+                Switch to applicant
+              </button>
+            </div>
+          )}
         </div>
 
         {isLoading ? (
