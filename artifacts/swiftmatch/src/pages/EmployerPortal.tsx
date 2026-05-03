@@ -65,13 +65,7 @@ export default function EmployerPortal() {
               />
             </div>
             <button
-              onClick={() => {
-                if (email.trim()) {
-                  setLocation(`${BASE_PATH}/signup?role=employer&email=${encodeURIComponent(email.trim())}`);
-                } else {
-                  setLocation(`${BASE_PATH}/signup?role=employer`);
-                }
-              }}
+              onClick={() => setLocation(`${BASE_PATH}/employer/onboarding`)}
               className="bg-accent text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors whitespace-nowrap">
               Join Waitlist
             </button>
