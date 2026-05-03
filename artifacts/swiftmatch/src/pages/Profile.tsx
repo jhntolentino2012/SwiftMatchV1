@@ -174,6 +174,7 @@ export default function ProfilePage() {
   const [editIndustry, setEditIndustry] = useState("");
   const [editRole, setEditRole] = useState("");
   const [editLevel, setEditLevel] = useState("");
+  const [editWorkSetup, setEditWorkSetup] = useState<string[]>([]);
   const [tagsSaving, setTagsSaving] = useState(false);
 
   const [employer, setEmployer] = useState<EmployerProfile>(() => {
@@ -290,6 +291,9 @@ export default function ProfilePage() {
     setEditIndustry(profile?.targetIndustry ?? "");
     setEditRole(profile?.targetRole ?? "");
     setEditLevel(profile?.careerLevel ?? "");
+    setEditWorkSetup(
+      profile?.workSetup ? profile.workSetup.split(", ").map(s => s.trim()).filter(Boolean) : []
+    );
     setEditingTags(true);
   }
 
@@ -305,6 +309,7 @@ export default function ProfilePage() {
           targetIndustry: editIndustry || null,
           targetRole: editRole || null,
           careerLevel: editLevel || null,
+          workSetup: editWorkSetup.length > 0 ? editWorkSetup.join(", ") : null,
         }),
       });
       if (res.ok) {
@@ -555,6 +560,27 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
+                  {/* Work Setup */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Work Setup</label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Onsite", "Work from Home", "Hybrid"].map(option => {
+                        const selected = editWorkSetup.includes(option);
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => setEditWorkSetup(selected ? editWorkSetup.filter(v => v !== option) : [...editWorkSetup, option])}
+                            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                              selected ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       onClick={saveEditTags}
@@ -589,6 +615,11 @@ export default function ProfilePage() {
                       {profile.careerLevel}
                     </span>
                   )}
+                  {profile?.workSetup && profile.workSetup.split(", ").filter(Boolean).map(ws => (
+                    <span key={ws} className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full">
+                      {ws}
+                    </span>
+                  ))}
                   <span
                     className={cn(
                       "inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full",
