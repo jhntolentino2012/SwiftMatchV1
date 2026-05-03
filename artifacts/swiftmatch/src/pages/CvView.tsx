@@ -18,7 +18,7 @@ type CvData = {
   careerLevel: string | null;
   workSetup: string | null;
   skills: string[];
-  expertise: string[];
+  expertise: string | null;
   availabilityDate: string | null;
   cvText: string;
   cvFileName: string | null;
@@ -199,15 +199,20 @@ export default function CvViewPage() {
                       {data.skills.map(s => <SkillBadge key={s} label={s} />)}
                     </div>
                   )}
-                  {data.expertise?.length > 0 && (
+                  {data.expertise?.trim() && (
                     <div className="mt-3">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Expertise</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {data.expertise.map(e => (
-                          <span key={e} className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-accent/[0.08] text-accent border border-accent/20">
-                            {e}
-                          </span>
-                        ))}
+                      <div className="space-y-1">
+                        {data.expertise.split('\n').filter(l => l.trim()).map((line, i) =>
+                          line.startsWith('• ') ? (
+                            <div key={i} className="flex items-start gap-1.5 text-xs text-slate-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-[5px] shrink-0" />
+                              <span>{line.substring(2)}</span>
+                            </div>
+                          ) : (
+                            <p key={i} className="text-xs text-slate-700">{line}</p>
+                          )
+                        )}
                       </div>
                     </div>
                   )}

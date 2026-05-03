@@ -478,7 +478,7 @@ router.get("/view/:token", async (req, res) => {
       careerLevel: applicant.careerLevel ?? null,
       workSetup: applicant.workSetup ?? null,
       skills: applicant.skills ?? [],
-      expertise: applicant.expertise ?? [],
+      expertise: applicant.expertise ?? null,
       availabilityDate: applicant.availabilityDate ?? null,
       cvText: applicant.cvText,
       cvFileName: applicant.cvFileName ?? null,

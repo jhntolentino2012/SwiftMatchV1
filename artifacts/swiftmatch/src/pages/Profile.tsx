@@ -31,7 +31,7 @@ type ApplicantProfile = {
   email: string;
   phone: string;
   skills: string[];
-  expertise: string[];
+  expertise?: string | null;
   employmentHistory: any[];
   certificates: any[];
   references: any[];
@@ -163,6 +163,7 @@ export default function ProfilePage() {
   // ── Profile picture ──────────────────────────────────
   const [picSrc, setPicSrc] = useState<string | null>(null);
   const picInputRef = useRef<HTMLInputElement>(null);
+  const expertiseTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // ── Inline name edit ─────────────────────────────────
   const [editingName, setEditingName] = useState(false);
@@ -424,9 +425,8 @@ export default function ProfilePage() {
   const [editingCareerPrefs, setEditingCareerPrefs] = useState(false);
   const [editCareer, setEditCareer] = useState({
     targetIndustry: "", targetRole: "", careerLevel: [] as string[],
-    expertise: [] as string[], workSetup: [] as string[], expectedSalary: "", salaryNegotiable: true,
+    expertise: "" as string, workSetup: [] as string[], expectedSalary: "", salaryNegotiable: true,
   });
-  const [expertiseInput, setExpertiseInput] = useState("");
   const [careerPrefsSaving, setCareerPrefsSaving] = useState(false);
 
   const CAREER_LEVEL_LABELS = [
@@ -458,14 +458,13 @@ export default function ProfilePage() {
       careerLevel: profile?.careerLevel
         ? profile.careerLevel.split(", ").map(s => normalizeCareerLevel(s.trim())).filter(s => CAREER_LEVEL_LABELS.includes(s))
         : [],
-      expertise: profile?.expertise ?? [],
+      expertise: profile?.expertise ?? "",
       workSetup: profile?.workSetup
         ? profile.workSetup.split(", ").map(s => s.trim()).filter(Boolean)
         : [],
       expectedSalary: profile?.expectedSalary ?? "",
       salaryNegotiable: profile?.salaryNegotiable ?? true,
     });
-    setExpertiseInput("");
     setEditingCareerPrefs(true);
   }
 
@@ -1040,56 +1039,68 @@ export default function ProfilePage() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Expertise</label>
-                          <p className="text-[11px] text-slate-400 mb-2">Type an area of expertise and press Enter to add it as a bullet</p>
-
-                          {/* Bullet list of added items */}
-                          {editCareer.expertise.length > 0 && (
-                            <ul className="mb-3 space-y-1.5">
-                              {editCareer.expertise.map((tag, i) => (
-                                <li key={i} className="flex items-center gap-2 group">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
-                                  <span className="flex-1 text-sm text-slate-700">{tag}</span>
-                                  <button type="button"
-                                    onClick={() => setEditCareer(c => ({ ...c, expertise: c.expertise.filter((_, j) => j !== i) }))}
-                                    className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-
-                          {/* Free-form input */}
-                          <div className="flex gap-2">
-                            <input
-                              value={expertiseInput}
-                              onChange={e => setExpertiseInput(e.target.value)}
-                              onKeyDown={e => {
-                                if ((e.key === "Enter" || e.key === ",") && expertiseInput.trim()) {
-                                  e.preventDefault();
-                                  const tag = expertiseInput.trim().replace(/,+$/, "");
-                                  if (tag && !editCareer.expertise.includes(tag)) {
-                                    setEditCareer(c => ({ ...c, expertise: [...c.expertise, tag] }));
-                                  }
-                                  setExpertiseInput("");
-                                }
-                              }}
-                              placeholder="e.g. Process Improvement, Team Coaching…"
-                              className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                            />
-                            <button type="button"
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Expertise</label>
+                          <div className="flex items-center gap-2 mb-2">
+                            <button
+                              type="button"
                               onClick={() => {
-                                const tag = expertiseInput.trim();
-                                if (tag && !editCareer.expertise.includes(tag)) {
-                                  setEditCareer(c => ({ ...c, expertise: [...c.expertise, tag] }));
+                                const ta = expertiseTextareaRef.current;
+                                if (!ta) return;
+                                const { selectionStart, value } = ta;
+                                const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+                                const lineEnd = value.indexOf('\n', selectionStart);
+                                const eol = lineEnd === -1 ? value.length : lineEnd;
+                                const currentLine = value.substring(lineStart, eol);
+                                if (!currentLine.startsWith('• ')) {
+                                  const newValue = value.substring(0, lineStart) + '• ' + value.substring(lineStart);
+                                  setEditCareer(c => ({ ...c, expertise: newValue }));
+                                  setTimeout(() => {
+                                    ta.selectionStart = ta.selectionEnd = selectionStart + 2;
+                                    ta.focus();
+                                  }, 0);
+                                } else {
+                                  ta.focus();
                                 }
-                                setExpertiseInput("");
                               }}
-                              className="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap"
-                            >Add</button>
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200"
+                            >
+                              <ListChecks className="w-3.5 h-3.5" /> Add Bullet
+                            </button>
+                            <span className="text-[11px] text-slate-400">or press Enter on a bullet line to continue</span>
                           </div>
+                          <textarea
+                            ref={expertiseTextareaRef}
+                            value={editCareer.expertise}
+                            onChange={e => setEditCareer(c => ({ ...c, expertise: e.target.value }))}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                const ta = e.currentTarget;
+                                const { selectionStart, value } = ta;
+                                const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+                                const currentLine = value.substring(lineStart, selectionStart);
+                                if (currentLine.startsWith('• ')) {
+                                  e.preventDefault();
+                                  if (currentLine.trim() === '•') {
+                                    const removeStart = lineStart > 0 ? lineStart - 1 : lineStart;
+                                    const newValue = value.substring(0, removeStart) + value.substring(selectionStart);
+                                    setEditCareer(c => ({ ...c, expertise: newValue }));
+                                    setTimeout(() => {
+                                      ta.selectionStart = ta.selectionEnd = Math.max(0, removeStart);
+                                    }, 0);
+                                  } else {
+                                    const newValue = value.substring(0, selectionStart) + '\n• ' + value.substring(selectionStart);
+                                    setEditCareer(c => ({ ...c, expertise: newValue }));
+                                    setTimeout(() => {
+                                      ta.selectionStart = ta.selectionEnd = selectionStart + 3;
+                                    }, 0);
+                                  }
+                                }
+                              }
+                            }}
+                            rows={5}
+                            placeholder="Type freely, or click Add Bullet to start a list…"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y"
+                          />
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Work Setup</label>
@@ -1134,15 +1145,19 @@ export default function ProfilePage() {
                         <InfoRow label="Career Level" value={profile.careerLevel} />
                         <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-slate-100 last:border-0">
                           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider sm:w-36 shrink-0 pt-0.5">Expertise</span>
-                          {profile.expertise?.length > 0 ? (
-                            <ul className="space-y-1">
-                              {profile.expertise.map((tag, i) => (
-                                <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
-                                  {tag}
-                                </li>
-                              ))}
-                            </ul>
+                          {profile.expertise?.trim() ? (
+                            <div className="space-y-1">
+                              {profile.expertise.split('\n').filter(l => l.trim()).map((line, i) =>
+                                line.startsWith('• ') ? (
+                                  <div key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-accent mt-[7px] shrink-0" />
+                                    <span>{line.substring(2)}</span>
+                                  </div>
+                                ) : (
+                                  <p key={i} className="text-sm text-slate-700">{line}</p>
+                                )
+                              )}
+                            </div>
                           ) : (
                             <button
                               onClick={startEditCareerPrefs}
