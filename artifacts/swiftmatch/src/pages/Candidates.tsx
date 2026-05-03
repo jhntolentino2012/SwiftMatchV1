@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Users, FileText, Search, ChevronDown, ChevronUp, AlertCircle,
-  CheckCircle, Clock, MapPin, Briefcase, GraduationCap, Upload,
-  Loader2, X, Download,
+  CheckCircle, Clock, MapPin, Briefcase, GraduationCap,
+  Loader2, Download, ExternalLink, Copy, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,7 @@ type Applicant = {
   expectedSalary?: string | null;
   availabilityDate: string;
   cvText?: string | null;
+  cvShareToken?: string | null;
   status: string;
   createdAt: string;
 };
@@ -115,8 +116,18 @@ function CvPanel({ applicantId, name }: { applicantId: number; name: string }) {
 
 function CandidateCard({ applicant }: { applicant: Applicant }) {
   const [expanded, setExpanded] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const displayName = [applicant.firstName, applicant.lastName].filter(Boolean).join(" ");
+
+  function copyLink() {
+    if (!applicant.cvShareToken) return;
+    const url = `${window.location.origin}${BASE}/cv/${applicant.cvShareToken}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    });
+  }
   const availability = applicant.availabilityDate
     ? new Date(applicant.availabilityDate) <= new Date()
       ? "Available now"
@@ -154,6 +165,16 @@ function CandidateCard({ applicant }: { applicant: Applicant }) {
                 {applicant.cvText ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                 {applicant.cvText ? "CV Available" : "No CV"}
               </span>
+              {applicant.cvShareToken && (
+                <Link
+                  href={`/cv/${applicant.cvShareToken}`}
+                  onClick={e => e.stopPropagation()}
+                  target="_blank"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 border border-primary/20 bg-primary/5 hover:bg-primary/10 rounded-full px-2 py-0.5 transition-colors"
+                >
+                  <ExternalLink className="w-2.5 h-2.5" /> View CV
+                </Link>
+              )}
               {expanded
                 ? <ChevronUp className="w-4 h-4 text-slate-400" />
                 : <ChevronDown className="w-4 h-4 text-slate-400" />}

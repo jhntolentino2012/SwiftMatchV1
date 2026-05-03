@@ -185,15 +185,18 @@ router.post("/parse", upload.single("resume"), async (req, res) => {
       references: [],
     };
 
-    // Step 4: If authenticated, store CV text against the applicant record
+    // Step 4: If authenticated, store CV text + ensure share token against the applicant record
     const authHeader = req.headers["authorization"];
     if (authHeader?.startsWith("Bearer ")) {
       try {
         const payload: any = jwt.verify(authHeader.slice(7), jwtSecret());
         const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
         if (user) {
+          const [existing] = await db.select({ cvShareToken: applicantsTable.cvShareToken })
+            .from(applicantsTable).where(eq(applicantsTable.email, user.email)).limit(1);
+          const shareToken = existing?.cvShareToken ?? crypto.randomUUID();
           await db.update(applicantsTable)
-            .set({ cvText: rawText.slice(0, 12000) })
+            .set({ cvText: rawText.slice(0, 12000), cvShareToken: shareToken })
             .where(eq(applicantsTable.email, user.email));
           req.log.info({ userId: payload.userId }, "Stored CV text for applicant");
         }
@@ -235,15 +238,22 @@ router.post("/store-cv", upload.single("resume"), async (req, res) => {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, payload.userId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found." }); return; }
 
+    // Fetch existing applicant to preserve share token if already set
+    const [existing] = await db.select({ id: applicantsTable.id, cvShareToken: applicantsTable.cvShareToken })
+      .from(applicantsTable).where(eq(applicantsTable.email, user.email)).limit(1);
+    if (!existing) { res.status(404).json({ error: "Applicant profile not found." }); return; }
+
+    const shareToken = existing.cvShareToken ?? crypto.randomUUID();
+
     const updated = await db.update(applicantsTable)
-      .set({ cvText: rawText.slice(0, 12000) })
+      .set({ cvText: rawText.slice(0, 12000), cvShareToken: shareToken })
       .where(eq(applicantsTable.email, user.email))
-      .returning({ id: applicantsTable.id });
+      .returning({ id: applicantsTable.id, cvShareToken: applicantsTable.cvShareToken });
 
     if (!updated.length) { res.status(404).json({ error: "Applicant profile not found." }); return; }
 
     req.log.info({ applicantId: updated[0].id }, "CV text stored via store-cv");
-    res.json({ success: true });
+    res.json({ success: true, cvShareToken: updated[0].cvShareToken });
   } catch (err: any) {
     req.log.error({ err }, "store-cv error");
     res.status(500).json({ error: err.message || "Failed to store CV." });
@@ -409,6 +419,55 @@ Return JSON with exactly these fields: overallAlignment (integer 50-85), summary
   } catch (err: any) {
     req.log.error({ err }, "CV match analysis error");
     res.status(500).json({ error: err.message || "Analysis failed. Please try again." });
+  }
+});
+
+/* ══════════════════════════════════════════════════════
+   GET /resume/view/:token
+   Public endpoint — no auth required.
+   Returns applicant name, headline, skills, and CV text
+   for sharing / recruiter access via a share link.
+══════════════════════════════════════════════════════ */
+router.get("/view/:token", async (req, res) => {
+  const { token } = req.params;
+  if (!token || token.length < 10) { res.status(400).json({ error: "Invalid token." }); return; }
+
+  try {
+    const [applicant] = await db.select({
+      id: applicantsTable.id,
+      firstName: applicantsTable.firstName,
+      lastName: applicantsTable.lastName,
+      headline: applicantsTable.headline,
+      targetIndustry: applicantsTable.targetIndustry,
+      targetRole: applicantsTable.targetRole,
+      careerLevel: applicantsTable.careerLevel,
+      workSetup: applicantsTable.workSetup,
+      skills: applicantsTable.skills,
+      availabilityDate: applicantsTable.availabilityDate,
+      cvText: applicantsTable.cvText,
+      cvShareToken: applicantsTable.cvShareToken,
+    }).from(applicantsTable).where(eq(applicantsTable.cvShareToken, token)).limit(1);
+
+    if (!applicant || !applicant.cvText) {
+      res.status(404).json({ error: "CV not found or has been removed." });
+      return;
+    }
+
+    res.json({
+      id: applicant.id,
+      name: `${applicant.firstName} ${applicant.lastName}`,
+      headline: applicant.headline ?? null,
+      targetIndustry: applicant.targetIndustry ?? null,
+      targetRole: applicant.targetRole ?? null,
+      careerLevel: applicant.careerLevel ?? null,
+      workSetup: applicant.workSetup ?? null,
+      skills: applicant.skills ?? [],
+      availabilityDate: applicant.availabilityDate ?? null,
+      cvText: applicant.cvText,
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "CV view error");
+    res.status(500).json({ error: "Failed to load CV." });
   }
 });
 

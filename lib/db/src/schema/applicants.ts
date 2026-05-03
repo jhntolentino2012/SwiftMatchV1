@@ -31,6 +31,7 @@ export const applicantsTable = pgTable("applicants", {
   availabilityDate: text("availability_date").notNull(),
   headline: text("headline"),
   cvText: text("cv_text"),
+  cvShareToken: text("cv_share_token").unique(),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

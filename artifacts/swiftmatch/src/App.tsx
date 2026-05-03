@@ -18,6 +18,7 @@ import EmailConfirmed from "./pages/EmailConfirmed";
 import ProfilePage from "./pages/Profile";
 import EmployerOnboarding from "./pages/EmployerOnboarding";
 import CandidatesPage from "./pages/Candidates";
+import CvViewPage from "./pages/CvView";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/profile" component={ProfilePage} />
       <Route path="/employer/onboarding" component={EmployerOnboarding} />
       <Route path="/candidates" component={CandidatesPage} />
+      <Route path="/cv/:token" component={CvViewPage} />
       <Route component={NotFound} />
     </Switch>
   );
