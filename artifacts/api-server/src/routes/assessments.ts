@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, assessmentsTable, assessmentResultsTable, applicantsTable } from "@workspace/db";
+import { db, assessmentsTable, assessmentResultsTable, applicantsTable, jobApplicationsTable } from "@workspace/db";
 import { eq, asc, and, desc } from "drizzle-orm";
 import { pickQuiz, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
 import {
@@ -162,7 +162,7 @@ router.get("/ke-quiz", (req, res) => {
 
 // Save K&E quiz result
 router.post("/ke-quiz/submit", async (req, res) => {
-  const { applicantId, industry, score } = req.body;
+  const { applicantId, industry, score, jobId } = req.body;
   if (!applicantId || !industry || score === undefined) {
     res.status(400).json({ error: "Missing required fields" });
     return;
@@ -181,6 +181,7 @@ router.post("/ke-quiz/submit", async (req, res) => {
       ? `Strong performance in ${industry}! Your domain knowledge is well above the baseline.`
       : `Keep studying ${industry} concepts — review key topics and retry for a better score.`;
 
+    const resolvedJobId = typeof jobId === "number" && jobId > 0 ? jobId : null;
     const [result] = await db.insert(assessmentResultsTable).values({
       applicantId,
       assessmentId: 1,
@@ -188,7 +189,19 @@ router.post("/ke-quiz/submit", async (req, res) => {
       score,
       passed,
       feedback,
+      jobId: resolvedJobId,
     }).returning();
+
+    // If submitted in the context of a job application, update that application's KE score + status
+    if (resolvedJobId) {
+      await db.update(jobApplicationsTable)
+        .set({ keScore: score, status: "assessed" })
+        .where(and(
+          eq(jobApplicationsTable.applicantId, applicantId),
+          eq(jobApplicationsTable.jobId, resolvedJobId),
+        ));
+      req.log.info({ applicantId, jobId: resolvedJobId, score }, "Job application KE score updated");
+    }
 
     res.json({ ...result, completedAt: result.completedAt.toISOString() });
   } catch (err) {

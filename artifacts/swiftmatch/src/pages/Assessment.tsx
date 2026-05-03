@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useListAssessments, useSubmitAssessment } from "@workspace/api-client-react";
@@ -9,12 +9,37 @@ import { cn } from "@/lib/utils";
 import {
   CheckCircle, ChevronRight, Video, ClipboardList, Brain,
   Heart, Users, Lightbulb, Bot, ArrowLeft, Upload, Lock,
-  RotateCcw, TrendingUp,
+  RotateCcw, TrendingUp, Briefcase,
 } from "lucide-react";
 import KnowledgeQuiz from "./KnowledgeQuiz";
 import PersonalityQuiz from "./PersonalityQuiz";
 
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+
+function normalizeIndustry(raw: string): string {
+  const s = raw.toLowerCase();
+  if (s.includes("tech") || s.includes("software") || s.includes("it consult")) return "Technology / IT";
+  if (s.includes("bpo") || s.includes("call center") || s.includes("outsourc")) return "BPO / Call Center";
+  if (s.includes("health") || s.includes("medical") || s.includes("nurs") || s.includes("pharma")) return "Healthcare / Medical";
+  if (s.includes("financ") || s.includes("bank") || s.includes("invest") || s.includes("accounting")) return "Finance / Banking";
+  if (s.includes("market") || s.includes("advertis") || s.includes("brand")) return "Marketing / Advertising";
+  if (s.includes("real estate") || s.includes("construct") || s.includes("propert")) return "Real Estate & Construction";
+  if (s.includes("manufactur") || s.includes("engineer") || s.includes("industrial")) return "Manufacturing & Engineering";
+  if (s.includes("retail") || s.includes("e-commerce") || s.includes("ecommerce") || s.includes("fmcg") || s.includes("consum")) return "Retail & E-commerce";
+  if (s.includes("educat") || s.includes("train") || s.includes("academ")) return "Education & Training";
+  if (s.includes("hospital") || s.includes("tourism") || s.includes("hotel") || s.includes("travel")) return "Hospitality & Tourism";
+  if (s.includes("food") || s.includes("beverage") || s.includes("restaurant")) return "Food & Beverage";
+  if (s.includes("creat") || s.includes("design") || s.includes("art") || s.includes("media")) return "Creative Arts & Design";
+  if (s.includes("logist") || s.includes("transport") || s.includes("aviation") || s.includes("freight") || s.includes("supply chain")) return "Logistics & Transportation";
+  if (s.includes("telecom")) return "Telecommunications";
+  if (s.includes("entertain") || s.includes("broadcast") || s.includes("publish")) return "Media & Entertainment";
+  if (s.includes("human resource") || s.includes(" hr") || s === "hr") return "Human Resources";
+  if (s.includes("government") || s.includes("public sector")) return "Government & Public Sector";
+  if (s.includes("agri") || s.includes("environment") || s.includes("farm")) return "Agriculture & Environment";
+  if (s.includes("legal") || s.includes("complian") || s.includes("law")) return "Legal & Compliance";
+  if (s.includes("architect") || s.includes("urban") || s.includes("planning")) return "Architecture & Urban Planning";
+  return raw;
+}
 
 type AssessmentResult = {
   id: number;
@@ -77,6 +102,27 @@ export default function AssessmentCenter() {
   const [keResult, setKeResult]                 = useState<AssessmentResult | null>(null);
   const [personalityResult, setPersonalityResult] = useState<AssessmentResult | null>(null);
   const [loadingResults, setLoadingResults]     = useState(true);
+
+  // Job context — populated when redirected from Apply flow via URL params
+  const jobContext = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const p = new URLSearchParams(window.location.search);
+    const jobId = p.get("jobId");
+    const industry = p.get("industry");
+    if (!jobId || !industry) return null;
+    return {
+      jobId: Number(jobId),
+      jobTitle: p.get("jobTitle") ?? "",
+      company: p.get("company") ?? "",
+      industry: normalizeIndustry(industry),
+    };
+  }, []);
+
+  // Auto-open K&E quiz when page is reached from a job application
+  useEffect(() => {
+    if (jobContext) setShowKEQuiz(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchResults = useCallback(async () => {
     if (!applicantId) { setLoadingResults(false); return; }
@@ -160,9 +206,11 @@ export default function AssessmentCenter() {
         <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
           <KnowledgeQuiz
             applicantId={applicantId}
-            initialIndustry={effectiveIndustry || undefined}
+            initialIndustry={jobContext?.industry || effectiveIndustry || undefined}
             initialRole={effectiveRole || undefined}
             recommendedIndustry={user?.targetIndustry || undefined}
+            jobId={jobContext?.jobId ?? null}
+            jobContext={jobContext ? { title: jobContext.jobTitle, company: jobContext.company } : null}
             onComplete={async (score: number) => {
               await fetchResults();
               setShowKEQuiz(false);

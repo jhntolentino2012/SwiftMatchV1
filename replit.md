@@ -32,6 +32,20 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 9. Pre-Assessment (4 categories: Knowledge, Personality, Work Commitment, Situational)
 10. Introduction Video upload
 
+### Job Application & Assessment Automation
+- `job_applications` table: `(id, applicant_id, job_id, job_title, company, industry, status, ke_score, created_at)` with UNIQUE(applicant_id, job_id)
+- `assessment_results` has `job_id` nullable FK linking a K&E result to a specific job application
+- `POST /api/jobs/:id/apply` — requires applicant JWT; creates application record; returns 409 if already applied
+- `GET /api/jobs/:id/applications` — admin-only; returns applicants with joined profile info
+- Industry normalization: raw job industry strings (e.g. "Healthcare") mapped to canonical quiz keys ("Healthcare / Medical") in `Assessment.tsx:normalizeIndustry()`
+- K&E quiz submit passes `jobId` to backend; on save, updates `job_applications.ke_score` + sets `status = "assessed"`
+- Apply button on job cards and detail panel footer: if JWT valid → POST apply → redirect to `/assessment?jobId=&jobTitle=&industry=&company=`; if no JWT → redirect to /signup; employer sessions see no Apply button
+- Assessment page reads URL params on mount and auto-triggers K&E quiz pre-loaded with job's industry
+- KnowledgeQuiz shows orange job context banner (title + company) when opened from a job application
+- Profile-based auto-assessment: if profile has `targetIndustry` + `targetRole`, K&E quiz auto-starts (skips selection) — already working
+- Random questions per applicant: `pickQuiz` shuffle in backend already randomizes 10 questions (3 easy, 4 medium, 3 hard) per session
+- Retake cooldown: 1-month cooldown enforced in `ke-quiz/submit`; bypassed for owner email
+
 ### Employer Interface
 - Placeholder page (coming soon)
 

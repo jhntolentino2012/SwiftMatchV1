@@ -112,11 +112,48 @@ export default function JobsPage() {
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [applying, setApplying] = useState<number | null>(null);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setIsEmployer(isEmployerSession());
     setIsAdmin(isAdminSession());
   }, []);
+
+  async function handleApply(job: Job) {
+    if (isEmployer) return;
+    if (!hasValidToken()) {
+      setLocation(`${BASE}/signup?next=/jobs`);
+      return;
+    }
+    setApplying(job.id);
+    try {
+      const token = localStorage.getItem("sm_auth_token");
+      const res = await fetch(`${BASE}/api/jobs/${job.id}/apply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      if (res.ok || res.status === 409) {
+        setAppliedJobIds(prev => new Set([...prev, job.id]));
+        const p = new URLSearchParams({
+          jobId: String(job.id),
+          jobTitle: job.title,
+          company: job.company,
+          industry: job.industry,
+        });
+        setLocation(`${BASE}/assessment?${p}`);
+      } else if (res.status === 404) {
+        const body = await res.json().catch(() => ({}));
+        setLocation(body.error?.includes("profile") ? `${BASE}/apply` : `${BASE}/signup`);
+      } else {
+        setLocation(`${BASE}/signup`);
+      }
+    } catch {
+      setLocation(`${BASE}/signup`);
+    } finally {
+      setApplying(null);
+    }
+  }
 
   function restoreEmployerSession(job: Job) {
     localStorage.setItem("sm_employer_profile", JSON.stringify({
@@ -338,12 +375,20 @@ export default function JobsPage() {
                       View more
                     </button>
                   </div>
-                  <div className="shrink-0">
-                    <Link href="/signup"
-                      className="flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors">
-                      Apply <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
+                  {!isEmployer && !isAdmin && (
+                    <div className="shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleApply(job); }}
+                        disabled={applying === job.id}
+                        className="flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/90 disabled:opacity-70 transition-colors">
+                        {applying === job.id
+                          ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Applying…</>
+                          : appliedJobIds.has(job.id)
+                            ? <><CheckCircle2 className="w-3.5 h-3.5" /> Applied</>
+                            : <>Apply <ChevronRight className="w-3.5 h-3.5" /></>}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -659,10 +704,21 @@ export default function JobsPage() {
                         className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shrink-0">
                         <Pencil className="w-4 h-4" /> Edit Posting
                       </button>
+                    ) : hasValidToken() ? (
+                      <button
+                        onClick={() => selectedJob && handleApply(selectedJob)}
+                        disabled={applying === selectedJob?.id}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent text-white rounded-xl font-bold text-sm hover:bg-accent/90 disabled:opacity-70 transition-all shrink-0">
+                        {applying === selectedJob?.id
+                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Applying…</>
+                          : appliedJobIds.has(selectedJob?.id ?? 0)
+                            ? <><CheckCircle2 className="w-4 h-4" /> Applied — Take Assessment</>
+                            : <>Apply Now <ArrowUpRight className="w-4 h-4" /></>}
+                      </button>
                     ) : (
                       <Link href="/signup"
                         className="flex items-center gap-2 px-6 py-2.5 bg-accent text-white rounded-xl font-bold text-sm hover:bg-accent/90 transition-colors shrink-0">
-                        Apply Now <ArrowUpRight className="w-4 h-4" />
+                        Create Profile to Apply <ArrowUpRight className="w-4 h-4" />
                       </Link>
                     )}
                   </>

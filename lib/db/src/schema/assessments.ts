@@ -19,6 +19,7 @@ export const assessmentResultsTable = pgTable("assessment_results", {
   score: real("score").notNull(),
   passed: boolean("passed").notNull(),
   feedback: text("feedback").notNull(),
+  jobId: integer("job_id"),
   completedAt: timestamp("completed_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

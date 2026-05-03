@@ -98,6 +98,8 @@ interface Props {
   initialIndustry?: string;
   initialRole?: string;
   recommendedIndustry?: string;
+  jobId?: number | null;
+  jobContext?: { title: string; company: string } | null;
   onComplete?: (score: number) => void;
   onBack?: () => void;
 }
@@ -420,7 +422,7 @@ function TypingTestSection({
 /* ══════════════════════════════════════════════════════
    MAIN QUIZ COMPONENT
 ══════════════════════════════════════════════════════ */
-export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRole, recommendedIndustry, onComplete, onBack }: Props) {
+export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRole, recommendedIndustry, jobId, jobContext, onComplete, onBack }: Props) {
   // If we already know the industry (from profile or prior session), skip straight to role-select.
   // If we also know the role, we'll auto-trigger loadQuiz below.
   const [phase, setPhase]       = useState<Phase>(initialIndustry ? "select-role" : "select-industry");
@@ -537,7 +539,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
         const resp = await fetch("/api/assessments/ke-quiz/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ applicantId, industry, role, score: pct, answers, attemptedIds: fresh }),
+          body: JSON.stringify({ applicantId, industry, role, score: pct, answers, attemptedIds: fresh, jobId: jobId ?? null }),
         });
         if (resp.status === 429) {
           const body = await resp.json().catch(() => ({}));
@@ -810,6 +812,18 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
   return (
     <div className="space-y-5">
+      {/* Job context banner */}
+      {jobContext && (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-accent/10 border border-accent/20">
+          <Briefcase className="w-4 h-4 text-accent shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-accent truncate">{jobContext.title}</p>
+            <p className="text-xs text-slate-500 truncate">{jobContext.company}</p>
+          </div>
+          <span className="ml-auto text-xs font-semibold text-accent/80 shrink-0 bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">Assessment</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3">
         {onBack && (

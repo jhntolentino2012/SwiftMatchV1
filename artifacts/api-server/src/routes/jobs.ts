@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { db, jobsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { db, jobsTable, jobApplicationsTable, applicantsTable } from "@workspace/db";
+import { eq, desc, and } from "drizzle-orm";
 import { GetJobParams } from "@workspace/api-zod";
 import jwt from "jsonwebtoken";
 
@@ -463,6 +463,77 @@ router.delete("/:id", requireAuth, async (req, res) => {
     res.json({ deleted: true });
   } catch (err) {
     req.log.error({ err }, "Failed to delete job");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── POST /jobs/:id/apply  (applicant JWT required) ───────────────────────────
+router.post("/:id/apply", requireAuth, async (req, res) => {
+  const jobId = Number(req.params.id);
+  if (!Number.isInteger(jobId) || jobId < 1) { res.status(400).json({ error: "Invalid ID" }); return; }
+  const callerEmail: string = ((req as any).user?.email ?? "").toLowerCase();
+  try {
+    const [applicant] = await db.select({ id: applicantsTable.id })
+      .from(applicantsTable).where(eq(applicantsTable.email, callerEmail)).limit(1);
+    if (!applicant) {
+      res.status(404).json({ error: "No applicant profile found. Please complete your profile first." });
+      return;
+    }
+    const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, jobId)).limit(1);
+    if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+
+    const [existing] = await db.select({ id: jobApplicationsTable.id })
+      .from(jobApplicationsTable)
+      .where(and(eq(jobApplicationsTable.applicantId, applicant.id), eq(jobApplicationsTable.jobId, jobId)))
+      .limit(1);
+    if (existing) {
+      res.status(409).json({ message: "Already applied", applicationId: existing.id });
+      return;
+    }
+    const [application] = await db.insert(jobApplicationsTable).values({
+      applicantId: applicant.id,
+      jobId,
+      jobTitle: job.title,
+      company: job.company,
+      industry: job.industry,
+    }).returning();
+    req.log.info({ applicantId: applicant.id, jobId }, "Job application created");
+    res.status(201).json({ ...application, createdAt: application.createdAt.toISOString() });
+  } catch (err) {
+    req.log.error({ err }, "Failed to create job application");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── GET /jobs/:id/applications  (admin only) ─────────────────────────────────
+router.get("/:id/applications", requireAuth, async (req, res) => {
+  const jobId = Number(req.params.id);
+  if (!Number.isInteger(jobId) || jobId < 1) { res.status(400).json({ error: "Invalid ID" }); return; }
+  const callerEmail: string = ((req as any).user?.email ?? "").toLowerCase();
+  if (!OWNER_EMAILS_SET.has(callerEmail)) {
+    res.status(403).json({ error: "Admin access required." }); return;
+  }
+  try {
+    const applications = await db
+      .select({
+        id: jobApplicationsTable.id,
+        applicantId: jobApplicationsTable.applicantId,
+        jobTitle: jobApplicationsTable.jobTitle,
+        company: jobApplicationsTable.company,
+        industry: jobApplicationsTable.industry,
+        status: jobApplicationsTable.status,
+        keScore: jobApplicationsTable.keScore,
+        createdAt: jobApplicationsTable.createdAt,
+        firstName: applicantsTable.firstName,
+        lastName: applicantsTable.lastName,
+        email: applicantsTable.email,
+      })
+      .from(jobApplicationsTable)
+      .leftJoin(applicantsTable, eq(jobApplicationsTable.applicantId, applicantsTable.id))
+      .where(eq(jobApplicationsTable.jobId, jobId));
+    res.json(applications.map(a => ({ ...a, createdAt: a.createdAt.toISOString() })));
+  } catch (err) {
+    req.log.error({ err }, "Failed to list job applications");
     res.status(500).json({ error: "Internal server error" });
   }
 });
