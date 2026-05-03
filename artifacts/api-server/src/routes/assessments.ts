@@ -21,6 +21,15 @@ import {
   CT_QUESTIONS_PER_INDUSTRY,
 } from "../lib/critical-thinking-questions.js";
 import {
+  isValidAIIndustry,
+  pickAIReadinessQuestions,
+  gradeAIReadiness,
+  extractAIUsedIds,
+  encodeAIData,
+  AI_QUESTIONS_PER_ATTEMPT,
+  AI_QUESTIONS_PER_INDUSTRY,
+} from "../lib/ai-readiness-questions.js";
+import {
   GetAssessmentParams,
   SubmitAssessmentParams,
   SubmitAssessmentBody,
@@ -509,6 +518,118 @@ router.post("/critical-thinking/submit", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to save critical-thinking result");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── AI Readiness ── industry-scoped, per-applicant no-repeat, 8 per attempt
+const AI_ASSESSMENT_ID = 5;
+
+async function getApplicantAIExcludeIds(applicantId: number, industry: string): Promise<string[]> {
+  const prior = await db
+    .select()
+    .from(assessmentResultsTable)
+    .where(and(
+      eq(assessmentResultsTable.applicantId, applicantId),
+      eq(assessmentResultsTable.assessmentId, AI_ASSESSMENT_ID),
+    ));
+  const ids = new Set<string>();
+  for (const r of prior) {
+    if (industry && r.assessmentTitle && !r.assessmentTitle.includes(industry)) continue;
+    for (const id of extractAIUsedIds(r.feedback)) ids.add(id);
+  }
+  return Array.from(ids);
+}
+
+router.get("/ai-readiness/quiz", async (req, res) => {
+  const applicantId = Number(req.query.applicantId);
+  const industry = String(req.query.industry ?? "");
+  if (!applicantId || !industry) {
+    res.status(400).json({ error: "Missing applicantId or industry" });
+    return;
+  }
+  if (!isValidAIIndustry(industry)) {
+    res.status(400).json({ error: "Invalid industry" });
+    return;
+  }
+  try {
+    const excludeIds = await getApplicantAIExcludeIds(applicantId, industry);
+    const pick = pickAIReadinessQuestions(industry, excludeIds, AI_QUESTIONS_PER_ATTEMPT, applicantId);
+    res.json({
+      industry,
+      questions: pick.questions,
+      remainingPool: pick.remainingPool,
+      totalPool: pick.totalPool,
+      exhausted: pick.exhausted,
+      perAttempt: AI_QUESTIONS_PER_ATTEMPT,
+      totalPerIndustry: AI_QUESTIONS_PER_INDUSTRY,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to pick ai-readiness questions");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/ai-readiness/submit", async (req, res) => {
+  const { applicantId, industry, jobId, questionIds, answers } = req.body ?? {};
+  if (
+    !applicantId ||
+    !industry ||
+    !Array.isArray(questionIds) ||
+    !answers ||
+    typeof answers !== "object"
+  ) {
+    res.status(400).json({ error: "Missing required fields (applicantId, industry, questionIds, answers)" });
+    return;
+  }
+  if (!isValidAIIndustry(industry)) {
+    res.status(400).json({ error: "Invalid industry" });
+    return;
+  }
+  try {
+    const grading = gradeAIReadiness(
+      industry,
+      questionIds as string[],
+      answers as Record<string, number>,
+    );
+    const passed = grading.score >= 60;
+    const headline = passed
+      ? `Strong AI readiness — ${grading.correctCount}/${grading.total} most-aligned answers.`
+      : `Room to grow — ${grading.correctCount}/${grading.total} most-aligned answers.`;
+    const aiData = encodeAIData({
+      used: questionIds as string[],
+      details: grading.details,
+      industry,
+    });
+    const feedback = `${headline} ${aiData}`;
+    const resolvedJobId = typeof jobId === "number" && jobId > 0 ? jobId : null;
+    const [saved] = await db.insert(assessmentResultsTable).values({
+      applicantId,
+      assessmentId: AI_ASSESSMENT_ID,
+      assessmentTitle: `AI Readiness — ${industry}`,
+      score: grading.score,
+      passed,
+      feedback,
+      jobId: resolvedJobId,
+    }).returning();
+
+    const excludeIds = await getApplicantAIExcludeIds(applicantId, industry);
+    const remainingPool = Math.max(0, AI_QUESTIONS_PER_INDUSTRY - excludeIds.length);
+
+    res.json({
+      ...saved,
+      completedAt: saved.completedAt.toISOString(),
+      grading: {
+        score: grading.score,
+        correctCount: grading.correctCount,
+        total: grading.total,
+        details: grading.details,
+      },
+      remainingPool,
+      totalPerIndustry: AI_QUESTIONS_PER_INDUSTRY,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to save ai-readiness result");
     res.status(500).json({ error: "Internal server error" });
   }
 });
