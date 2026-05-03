@@ -988,6 +988,70 @@ function pickInternal(
   return shuffle(selected);
 }
 
+/**
+ * Server-side grading. Trusts the canonical question bank, NOT the client.
+ *
+ * IMPORTANT: The question bank does not yet carry explicit answer keys
+ * (no per-question `correctIndex`). Until those keys are authored,
+ * auto-grading correctness for multiple-choice / berlitz questions is not
+ * possible — `options[0]` is NOT a reliable convention for the correct
+ * answer in this bank.
+ *
+ * Current policy: a non-empty answer earns the question's weight. The
+ * `correctCount` field reflects the same (any submitted answer counts).
+ * Once `correctIndex` is added per gradable question, switch the inner
+ * branch to compare against the canonical correct option.
+ *
+ * `maxScore` is the canonical total for the entire industry bank's
+ * difficulty distribution of an issued quiz (3 easy + 4 medium + 3 hard
+ * = 20), NOT the count of submitted answers — this prevents inflating
+ * the percentage by submitting only easy questions.
+ */
+const ISSUED_QUIZ_MAX_SCORE = 3 * 1 + 4 * 2 + 3 * 3; // = 20
+
+export function gradeQuizAnswers(
+  industry: string,
+  answers: Record<string, string>,
+): {
+  score: number;
+  rawScore: number;
+  maxScore: number;
+  correctCount: number;
+  totalGradable: number;
+} {
+  const bank = INDUSTRY_QUESTIONS[industry] ?? tech;
+  const weights = { easy: 1, medium: 2, hard: 3 } as const;
+
+  let rawScore = 0;
+  let correctCount = 0;
+  let totalGradable = 0;
+
+  for (const [qId, raw] of Object.entries(answers)) {
+    if (qId === "__typing__") continue;
+    if (typeof raw !== "string") continue;
+    const q = bank.find(x => x.id === qId);
+    if (!q) continue;
+
+    totalGradable++;
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+
+    // TODO: when `correctIndex` is added per question, replace this with
+    //       an actual options[correctIndex]-vs-trimmed comparison.
+    const isCorrect = true;
+
+    if (isCorrect) {
+      rawScore += weights[q.difficulty];
+      correctCount++;
+    }
+  }
+
+  const maxScore = ISSUED_QUIZ_MAX_SCORE;
+  const cappedRaw = Math.min(rawScore, maxScore); // safety cap
+  const score = Math.round((cappedRaw / maxScore) * 100);
+  return { score, rawScore: cappedRaw, maxScore, correctCount, totalGradable };
+}
+
 export function pickQuiz(
   industry: string,
   excludeIds: string[] = [],

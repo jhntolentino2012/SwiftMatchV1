@@ -519,27 +519,20 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
   async function submitQuiz() {
     setSubmitting(true);
-    const weights = { easy: 1, medium: 2, hard: 3 } as const;
-    let rawScore = 0, maxScore = 0;
-    for (const question of questions) {
-      if (question.id === "__typing__") continue; // typing test doesn't count toward quiz score
-      const w = weights[question.difficulty];
-      maxScore += w;
-      if ((answers[question.id] ?? "").trim().length > 0) rawScore += w;
-    }
-    const pct = maxScore > 0 ? Math.round((rawScore / maxScore) * 100) : 0;
 
     const key = storageKey("attempted", applicantId, industry);
     const existing: string[] = JSON.parse(localStorage.getItem(key) ?? "[]");
     const fresh = Array.from(new Set([...existing, ...questions.map(q => q.id)]));
     localStorage.setItem(key, JSON.stringify(fresh));
 
+    let pct = 0;
+
     if (applicantId) {
       try {
         const resp = await fetch("/api/assessments/ke-quiz/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ applicantId, industry, role, score: pct, answers, attemptedIds: fresh, jobId: jobId ?? null }),
+          body: JSON.stringify({ applicantId, industry, role, answers, attemptedIds: fresh, jobId: jobId ?? null }),
         });
         if (resp.status === 429) {
           const body = await resp.json().catch(() => ({}));
@@ -550,8 +543,27 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
           setSubmitting(false);
           return;
         }
+        if (resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          // Use the server's authoritative score.
+          pct = typeof body?.grading?.score === "number"
+            ? body.grading.score
+            : (typeof body?.score === "number" ? body.score : 0);
+        }
       } catch {}
+    } else {
+      // Guest preview — best-effort optimistic estimate (server is source of truth).
+      const weights = { easy: 1, medium: 2, hard: 3 } as const;
+      let raw = 0, max = 0;
+      for (const question of questions) {
+        if (question.id === "__typing__") continue;
+        const w = weights[question.difficulty];
+        max += w;
+        if ((answers[question.id] ?? "").trim().length > 0) raw += w;
+      }
+      pct = max > 0 ? Math.round((raw / max) * 100) : 0;
     }
+
     setSubmitError(null);
     setFinalScore(pct);
     setPhase("result");

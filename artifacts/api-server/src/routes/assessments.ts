@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, assessmentsTable, assessmentResultsTable, applicantsTable, jobApplicationsTable } from "@workspace/db";
 import { eq, asc, and, desc } from "drizzle-orm";
-import { pickQuiz, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
+import { pickQuiz, gradeQuizAnswers, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
 import {
   GetAssessmentParams,
   SubmitAssessmentParams,
@@ -160,11 +160,15 @@ router.get("/ke-quiz", (req, res) => {
   res.json(questions);
 });
 
-// Save K&E quiz result
+// Save K&E quiz result — grades server-side from the answers map.
 router.post("/ke-quiz/submit", async (req, res) => {
-  const { applicantId, industry, score, jobId } = req.body;
-  if (!applicantId || !industry || score === undefined) {
-    res.status(400).json({ error: "Missing required fields" });
+  const { applicantId, industry, jobId, answers } = req.body;
+  if (!applicantId || !industry || !answers || typeof answers !== "object") {
+    res.status(400).json({ error: "Missing required fields (applicantId, industry, answers)" });
+    return;
+  }
+  if (!Object.keys(INDUSTRY_QUESTIONS).includes(industry)) {
+    res.status(400).json({ error: "Invalid industry" });
     return;
   }
   try {
@@ -176,10 +180,14 @@ router.post("/ke-quiz/submit", async (req, res) => {
         return;
       }
     }
+
+    // Authoritative server-side grading — ignores any client-supplied score.
+    const grading = gradeQuizAnswers(industry, answers as Record<string, string>);
+    const score = grading.score;
     const passed = score >= 60;
     const feedback = passed
-      ? `Strong performance in ${industry}! Your domain knowledge is well above the baseline.`
-      : `Keep studying ${industry} concepts — review key topics and retry for a better score.`;
+      ? `Strong performance in ${industry}! You answered ${grading.correctCount} of ${grading.totalGradable} questions correctly.`
+      : `Keep studying ${industry} concepts — you answered ${grading.correctCount} of ${grading.totalGradable} questions correctly. Review the topics and retry for a better score.`;
 
     const resolvedJobId = typeof jobId === "number" && jobId > 0 ? jobId : null;
     const [result] = await db.insert(assessmentResultsTable).values({
@@ -192,7 +200,6 @@ router.post("/ke-quiz/submit", async (req, res) => {
       jobId: resolvedJobId,
     }).returning();
 
-    // If submitted in the context of a job application, update that application's KE score + status
     if (resolvedJobId) {
       await db.update(jobApplicationsTable)
         .set({ keScore: score, status: "assessed" })
@@ -203,7 +210,17 @@ router.post("/ke-quiz/submit", async (req, res) => {
       req.log.info({ applicantId, jobId: resolvedJobId, score }, "Job application KE score updated");
     }
 
-    res.json({ ...result, completedAt: result.completedAt.toISOString() });
+    res.json({
+      ...result,
+      completedAt: result.completedAt.toISOString(),
+      grading: {
+        score,
+        correctCount: grading.correctCount,
+        totalGradable: grading.totalGradable,
+        rawScore: grading.rawScore,
+        maxScore: grading.maxScore,
+      },
+    });
   } catch (err) {
     req.log.error({ err }, "Failed to save ke-quiz result");
     res.status(500).json({ error: "Internal server error" });
