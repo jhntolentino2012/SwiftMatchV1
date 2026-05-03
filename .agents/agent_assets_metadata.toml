@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "3V7NT9VcmBykJ7cv--N9p"
@@ -18,3 +17,9 @@ id = "7THICs2bq2XlPLWFIAqHG"
 uri = "file://artifacts/buildathon/src/assets/images/assessment-art.png"
 type = "image"
 title = "abstract assessment grading art"
+
+[[outputs]]
+id = "o5h5k1gi0zhxsRPATMu9l"
+uri = "file://exports/swiftmatch-buildathon-static.tar.gz"
+type = "unspecified"
+title = "SwiftMatch Buildathon — Static Site Bundle"

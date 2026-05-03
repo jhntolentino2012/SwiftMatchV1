@@ -51,7 +51,7 @@ export default function Landing() {
             <Badge variant="outline" className="hidden sm:inline-flex bg-accent/10 text-accent hover:bg-accent/20 border-accent/20">
               Replit · 10Y Buildathon 2026
             </Badge>
-            <a href="/" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2">
+            <a href={import.meta.env.VITE_TRY_URL ?? "/"} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2">
               Try SwiftMatch
             </a>
           </div>
@@ -93,7 +93,7 @@ export default function Landing() {
               </motion.p>
               
               <motion.div variants={FADE_UP} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="/" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground shadow hover:bg-primary/90 h-12 px-8 py-2 w-full sm:w-auto group">
+                <a href={import.meta.env.VITE_TRY_URL ?? "/"} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground shadow hover:bg-primary/90 h-12 px-8 py-2 w-full sm:w-auto group">
                   Try SwiftMatch
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </a>
@@ -294,7 +294,7 @@ export default function Landing() {
                 Stop guessing. Start measuring. Join the next generation of Philippine recruitment.
               </p>
               <div className="relative z-10">
-                <a href="/" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-accent text-accent-foreground shadow hover:bg-accent/90 h-14 px-10 group">
+                <a href={import.meta.env.VITE_TRY_URL ?? "/"} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-accent text-accent-foreground shadow hover:bg-accent/90 h-14 px-10 group">
                   Try SwiftMatch Now
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </a>
