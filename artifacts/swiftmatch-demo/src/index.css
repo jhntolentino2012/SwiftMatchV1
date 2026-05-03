@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  
+  --color-primary: hsl(214, 80%, 34%);
+  --color-primary-foreground: hsl(0, 0%, 100%);
+  --color-accent: hsl(24, 95%, 52%);
+  --color-accent-foreground: hsl(0, 0%, 100%);
+  --color-background: hsl(210, 40%, 98%);
+  --color-foreground: hsl(222, 47%, 11%);
+  --color-card: hsl(0, 0%, 100%);
+  --color-card-foreground: hsl(222, 47%, 11%);
+  --color-border: hsl(214, 32%, 91%);
+  --color-muted: hsl(210, 40%, 96%);
+  --color-muted-foreground: hsl(215, 16%, 47%);
+}
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --primary: 214 80% 34%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 24 95% 52%;
+    --accent-foreground: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --border: 214 32% 91%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+  }
+
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] font-sans antialiased overflow-hidden;
+  }
+}

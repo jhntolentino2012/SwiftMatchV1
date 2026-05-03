@@ -1,0 +1,31 @@
+kind = "video"
+previewPath = "/swiftmatch-demo/"
+title = "SwiftMatch — 2-Minute Product Walkthrough"
+version = "1.0.0"
+id = "artifacts/swiftmatch-demo"
+router = "path"
+
+[[integratedSkills]]
+name = "video-js"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/swiftmatch-demo/" ]
+localPort = 18267
+
+[services.development]
+run = "pnpm --filter @workspace/swiftmatch-demo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/swiftmatch-demo", "run", "build" ]
+publicDir = "artifacts/swiftmatch-demo/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18267"
+BASE_PATH = "/swiftmatch-demo/"
