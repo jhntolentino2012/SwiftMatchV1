@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "3V7NT9VcmBykJ7cv--N9p"
+uri = "file://artifacts/buildathon/src/assets/images/hero-network.png"
+type = "image"
+title = "abstract network data visualization"
+
+[[generated]]
+id = "xS4bmm-fpuTscd3EZIhv3"
+uri = "file://artifacts/buildathon/src/assets/images/manila-skyline.png"
+type = "image"
+title = "Manila skyline silhouette abstract"
+
+[[generated]]
+id = "7THICs2bq2XlPLWFIAqHG"
+uri = "file://artifacts/buildathon/src/assets/images/assessment-art.png"
+type = "image"
+title = "abstract assessment grading art"

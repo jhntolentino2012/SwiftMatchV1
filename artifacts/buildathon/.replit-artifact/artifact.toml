@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/buildathon/"
+title = "SwiftMatch — Replit 10Y Buildathon"
+version = "1.0.0"
+id = "artifacts/buildathon"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/buildathon/" ]
+localPort = 21800
+
+[services.development]
+run = "pnpm --filter @workspace/buildathon run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/buildathon", "run", "build" ]
+publicDir = "artifacts/buildathon/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21800"
+BASE_PATH = "/buildathon/"
