@@ -300,6 +300,27 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
+router.delete("/:id", requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+  try {
+    const [existing] = await db.select({ id: jobsTable.id, isDemo: jobsTable.isDemo })
+      .from(jobsTable).where(eq(jobsTable.id, id));
+    if (!existing) { res.status(404).json({ error: "Job not found" }); return; }
+    if (existing.isDemo) { res.status(403).json({ error: "Demo jobs cannot be deleted." }); return; }
+
+    await db.delete(jobsTable).where(eq(jobsTable.id, id));
+    req.log.info({ jobId: id }, "Job deleted by employer");
+    res.json({ deleted: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete job");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   const params = GetJobParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {

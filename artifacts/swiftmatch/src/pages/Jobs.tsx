@@ -6,7 +6,7 @@ import { useListJobs } from "@workspace/api-client-react";
 import {
   MapPin, Briefcase, Building2, ChevronRight, Search,
   CheckCircle2, Clock, Banknote, ArrowUpRight, X,
-  Pencil, Save, AlertCircle, Plus, Loader2,
+  Pencil, Save, AlertCircle, Plus, Loader2, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BulletTextarea } from "@/components/BulletTextarea";
@@ -91,6 +91,8 @@ export default function JobsPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { setIsEmployer(isEmployerSession()); }, []);
 
@@ -154,6 +156,27 @@ export default function JobsPage() {
   }
 
   function cancelEdit() { setEditing(false); setSaveError(""); setNeedsSignIn(false); }
+
+  async function handleDeleteJob() {
+    if (!selectedJob) return;
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem("sm_auth_token");
+      const res = await fetch(`${BASE}/api/jobs/${selectedJob.id}`, {
+        method: "DELETE",
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (res.ok) {
+        setSelectedJob(null);
+        setDeleteConfirm(false);
+        refetch();
+      }
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   function setEF<K extends keyof typeof editForm>(k: K, v: typeof editForm[K]) {
     setEditForm(p => ({ ...p, [k]: v }));
@@ -346,13 +369,42 @@ export default function JobsPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {canEditJob && !editing && (
+                  {canEditJob && !editing && !deleteConfirm && (
                     <button onClick={() => openEdit(selectedJob)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/8 text-primary rounded-lg text-xs font-semibold hover:bg-primary/15 transition-colors">
                       <Pencil className="w-3.5 h-3.5" /> Edit Posting
                     </button>
                   )}
-                  <button onClick={() => { setSelectedJob(null); setEditing(false); }}
+                  {canEditJob && !editing && (
+                    deleteConfirm ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 font-medium">Delete this posting?</span>
+                        <button
+                          onClick={handleDeleteJob}
+                          disabled={deleting}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                        >
+                          {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                          Yes, delete
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(false)}
+                          disabled={deleting}
+                          className="px-3 py-1.5 border border-slate-200 text-slate-500 hover:text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirm(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-500 border border-red-200 hover:bg-red-100 rounded-lg text-xs font-semibold transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    )
+                  )}
+                  <button onClick={() => { setSelectedJob(null); setEditing(false); setDeleteConfirm(false); }}
                     className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-700"
                     aria-label="Close">
                     <X className="w-5 h-5" />
