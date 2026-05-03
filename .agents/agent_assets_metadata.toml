@@ -28,4 +28,10 @@ title = "SwiftMatch Buildathon — Static Site Bundle"
 id = "Jnfz67UjyB51NyqpVuQAY"
 uri = "file://exports/swiftmatch-buildathon-static.zip"
 type = "unspecified"
-title = "SwiftMatch Buildathon — Static Site v3 (with branded video poster)"
+title = "SwiftMatch Buildathon — Static Site v4 (with new clean MP4)"
+
+[[outputs]]
+id = "k_wIdqT9Vg8fkD4fl5jXl"
+uri = "file://exports/swiftmatch-demo.mp4"
+type = "video"
+title = "SwiftMatch Demo MP4 (for Facebook upload)"
