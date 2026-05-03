@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import KnowledgeQuiz from "./KnowledgeQuiz";
 import PersonalityQuiz from "./PersonalityQuiz";
+import CulturalFitQuiz from "./CulturalFitQuiz";
 
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
@@ -92,6 +93,7 @@ export default function AssessmentCenter() {
   const [activeTest, setActiveTest] = useState<any>(null);
   const [showKEQuiz, setShowKEQuiz] = useState(false);
   const [showPersonalityQuiz, setShowPersonalityQuiz] = useState(false);
+  const [showCulturalFitQuiz, setShowCulturalFitQuiz] = useState(false);
   const [answers, setAnswers]       = useState<Record<number, any[]>>({});
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [videoFile, setVideoFile]   = useState<File | null>(null);
@@ -229,6 +231,28 @@ export default function AssessmentCenter() {
               }
             }}
             onBack={() => setShowKEQuiz(false)}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ── Cultural Fit quiz view ──
+  if (showCulturalFitQuiz) {
+    const cfIndustry = jobContext?.industry || effectiveIndustry || user?.targetIndustry || "";
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navigation />
+        <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+          <CulturalFitQuiz
+            applicantId={applicantId}
+            industry={cfIndustry}
+            jobId={jobContext?.jobId ?? null}
+            onComplete={async () => {
+              await fetchResults();
+              toast({ title: "Cultural fit submitted", description: "Your cultural fit responses have been recorded." });
+            }}
+            onBack={() => { setShowCulturalFitQuiz(false); fetchResults(); }}
           />
         </main>
       </div>
@@ -460,11 +484,12 @@ export default function AssessmentCenter() {
                           <div className="flex items-center gap-1.5 text-green-600 font-semibold text-sm">
                             <CheckCircle className="w-4 h-4" /> Done
                           </div>
-                          {result && (cooldownBypassed || canRetake(result)) ? (
+                          {result && (cooldownBypassed || test.category === "cultural_fit" || canRetake(result)) ? (
                             <button
                               onClick={() => {
                                 if (isKE) setShowKEQuiz(true);
                                 else if (isPersonality) setShowPersonalityQuiz(true);
+                                else if (test.category === "cultural_fit") setShowCulturalFitQuiz(true);
                                 else setActiveTest(test);
                               }}
                               className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
@@ -484,6 +509,7 @@ export default function AssessmentCenter() {
                           onClick={() => {
                             if (isKE) setShowKEQuiz(true);
                             else if (isPersonality) setShowPersonalityQuiz(true);
+                            else if (test.category === "cultural_fit") setShowCulturalFitQuiz(true);
                             else setActiveTest(test);
                           }}
                           disabled={!applicantId}

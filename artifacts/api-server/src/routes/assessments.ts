@@ -3,6 +3,15 @@ import { db, assessmentsTable, assessmentResultsTable, applicantsTable, jobAppli
 import { eq, asc, and, desc } from "drizzle-orm";
 import { pickQuiz, gradeQuizAnswers, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
 import {
+  isValidCFIndustry,
+  pickCulturalFitQuestions,
+  gradeCulturalFit,
+  extractCFUsedIds,
+  encodeCFData,
+  CF_QUESTIONS_PER_ATTEMPT,
+  CF_QUESTIONS_PER_INDUSTRY,
+} from "../lib/cultural-fit-questions.js";
+import {
   GetAssessmentParams,
   SubmitAssessmentParams,
   SubmitAssessmentBody,
@@ -266,6 +275,119 @@ router.post("/personality/submit", async (req, res) => {
     res.json({ ...saved, completedAt: saved.completedAt.toISOString() });
   } catch (err) {
     req.log.error({ err }, "Failed to save personality result");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Cultural Fit ── industry-scoped, per-applicant no-repeat, max 8 per attempt
+const CF_ASSESSMENT_ID = 3;
+
+async function getApplicantCFExcludeIds(applicantId: number, industry: string): Promise<string[]> {
+  const prior = await db
+    .select()
+    .from(assessmentResultsTable)
+    .where(and(
+      eq(assessmentResultsTable.applicantId, applicantId),
+      eq(assessmentResultsTable.assessmentId, CF_ASSESSMENT_ID),
+    ));
+  const ids = new Set<string>();
+  for (const r of prior) {
+    if (industry && r.assessmentTitle && !r.assessmentTitle.includes(industry)) continue;
+    for (const id of extractCFUsedIds(r.feedback)) ids.add(id);
+  }
+  return Array.from(ids);
+}
+
+router.get("/cultural-fit/quiz", async (req, res) => {
+  const applicantId = Number(req.query.applicantId);
+  const industry = String(req.query.industry ?? "");
+  if (!applicantId || !industry) {
+    res.status(400).json({ error: "Missing applicantId or industry" });
+    return;
+  }
+  if (!isValidCFIndustry(industry)) {
+    res.status(400).json({ error: "Invalid industry" });
+    return;
+  }
+  try {
+    const excludeIds = await getApplicantCFExcludeIds(applicantId, industry);
+    const pick = pickCulturalFitQuestions(industry, excludeIds, CF_QUESTIONS_PER_ATTEMPT);
+    res.json({
+      industry,
+      questions: pick.questions,
+      remainingPool: pick.remainingPool,
+      totalPool: pick.totalPool,
+      exhausted: pick.exhausted,
+      perAttempt: CF_QUESTIONS_PER_ATTEMPT,
+      totalPerIndustry: CF_QUESTIONS_PER_INDUSTRY,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to pick cultural-fit questions");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/cultural-fit/submit", async (req, res) => {
+  const { applicantId, industry, jobId, questionIds, answers } = req.body ?? {};
+  if (
+    !applicantId ||
+    !industry ||
+    !Array.isArray(questionIds) ||
+    !answers ||
+    typeof answers !== "object"
+  ) {
+    res.status(400).json({ error: "Missing required fields (applicantId, industry, questionIds, answers)" });
+    return;
+  }
+  if (!isValidCFIndustry(industry)) {
+    res.status(400).json({ error: "Invalid industry" });
+    return;
+  }
+  try {
+    const grading = gradeCulturalFit(
+      industry,
+      questionIds as string[],
+      answers as Record<string, number>,
+    );
+    const passed = grading.score >= 60;
+    const headline = passed
+      ? `Strong cultural alignment — ${grading.correctCount}/${grading.total} responses matched the most aligned answer.`
+      : `Some areas to reflect on — ${grading.correctCount}/${grading.total} responses matched the most aligned answer.`;
+    const cfData = encodeCFData({
+      used: questionIds as string[],
+      details: grading.details,
+      industry,
+    });
+    const feedback = `${headline} ${cfData}`;
+    const resolvedJobId = typeof jobId === "number" && jobId > 0 ? jobId : null;
+    const [saved] = await db.insert(assessmentResultsTable).values({
+      applicantId,
+      assessmentId: CF_ASSESSMENT_ID,
+      assessmentTitle: `Cultural Fit — ${industry}`,
+      score: grading.score,
+      passed,
+      feedback,
+      jobId: resolvedJobId,
+    }).returning();
+
+    // After insert, recompute remaining pool for the client
+    const excludeIds = await getApplicantCFExcludeIds(applicantId, industry);
+    const remainingPool = Math.max(0, CF_QUESTIONS_PER_INDUSTRY - excludeIds.length);
+
+    res.json({
+      ...saved,
+      completedAt: saved.completedAt.toISOString(),
+      grading: {
+        score: grading.score,
+        correctCount: grading.correctCount,
+        total: grading.total,
+        details: grading.details,
+      },
+      remainingPool,
+      totalPerIndustry: CF_QUESTIONS_PER_INDUSTRY,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to save cultural-fit result");
     res.status(500).json({ error: "Internal server error" });
   }
 });
