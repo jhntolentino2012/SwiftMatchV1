@@ -82,18 +82,22 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function SectionCard({ title, icon: Icon, children, className }: {
+function SectionCard({ title, icon: Icon, children, className, action }: {
   title: string;
   icon: React.ElementType;
   children: React.ReactNode;
   className?: string;
+  action?: React.ReactNode;
 }) {
   return (
     <div className={cn("bg-white rounded-2xl border border-border shadow-sm p-6", className)}>
-      <h3 className="font-display font-bold text-sm text-primary flex items-center gap-2 mb-4 uppercase tracking-wide">
-        <Icon className="w-4 h-4 text-accent" />
-        {title}
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display font-bold text-sm text-primary flex items-center gap-2 uppercase tracking-wide">
+          <Icon className="w-4 h-4 text-accent" />
+          {title}
+        </h3>
+        {action}
+      </div>
       {children}
     </div>
   );
@@ -322,6 +326,80 @@ export default function ProfilePage() {
     } finally {
       setTagsSaving(false);
     }
+  }
+
+  // ── Contact Details edit ─────────────────────────────
+  const [editingContact, setEditingContact] = useState(false);
+  const [editContactPhone, setEditContactPhone] = useState({ areaCode: "", number: "", homePhone: "" });
+  const [editContactAddr, setEditContactAddr] = useState({ current: "", permanent: "", sameAsCurrent: false });
+  const [contactSaving, setContactSaving] = useState(false);
+
+  function startEditContact() {
+    const same = profile?.permanentAddress === profile?.currentAddress;
+    setEditContactPhone({ areaCode: profile?.phoneAreaCode ?? "", number: profile?.phoneNumber ?? "", homePhone: profile?.homePhone ?? "" });
+    setEditContactAddr({ current: profile?.currentAddress ?? "", permanent: same ? "" : (profile?.permanentAddress ?? ""), sameAsCurrent: same });
+    setEditingContact(true);
+  }
+
+  async function saveEditContact() {
+    const token = localStorage.getItem("sm_auth_token");
+    if (!token) return;
+    setContactSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          phoneAreaCode: editContactPhone.areaCode.trim(),
+          phoneNumber: editContactPhone.number.trim(),
+          homePhone: editContactPhone.homePhone.trim() || null,
+          currentAddress: editContactAddr.current.trim(),
+          permanentAddress: editContactAddr.sameAsCurrent ? editContactAddr.current.trim() : editContactAddr.permanent.trim(),
+        }),
+      });
+      if (res.ok) { setProfile(await res.json()); setEditingContact(false); }
+    } finally { setContactSaving(false); }
+  }
+
+  // ── Career Preferences edit ───────────────────────────
+  const [editingCareerPrefs, setEditingCareerPrefs] = useState(false);
+  const [editCareer, setEditCareer] = useState({
+    targetIndustry: "", targetRole: "", careerLevel: [] as string[],
+    workSetup: [] as string[], expectedSalary: "", salaryNegotiable: true,
+  });
+  const [careerPrefsSaving, setCareerPrefsSaving] = useState(false);
+
+  function startEditCareerPrefs() {
+    setEditCareer({
+      targetIndustry: profile?.targetIndustry ?? "",
+      targetRole: profile?.targetRole ?? "",
+      careerLevel: profile?.careerLevel ? profile.careerLevel.split(", ").map(s => s.trim()).filter(Boolean) : [],
+      workSetup: profile?.workSetup ? profile.workSetup.split(", ").map(s => s.trim()).filter(Boolean) : [],
+      expectedSalary: profile?.expectedSalary ?? "",
+      salaryNegotiable: profile?.salaryNegotiable ?? true,
+    });
+    setEditingCareerPrefs(true);
+  }
+
+  async function saveEditCareerPrefs() {
+    const token = localStorage.getItem("sm_auth_token");
+    if (!token) return;
+    setCareerPrefsSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          targetIndustry: editCareer.targetIndustry || null,
+          targetRole: editCareer.targetRole || null,
+          careerLevel: editCareer.careerLevel.length > 0 ? editCareer.careerLevel.join(", ") : null,
+          workSetup: editCareer.workSetup.length > 0 ? editCareer.workSetup.join(", ") : null,
+          expectedSalary: editCareer.expectedSalary || null,
+          salaryNegotiable: editCareer.salaryNegotiable,
+        }),
+      });
+      if (res.ok) { setProfile(await res.json()); setEditingCareerPrefs(false); }
+    } finally { setCareerPrefsSaving(false); }
   }
 
   function saveEmployer() {
@@ -740,25 +818,69 @@ export default function ProfilePage() {
                     <InfoRow label="Availability" value={profile.availabilityDate} />
                   </SectionCard>
 
-                  <SectionCard title="Contact Details" icon={Phone}>
-                    <InfoRow
-                      label="Mobile"
-                      value={`+${profile.phoneAreaCode} ${profile.phoneNumber}`}
-                    />
-                    <InfoRow label="Home Phone" value={profile.homePhone} />
-                    <InfoRow label="Email" value={profile.email} />
-                    <InfoRow
-                      label="Current Address"
-                      value={profile.currentAddress}
-                    />
-                    <InfoRow
-                      label="Permanent Address"
-                      value={
-                        profile.permanentAddress !== profile.currentAddress
-                          ? profile.permanentAddress
-                          : "Same as current"
-                      }
-                    />
+                  <SectionCard title="Contact Details" icon={Phone}
+                    action={!editingContact && (
+                      <button onClick={startEditContact} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/[0.07] hover:bg-primary/[0.13] rounded-lg transition-colors">
+                        <Pencil className="w-3 h-3" /> Edit
+                      </button>
+                    )}
+                  >
+                    {editingContact ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Area Code</label>
+                            <input value={editContactPhone.areaCode} onChange={e => setEditContactPhone(p => ({...p, areaCode: e.target.value}))}
+                              placeholder="+63" className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mobile Number</label>
+                            <input value={editContactPhone.number} onChange={e => setEditContactPhone(p => ({...p, number: e.target.value}))}
+                              placeholder="9218576671" className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Home Phone (optional)</label>
+                          <input value={editContactPhone.homePhone} onChange={e => setEditContactPhone(p => ({...p, homePhone: e.target.value}))}
+                            placeholder="02-XXXX-XXXX" className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Address</label>
+                          <input value={editContactAddr.current} onChange={e => setEditContactAddr(a => ({...a, current: e.target.value}))}
+                            placeholder="Street, City, Province" className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 select-none">
+                          <input type="checkbox" checked={editContactAddr.sameAsCurrent} onChange={e => setEditContactAddr(a => ({...a, sameAsCurrent: e.target.checked}))}
+                            className="rounded text-primary focus:ring-primary/30" />
+                          Permanent address same as current
+                        </label>
+                        {!editContactAddr.sameAsCurrent && (
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Permanent Address</label>
+                            <input value={editContactAddr.permanent} onChange={e => setEditContactAddr(a => ({...a, permanent: e.target.value}))}
+                              placeholder="Street, City, Province" className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                          </div>
+                        )}
+                        <div className="flex gap-2 pt-1">
+                          <button onClick={saveEditContact} disabled={contactSaving}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                            {contactSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Save
+                          </button>
+                          <button onClick={() => setEditingContact(false)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-500 text-xs font-semibold rounded-lg hover:bg-slate-50 transition-colors">
+                            <X className="w-3 h-3" /> Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <InfoRow label="Mobile" value={`+${profile.phoneAreaCode} ${profile.phoneNumber}`} />
+                        <InfoRow label="Home Phone" value={profile.homePhone} />
+                        <InfoRow label="Email" value={profile.email} />
+                        <InfoRow label="Current Address" value={profile.currentAddress} />
+                        <InfoRow label="Permanent Address" value={profile.permanentAddress !== profile.currentAddress ? profile.permanentAddress : "Same as current"} />
+                      </>
+                    )}
                   </SectionCard>
 
                   <SectionCard title="Social Links" icon={Share2}>
@@ -794,19 +916,86 @@ export default function ProfilePage() {
                 {/* ── Right column (wider) ── */}
                 <div className="lg:col-span-2 space-y-5">
 
-                  <SectionCard title="Career Preferences" icon={Settings}>
-                    <InfoRow label="Target Industry" value={profile.targetIndustry} />
-                    <InfoRow label="Target Role" value={profile.targetRole} />
-                    <InfoRow label="Career Level" value={profile.careerLevel} />
-                    <InfoRow label="Work Setup" value={profile.workSetup} />
-                    <InfoRow
-                      label="Expected Salary"
-                      value={
-                        profile.expectedSalary
-                          ? `${profile.expectedSalary}${profile.salaryNegotiable ? " (negotiable)" : ""}`
-                          : null
-                      }
-                    />
+                  <SectionCard title="Career Preferences" icon={Settings}
+                    action={!editingCareerPrefs && (
+                      <button onClick={startEditCareerPrefs} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/[0.07] hover:bg-primary/[0.13] rounded-lg transition-colors">
+                        <Pencil className="w-3 h-3" /> Edit
+                      </button>
+                    )}
+                  >
+                    {editingCareerPrefs ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Industry</label>
+                          <input value={editCareer.targetIndustry} onChange={e => setEditCareer(c => ({...c, targetIndustry: e.target.value}))}
+                            placeholder="e.g. BPO / Call Center" className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Role</label>
+                          <input value={editCareer.targetRole} onChange={e => setEditCareer(c => ({...c, targetRole: e.target.value}))}
+                            placeholder="e.g. Operations Manager" className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Career Level</label>
+                          <div className="flex flex-wrap gap-2">
+                            {["Entry Level / Fresh Graduate","Associate / Junior Professional","Senior / Experienced Specialist","Team Leader / Supervisor","Manager / Department Head","Director / Executive / C-Suite"].map(lvl => {
+                              const sel = editCareer.careerLevel.includes(lvl);
+                              return (
+                                <button key={lvl} type="button"
+                                  onClick={() => setEditCareer(c => ({...c, careerLevel: sel ? c.careerLevel.filter(v => v !== lvl) : [...c.careerLevel, lvl]}))}
+                                  className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${sel ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"}`}>
+                                  {lvl}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Work Setup</label>
+                          <div className="flex flex-wrap gap-2">
+                            {["Onsite","Work from Home","Hybrid"].map(ws => {
+                              const sel = editCareer.workSetup.includes(ws);
+                              return (
+                                <button key={ws} type="button"
+                                  onClick={() => setEditCareer(c => ({...c, workSetup: sel ? c.workSetup.filter(v => v !== ws) : [...c.workSetup, ws]}))}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${sel ? "bg-teal-600 text-white border-teal-600" : "bg-white text-slate-600 border-slate-200 hover:border-teal-400 hover:text-teal-700"}`}>
+                                  {ws}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Expected Monthly Salary (PHP)</label>
+                          <input value={editCareer.expectedSalary} onChange={e => setEditCareer(c => ({...c, expectedSalary: e.target.value}))}
+                            placeholder="e.g. 45,000" className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                          <label className="mt-2 flex items-center gap-2 cursor-pointer text-sm text-slate-600 select-none">
+                            <input type="checkbox" checked={editCareer.salaryNegotiable} onChange={e => setEditCareer(c => ({...c, salaryNegotiable: e.target.checked}))}
+                              className="rounded text-primary focus:ring-primary/30" />
+                            Open to negotiation
+                          </label>
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button onClick={saveEditCareerPrefs} disabled={careerPrefsSaving}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                            {careerPrefsSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Save
+                          </button>
+                          <button onClick={() => setEditingCareerPrefs(false)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-500 text-xs font-semibold rounded-lg hover:bg-slate-50 transition-colors">
+                            <X className="w-3 h-3" /> Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <InfoRow label="Target Industry" value={profile.targetIndustry} />
+                        <InfoRow label="Target Role" value={profile.targetRole} />
+                        <InfoRow label="Career Level" value={profile.careerLevel} />
+                        <InfoRow label="Work Setup" value={profile.workSetup} />
+                        <InfoRow label="Expected Salary"
+                          value={profile.expectedSalary ? `${profile.expectedSalary}${profile.salaryNegotiable ? " (negotiable)" : ""}` : null} />
+                      </>
+                    )}
                   </SectionCard>
 
                   {profile.skills.length > 0 && (
