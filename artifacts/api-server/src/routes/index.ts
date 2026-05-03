@@ -8,11 +8,13 @@ import skillsRouter from "./skills";
 import resumeRouter from "./resume";
 import statsRouter from "./stats";
 import authRouter from "./auth";
+import profileRouter from "./profile";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use("/auth", authRouter);
+router.use("/profile", profileRouter);
 router.use("/applicants", applicantsRouter);
 router.use("/assessments", assessmentsRouter);
 router.use("/applicants", (req, res, next) => {

@@ -25,25 +25,28 @@ export function Navigation() {
         <div className="flex justify-between items-center h-20">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group shrink-0">
-            <div className="relative w-11 h-11 flex-shrink-0" style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}>
-              <img
-                src="/images/swiftmatch-logo.png"
-                alt="SwiftMatch logo"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-              />
-            </div>
-            <div className="flex flex-col leading-tight">
+          <div className="flex items-center gap-3 shrink-0">
+            <Link href="/" className="group flex items-center gap-3">
+              <div className="relative w-11 h-11 flex-shrink-0" style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}>
+                <img
+                  src="/images/swiftmatch-logo.png"
+                  alt="SwiftMatch logo"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+              </div>
               <span className="font-display font-extrabold text-2xl tracking-tight" style={{ color: "hsl(214 80% 34%)" }}>
                 Swift<span style={{ color: "hsl(24 95% 52%)" }}>Match</span>
               </span>
-              {user && (
-                <span className="text-[11px] text-slate-400 font-medium truncate max-w-[180px]">
-                  {user.email}
-                </span>
-              )}
-            </div>
-          </Link>
+            </Link>
+            {user && (
+              <Link
+                href="/profile"
+                className="hidden sm:block text-[11px] text-slate-400 font-medium truncate max-w-[160px] hover:text-accent transition-colors border-l border-slate-200 pl-3"
+              >
+                {user.email}
+              </Link>
+            )}
+          </div>
 
           {/* Nav links */}
           <nav className="hidden md:flex items-center gap-1 font-medium text-sm">
@@ -72,9 +75,12 @@ export function Navigation() {
             {user ? (
               <>
                 <div className="hidden sm:flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                  <Link
+                    href="/profile"
+                    className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 hover:bg-primary/20 transition-colors"
+                  >
                     {user.email.charAt(0).toUpperCase()}
-                  </div>
+                  </Link>
                   <button
                     onClick={logout}
                     className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-red-600 transition-colors px-3 py-2 rounded-lg hover:bg-red-50"
