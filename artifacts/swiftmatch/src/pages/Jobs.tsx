@@ -165,6 +165,7 @@ export default function JobsPage() {
   }
 
   async function handleApply(job: Job) {
+    if (isEmployer) return;
     if (ownsJob(job)) return;
     if (!hasValidToken()) {
       setLocation(`${BASE}/signup?next=/jobs`);
@@ -518,7 +519,7 @@ export default function JobsPage() {
                       View more
                     </button>
                   </div>
-                  {!ownsJob(job) && (
+                  {!isEmployer && (
                     <div className="shrink-0">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleApply(job); }}
@@ -959,7 +960,9 @@ export default function JobsPage() {
                         ? "Sign in to edit this job posting."
                         : canEditJob
                           ? "Signed in as employer — you can edit this posting."
-                          : "Create a free profile to apply — takes less than 5 minutes."}
+                          : isEmployer
+                            ? "You're signed in as an employer. Switch to an applicant profile to apply."
+                            : "Create a free profile to apply — takes less than 5 minutes."}
                     </p>
                     {needsSignIn ? (
                       <button
@@ -972,7 +975,7 @@ export default function JobsPage() {
                         className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shrink-0">
                         <Pencil className="w-4 h-4" /> Edit Posting
                       </button>
-                    ) : hasValidToken() ? (
+                    ) : isEmployer ? null : hasValidToken() ? (
                       <button
                         onClick={() => selectedJob && handleApply(selectedJob)}
                         disabled={applying === selectedJob?.id}
