@@ -37,18 +37,34 @@ export default function EmailConfirmed() {
             </>
           )}
 
-          {status === "success" && (
-            <>
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
-                <CheckCircle className="w-8 h-8 text-green-500" />
-              </div>
-              <h2 className="text-2xl font-display font-bold text-primary mb-2">Email Confirmed!</h2>
-              <p className="text-slate-500 text-sm mb-6">{message || "Your account is now active. You can sign in."}</p>
-              <Link href="/signin" className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors">
-                Sign In Now
-              </Link>
-            </>
-          )}
+          {status === "success" && (() => {
+            const isEmployer = typeof window !== "undefined" && localStorage.getItem("sm_pending_role") === "employer";
+            return (
+              <>
+                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                </div>
+                <h2 className="text-2xl font-display font-bold text-primary mb-2">Email Confirmed!</h2>
+                <p className="text-slate-500 text-sm mb-2">{message || "Your account is now active."}</p>
+                {isEmployer ? (
+                  <>
+                    <p className="text-slate-400 text-xs mb-6">Sign in to complete your employer profile and post your first job.</p>
+                    <Link href="/signin?next=/employer/onboarding"
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent text-white rounded-xl font-semibold text-sm hover:bg-accent/90 transition-colors">
+                      Sign In & Set Up Profile
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-slate-400 text-xs mb-6">You can sign in right away.</p>
+                    <Link href="/signin" className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors">
+                      Sign In Now
+                    </Link>
+                  </>
+                )}
+              </>
+            );
+          })()}
 
           {status === "error" && (
             <>

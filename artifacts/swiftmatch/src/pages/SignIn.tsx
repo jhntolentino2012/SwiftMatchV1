@@ -40,6 +40,8 @@ export default function SignIn() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(prev => ({ ...prev, [k]: e.target.value }));
 
+  const nextPath = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("next") || "/dashboard";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -47,7 +49,7 @@ export default function SignIn() {
       const data = await apiPost("/login", form);
       localStorage.setItem("sm_auth_token", data.token);
       toast({ title: "Welcome back!", description: `Signed in as ${data.user.email}` });
-      setLocation("/dashboard");
+      setLocation(nextPath);
     } catch (err: any) {
       toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
     } finally {

@@ -4,11 +4,14 @@ import { DataPrivacyConsent, hasPrivacyConsent } from "@/components/DataPrivacyC
 import { Building2, ArrowRight, Mail } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
+const BASE_PATH = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+
 const EMPLOYER_DPA_KEY = "sm_dpa_consent_employer";
 
 export default function EmployerPortal() {
   const [, setLocation] = useLocation();
   const [consented, setConsented] = useState<boolean>(() => hasPrivacyConsent(EMPLOYER_DPA_KEY));
+  const [email, setEmail] = useState("");
 
   if (!consented) {
     return (
@@ -48,13 +51,28 @@ export default function EmployerPortal() {
           <div className="bg-white p-2 rounded-xl border border-border shadow-lg flex flex-col sm:flex-row gap-2 max-w-md mx-auto mb-10">
             <div className="relative flex-1 flex items-center">
               <Mail className="w-5 h-5 text-slate-400 absolute left-3" />
-              <input 
-                type="email" 
-                placeholder="Enter your work email" 
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Enter your work email"
                 className="w-full pl-10 pr-4 py-3 rounded-lg focus:outline-none text-slate-900"
+                onKeyDown={e => {
+                  if (e.key === "Enter" && email.trim()) {
+                    setLocation(`${BASE_PATH}/signup?role=employer&email=${encodeURIComponent(email.trim())}`);
+                  }
+                }}
               />
             </div>
-            <button className="bg-accent text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors whitespace-nowrap">
+            <button
+              onClick={() => {
+                if (email.trim()) {
+                  setLocation(`${BASE_PATH}/signup?role=employer&email=${encodeURIComponent(email.trim())}`);
+                } else {
+                  setLocation(`${BASE_PATH}/signup?role=employer`);
+                }
+              }}
+              className="bg-accent text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors whitespace-nowrap">
               Join Waitlist
             </button>
           </div>

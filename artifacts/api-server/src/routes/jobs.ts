@@ -1,9 +1,27 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db, jobsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { GetJobParams } from "@workspace/api-zod";
+import jwt from "jsonwebtoken";
 
 const router: IRouter = Router();
+
+const JWT_SECRET = process.env["JWT_SECRET"] || "swiftmatch-dev-secret";
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "Authentication required." });
+    return;
+  }
+  try {
+    const payload = jwt.verify(auth.slice(7), JWT_SECRET) as { userId: number; email: string };
+    (req as any).user = payload;
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid or expired token." });
+  }
+}
 
 const SEED_JOBS = [
   {
@@ -128,6 +146,43 @@ async function ensureJobsSeeded() {
     }
   }
 }
+
+router.post("/", requireAuth, async (req, res) => {
+  const body = req.body as Record<string, unknown>;
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  const company = typeof body.company === "string" ? body.company.trim() : "";
+  const location = typeof body.location === "string" ? body.location.trim() : "";
+  const description = typeof body.description === "string" ? body.description.trim() : "";
+  const industry = typeof body.industry === "string" ? body.industry.trim() : "";
+  if (!title || !company || !location || !description || !industry) {
+    res.status(400).json({ error: "title, company, location, description, and industry are required." });
+    return;
+  }
+  const salaryRange = typeof body.salaryRange === "string" && body.salaryRange.trim()
+    ? body.salaryRange.trim()
+    : "Competitive — to be discussed";
+  const companyDescription = typeof body.companyDescription === "string" ? body.companyDescription.trim() : "";
+  const workSetup = typeof body.workSetup === "string" ? body.workSetup : "";
+  const employmentType = typeof body.employmentType === "string" ? body.employmentType : "";
+  const rawReqs = Array.isArray(body.requirements) ? body.requirements : [];
+  const requirements = (rawReqs as unknown[]).filter((r): r is string => typeof r === "string" && r.trim() !== "").map(r => r.trim());
+  const fullDescription = [
+    description,
+    workSetup ? `\n\nWork Setup: ${workSetup}` : "",
+    employmentType ? `\nEmployment Type: ${employmentType}` : "",
+  ].join("");
+  try {
+    const [job] = await db.insert(jobsTable).values({
+      title, company, location, description: fullDescription,
+      requirements, salaryRange, industry, companyDescription, isDemo: false,
+    }).returning();
+    req.log.info({ jobId: job.id }, "New employer job created");
+    res.status(201).json({ ...job, createdAt: job.createdAt.toISOString() });
+  } catch (err) {
+    req.log.error({ err }, "Failed to create job");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {

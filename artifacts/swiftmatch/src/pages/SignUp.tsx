@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
 import { apiPost } from "@/hooks/useAuth";
-import { Eye, EyeOff, Mail, Lock, Phone, UserPlus, CheckCircle, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Phone, UserPlus, CheckCircle, ShieldCheck, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function Field({ label, id, type, value, onChange, placeholder, icon: Icon, right }: any) {
@@ -32,7 +32,11 @@ function Field({ label, id, type, value, onChange, placeholder, icon: Icon, righ
 
 export default function SignUp() {
   const { toast } = useToast();
-  const [form, setForm] = useState({ email: "", password: "", confirmPassword: "", phone: "" });
+  const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const isEmployer = params.get("role") === "employer";
+  const prefillEmail = params.get("email") || "";
+
+  const [form, setForm] = useState({ email: prefillEmail, password: "", confirmPassword: "", phone: "" });
   const [showPw, setShowPw] = useState(false);
   const [showCpw, setShowCpw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -54,6 +58,7 @@ export default function SignUp() {
     try {
       setLoading(true);
       const resp = await apiPost("/signup", form) as { confirmed?: boolean };
+      if (isEmployer) localStorage.setItem("sm_pending_role", "employer");
       setDone(resp?.confirmed ? "owner" : "pending");
     } catch (err: any) {
       toast({ title: "Sign up failed", description: err.message, variant: "destructive" });
@@ -118,10 +123,18 @@ export default function SignUp() {
           {/* Logo mark */}
           <div className="text-center mb-7">
             <div className="inline-flex items-center gap-2 mb-3">
-              <UserPlus className="w-6 h-6 text-accent" />
-              <span className="font-display font-extrabold text-xl text-primary">Create your account</span>
+              {isEmployer
+                ? <Building2 className="w-6 h-6 text-accent" />
+                : <UserPlus className="w-6 h-6 text-accent" />}
+              <span className="font-display font-extrabold text-xl text-primary">
+                {isEmployer ? "Create employer account" : "Create your account"}
+              </span>
             </div>
-            <p className="text-sm text-slate-500">Join SwiftMatch — get spotted by top employers.</p>
+            <p className="text-sm text-slate-500">
+              {isEmployer
+                ? "Post jobs and discover pre-assessed Filipino talent."
+                : "Join SwiftMatch — get spotted by top employers."}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
