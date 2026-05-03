@@ -147,7 +147,7 @@ async function ensureJobsSeeded() {
   }
 }
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", async (req, res) => {
   const body = req.body as Record<string, unknown>;
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const company = typeof body.company === "string" ? body.company.trim() : "";

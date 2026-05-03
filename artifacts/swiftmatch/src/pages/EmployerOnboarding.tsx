@@ -46,7 +46,7 @@ export default function EmployerOnboarding() {
     companyName: "", industry: "", companySize: "", location: "", website: "", description: "",
   });
   const [contact, setContact] = useState({
-    contactPerson: "", contactPosition: "", contactEmail: "", contactPhone: "",
+    contactPerson: "", contactPosition: "", contactEmail: "jhn.tolentino2012@gmail.com", contactPhone: "",
   });
   const [job, setJob] = useState({
     title: "", workSetup: [] as string[], employmentType: [] as string[],
