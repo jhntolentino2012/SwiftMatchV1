@@ -13,6 +13,24 @@ import { cn } from "@/lib/utils";
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 const EMPLOYER_PROFILE_KEY = "sm_employer_profile";
 
+const PREF_INDUSTRIES = [
+  "Technology / IT","BPO / Call Center","Healthcare / Medical","Finance / Banking",
+  "Marketing / Advertising","Real Estate & Construction","Manufacturing & Engineering",
+  "Retail & E-commerce","Education & Training","Hospitality & Tourism","Food & Beverage",
+  "Creative Arts & Design","Logistics & Transportation","Telecommunications",
+  "Media & Entertainment","Human Resources","Government & Public Sector",
+  "Agriculture & Environment","Legal & Compliance","Architecture & Urban Planning",
+];
+
+const CAREER_LEVELS = [
+  "Entry Level / Fresh Graduate",
+  "Associate / Junior Professional",
+  "Senior / Experienced Specialist",
+  "Team Leader / Supervisor",
+  "Manager / Department Head",
+  "Director / Executive / C-Suite",
+];
+
 type ApplicantProfile = {
   id: number;
   firstName: string;
@@ -159,6 +177,13 @@ export default function ProfilePage() {
   const [editLast, setEditLast] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
 
+  // ── Inline tag (career) edit ──────────────────────────
+  const [editingTags, setEditingTags] = useState(false);
+  const [editIndustry, setEditIndustry] = useState("");
+  const [editRole, setEditRole] = useState("");
+  const [editLevel, setEditLevel] = useState("");
+  const [tagsSaving, setTagsSaving] = useState(false);
+
   const [employer, setEmployer] = useState<EmployerProfile>(() => {
     try {
       const stored = localStorage.getItem(EMPLOYER_PROFILE_KEY);
@@ -239,6 +264,37 @@ export default function ProfilePage() {
       }
     } finally {
       setNameSaving(false);
+    }
+  }
+
+  function startEditTags() {
+    setEditIndustry(profile?.targetIndustry ?? "");
+    setEditRole(profile?.targetRole ?? "");
+    setEditLevel(profile?.careerLevel ?? "");
+    setEditingTags(true);
+  }
+
+  async function saveEditTags() {
+    const token = localStorage.getItem("sm_auth_token");
+    if (!token) return;
+    setTagsSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          targetIndustry: editIndustry || null,
+          targetRole: editRole || null,
+          careerLevel: editLevel || null,
+        }),
+      });
+      if (res.ok) {
+        const updated: ApplicantProfile = await res.json();
+        setProfile(updated);
+        setEditingTags(false);
+      }
+    } finally {
+      setTagsSaving(false);
     }
   }
 
@@ -365,38 +421,101 @@ export default function ProfilePage() {
               )}
               <p className="text-sm text-slate-400 mt-0.5">{user?.email}</p>
 
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                {profile?.targetRole && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-accent/10 text-accent text-xs font-semibold rounded-full">
-                    <Briefcase className="w-3 h-3" /> {profile.targetRole}
-                  </span>
-                )}
-                {profile?.targetIndustry && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/[0.08] text-primary text-xs font-semibold rounded-full">
-                    {profile.targetIndustry}
-                  </span>
-                )}
-                {profile?.careerLevel && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full">
-                    {profile.careerLevel}
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full",
-                    profile?.cvText
-                      ? "bg-green-50 text-green-700"
-                      : "bg-amber-50 text-amber-700"
+              {/* ── Career tags — editable ── */}
+              {editingTags ? (
+                <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    {/* Industry */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Industry</label>
+                      <select
+                        value={editIndustry}
+                        onChange={e => setEditIndustry(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      >
+                        <option value="">— None —</option>
+                        {PREF_INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+                      </select>
+                    </div>
+                    {/* Role */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Role</label>
+                      <input
+                        type="text"
+                        value={editRole}
+                        onChange={e => setEditRole(e.target.value)}
+                        placeholder="e.g. Operations Manager"
+                        className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        onKeyDown={e => { if (e.key === "Escape") setEditingTags(false); }}
+                      />
+                    </div>
+                    {/* Career level */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Career Level</label>
+                      <select
+                        value={editLevel}
+                        onChange={e => setEditLevel(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      >
+                        <option value="">— None —</option>
+                        {CAREER_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={saveEditTags}
+                      disabled={tagsSaving}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {tagsSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingTags(false)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-500 text-xs font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      <X className="w-3 h-3" /> Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 mt-3 group/tags">
+                  {profile?.targetRole && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-accent/10 text-accent text-xs font-semibold rounded-full">
+                      <Briefcase className="w-3 h-3" /> {profile.targetRole}
+                    </span>
                   )}
-                >
-                  {profile?.cvText ? (
-                    <CheckCircle className="w-3 h-3" />
-                  ) : (
-                    <Clock className="w-3 h-3" />
+                  {profile?.targetIndustry && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/[0.08] text-primary text-xs font-semibold rounded-full">
+                      {profile.targetIndustry}
+                    </span>
                   )}
-                  {profile?.cvText ? "CV Uploaded" : "No CV Yet"}
-                </span>
-              </div>
+                  {profile?.careerLevel && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full">
+                      {profile.careerLevel}
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full",
+                      profile?.cvText ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
+                    )}
+                  >
+                    {profile?.cvText ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                    {profile?.cvText ? "CV Uploaded" : "No CV Yet"}
+                  </span>
+                  {profile && (
+                    <button
+                      onClick={startEditTags}
+                      className="opacity-0 group-hover/tags:opacity-100 transition-opacity inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-400 hover:text-primary hover:bg-slate-200 text-xs font-semibold rounded-full"
+                      title="Edit career details"
+                    >
+                      <Pencil className="w-3 h-3" /> Edit
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <Link
