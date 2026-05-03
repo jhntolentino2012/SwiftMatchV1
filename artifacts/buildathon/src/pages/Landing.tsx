@@ -252,6 +252,7 @@ export default function Landing() {
               <div className="aspect-video bg-black rounded-2xl border border-primary-foreground/10 overflow-hidden shadow-2xl">
                 <video
                   src={`${import.meta.env.BASE_URL}swiftmatch-demo.mp4`}
+                  poster={`${import.meta.env.BASE_URL}opengraph.jpg`}
                   controls
                   playsInline
                   preload="metadata"
