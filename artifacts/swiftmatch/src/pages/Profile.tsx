@@ -72,8 +72,8 @@ const DEFAULT_EMPLOYER: EmployerProfile = {
   contactPhone: "",
 };
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
+function InfoRow({ label, value }: { label: string; value?: string | null | undefined }) {
+  if (!value || value.trim() === "") return null;
   return (
     <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-slate-100 last:border-0">
       <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider sm:w-36 shrink-0 pt-0.5">{label}</span>
@@ -295,7 +295,18 @@ export default function ProfilePage() {
     setEditIndustry(profile?.targetIndustry ?? "");
     setEditRole(profile?.targetRole ?? "");
     setEditLevel(
-      profile?.careerLevel ? profile.careerLevel.split(", ").map(s => s.trim()).filter(Boolean) : []
+      profile?.careerLevel
+        ? profile.careerLevel.split(", ").map(s => {
+            const lower = s.trim().toLowerCase();
+            if (lower.includes("entry") || lower.includes("fresh")) return "Entry Level / Fresh Graduate";
+            if (lower.includes("associate") || lower.includes("junior")) return "Associate / Junior Professional";
+            if (lower.includes("senior") || lower.includes("experienced") || lower.includes("specialist")) return "Senior / Experienced Specialist";
+            if (lower.includes("team leader") || lower.includes("supervisor")) return "Team Leader / Supervisor";
+            if (lower.includes("manager") || lower.includes("department")) return "Manager / Department Head";
+            if (lower.includes("director") || lower.includes("executive") || lower.includes("c-suite") || lower.includes("vp")) return "Director / Executive / C-Suite";
+            return s.trim();
+          }).filter(Boolean)
+        : []
     );
     setEditWorkSetup(
       profile?.workSetup ? profile.workSetup.split(", ").map(s => s.trim()).filter(Boolean) : []
@@ -369,12 +380,38 @@ export default function ProfilePage() {
   });
   const [careerPrefsSaving, setCareerPrefsSaving] = useState(false);
 
+  const CAREER_LEVEL_LABELS = [
+    "Entry Level / Fresh Graduate",
+    "Associate / Junior Professional",
+    "Senior / Experienced Specialist",
+    "Team Leader / Supervisor",
+    "Manager / Department Head",
+    "Director / Executive / C-Suite",
+  ];
+
+  function normalizeCareerLevel(raw: string): string {
+    const exact = CAREER_LEVEL_LABELS.find(l => l === raw);
+    if (exact) return exact;
+    const lower = raw.toLowerCase();
+    if (lower.includes("entry") || lower.includes("fresh")) return "Entry Level / Fresh Graduate";
+    if (lower.includes("associate") || lower.includes("junior")) return "Associate / Junior Professional";
+    if (lower.includes("senior") || lower.includes("experienced") || lower.includes("specialist")) return "Senior / Experienced Specialist";
+    if (lower.includes("team leader") || lower.includes("supervisor")) return "Team Leader / Supervisor";
+    if (lower.includes("manager") || lower.includes("department head")) return "Manager / Department Head";
+    if (lower.includes("director") || lower.includes("executive") || lower.includes("c-suite") || lower.includes("vp")) return "Director / Executive / C-Suite";
+    return raw;
+  }
+
   function startEditCareerPrefs() {
     setEditCareer({
       targetIndustry: profile?.targetIndustry ?? "",
       targetRole: profile?.targetRole ?? "",
-      careerLevel: profile?.careerLevel ? profile.careerLevel.split(", ").map(s => s.trim()).filter(Boolean) : [],
-      workSetup: profile?.workSetup ? profile.workSetup.split(", ").map(s => s.trim()).filter(Boolean) : [],
+      careerLevel: profile?.careerLevel
+        ? profile.careerLevel.split(", ").map(s => normalizeCareerLevel(s.trim())).filter(s => CAREER_LEVEL_LABELS.includes(s))
+        : [],
+      workSetup: profile?.workSetup
+        ? profile.workSetup.split(", ").map(s => s.trim()).filter(Boolean)
+        : [],
       expectedSalary: profile?.expectedSalary ?? "",
       salaryNegotiable: profile?.salaryNegotiable ?? true,
     });
