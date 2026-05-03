@@ -76,7 +76,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-slate-100 last:border-0">
       <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider sm:w-36 shrink-0 pt-0.5">{label}</span>
-      <span className="text-sm text-slate-700 break-words">{value}</span>
+      <span className="text-sm text-slate-700 break-all min-w-0">{value}</span>
     </div>
   );
 }
