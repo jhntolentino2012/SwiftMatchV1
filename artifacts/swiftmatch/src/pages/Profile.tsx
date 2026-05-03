@@ -6,7 +6,7 @@ import {
   User, Briefcase, GraduationCap, Users, Share2, Settings,
   Edit2, Building2, Phone, Mail, Globe, FileText, ListChecks,
   CheckCircle, Clock, ChevronRight, Save, ExternalLink, Linkedin, Facebook,
-  Camera, Pencil, X, Check, Loader2,
+  Camera, Pencil, X, Check, Loader2, BadgeCheck, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +41,7 @@ type ApplicantProfile = {
   expectedSalary?: string | null;
   salaryNegotiable: boolean;
   availabilityDate: string;
+  headline?: string | null;
   cvText?: string | null;
   status: string;
   createdAt: string;
@@ -160,6 +161,11 @@ export default function ProfilePage() {
   const [editLast, setEditLast] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
 
+  // ── Inline headline edit ─────────────────────────────
+  const [editingHeadline, setEditingHeadline] = useState(false);
+  const [editHeadlineText, setEditHeadlineText] = useState("");
+  const [headlineSaving, setHeadlineSaving] = useState(false);
+
   // ── Inline tag (career) edit ──────────────────────────
   const [editingTags, setEditingTags] = useState(false);
   const [editIndustry, setEditIndustry] = useState("");
@@ -250,6 +256,31 @@ export default function ProfilePage() {
     }
   }
 
+  function startEditHeadline() {
+    setEditHeadlineText(profile?.headline ?? "");
+    setEditingHeadline(true);
+  }
+
+  async function saveEditHeadline() {
+    const token = localStorage.getItem("sm_auth_token");
+    if (!token) return;
+    setHeadlineSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ headline: editHeadlineText.trim() || null }),
+      });
+      if (res.ok) {
+        const updated: ApplicantProfile = await res.json();
+        setProfile(updated);
+        setEditingHeadline(false);
+      }
+    } finally {
+      setHeadlineSaving(false);
+    }
+  }
+
   function startEditTags() {
     setEditIndustry(profile?.targetIndustry ?? "");
     setEditRole(profile?.targetRole ?? "");
@@ -290,7 +321,7 @@ export default function ProfilePage() {
   const displayName = profile
     ? [
         profile.firstName,
-        profile.nickname ? `"${profile.nickname}"` : null,
+        profile.nickname ? `(${profile.nickname})` : null,
         profile.middleName ? profile.middleName.charAt(0) + "." : null,
         profile.lastName,
         profile.suffix,
@@ -389,8 +420,9 @@ export default function ProfilePage() {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 group/name">
-                  <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary truncate">{displayName}</h1>
+                <div className="flex items-center gap-2 flex-wrap group/name">
+                  <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900">{displayName}</h1>
+                  <BadgeCheck className="w-5 h-5 text-primary shrink-0" />
                   {profile && (
                     <button
                       onClick={startEditName}
@@ -402,7 +434,66 @@ export default function ProfilePage() {
                   )}
                 </div>
               )}
-              <p className="text-sm text-slate-400 mt-0.5">{user?.email}</p>
+
+              {/* ── Professional headline ── */}
+              {editingHeadline ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    autoFocus
+                    value={editHeadlineText}
+                    onChange={e => setEditHeadlineText(e.target.value)}
+                    placeholder="Seasoned Operations Leader | Key achievement..."
+                    className="flex-1 text-sm text-slate-700 bg-slate-50 border border-primary/30 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    onKeyDown={e => { if (e.key === "Enter") saveEditHeadline(); if (e.key === "Escape") setEditingHeadline(false); }}
+                  />
+                  <button onClick={saveEditHeadline} disabled={headlineSaving}
+                    className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0">
+                    {headlineSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  </button>
+                  <button onClick={() => setEditingHeadline(false)}
+                    className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-start gap-1.5 mt-2 group/headline">
+                  <p className="text-sm text-slate-600 leading-snug">
+                    {profile?.headline ?? (
+                      <span className="text-slate-300 italic">Add a professional headline...</span>
+                    )}
+                  </p>
+                  {profile && (
+                    <button onClick={startEditHeadline}
+                      className="opacity-0 group-hover/headline:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-primary shrink-0 mt-0.5"
+                      title="Edit headline">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* ── Current company · education ── */}
+              {profile && (() => {
+                const emp = profile.employmentHistory as any[];
+                const cert = profile.certificates as any[];
+                const company = emp.length > 0 ? (emp[emp.length - 1]?.company ?? null) : null;
+                const edu = cert.length > 0 ? (cert[0]?.issuer ?? cert[0]?.name ?? null) : null;
+                const line = [company, edu].filter(Boolean).join(" · ");
+                return line ? (
+                  <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                    {line}
+                  </p>
+                ) : null;
+              })()}
+
+              {/* ── Location ── */}
+              {profile?.currentAddress && profile.currentAddress !== "N/A" && (
+                <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                  {profile.currentAddress}
+                </p>
+              )}
 
               {/* ── Career tags — editable ── */}
               {editingTags ? (

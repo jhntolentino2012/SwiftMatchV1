@@ -70,6 +70,7 @@ router.put("/", async (req, res) => {
       "permanentAddress", "currentAddress", "phoneAreaCode", "phoneNumber", "homePhone",
       "skills", "employmentHistory", "certificates", "references",
       "facebookUrl", "linkedinUrl",
+      "headline",
       "targetIndustry", "targetRole", "careerLevel",
       "expectedSalary", "salaryNegotiable", "availabilityDate",
     ];
