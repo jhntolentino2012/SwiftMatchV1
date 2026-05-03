@@ -12,6 +12,15 @@ import {
   CF_QUESTIONS_PER_INDUSTRY,
 } from "../lib/cultural-fit-questions.js";
 import {
+  isValidCTIndustry,
+  pickCriticalThinkingQuestions,
+  gradeCriticalThinking,
+  extractCTUsedIds,
+  encodeCTData,
+  CT_QUESTIONS_PER_ATTEMPT,
+  CT_QUESTIONS_PER_INDUSTRY,
+} from "../lib/critical-thinking-questions.js";
+import {
   GetAssessmentParams,
   SubmitAssessmentParams,
   SubmitAssessmentBody,
@@ -388,6 +397,118 @@ router.post("/cultural-fit/submit", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to save cultural-fit result");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Critical Thinking ── industry-scoped, per-applicant no-repeat, min 10 per attempt
+const CT_ASSESSMENT_ID = 4;
+
+async function getApplicantCTExcludeIds(applicantId: number, industry: string): Promise<string[]> {
+  const prior = await db
+    .select()
+    .from(assessmentResultsTable)
+    .where(and(
+      eq(assessmentResultsTable.applicantId, applicantId),
+      eq(assessmentResultsTable.assessmentId, CT_ASSESSMENT_ID),
+    ));
+  const ids = new Set<string>();
+  for (const r of prior) {
+    if (industry && r.assessmentTitle && !r.assessmentTitle.includes(industry)) continue;
+    for (const id of extractCTUsedIds(r.feedback)) ids.add(id);
+  }
+  return Array.from(ids);
+}
+
+router.get("/critical-thinking/quiz", async (req, res) => {
+  const applicantId = Number(req.query.applicantId);
+  const industry = String(req.query.industry ?? "");
+  if (!applicantId || !industry) {
+    res.status(400).json({ error: "Missing applicantId or industry" });
+    return;
+  }
+  if (!isValidCTIndustry(industry)) {
+    res.status(400).json({ error: "Invalid industry" });
+    return;
+  }
+  try {
+    const excludeIds = await getApplicantCTExcludeIds(applicantId, industry);
+    const pick = pickCriticalThinkingQuestions(industry, excludeIds, CT_QUESTIONS_PER_ATTEMPT);
+    res.json({
+      industry,
+      questions: pick.questions,
+      remainingPool: pick.remainingPool,
+      totalPool: pick.totalPool,
+      exhausted: pick.exhausted,
+      perAttempt: CT_QUESTIONS_PER_ATTEMPT,
+      totalPerIndustry: CT_QUESTIONS_PER_INDUSTRY,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to pick critical-thinking questions");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/critical-thinking/submit", async (req, res) => {
+  const { applicantId, industry, jobId, questionIds, answers } = req.body ?? {};
+  if (
+    !applicantId ||
+    !industry ||
+    !Array.isArray(questionIds) ||
+    !answers ||
+    typeof answers !== "object"
+  ) {
+    res.status(400).json({ error: "Missing required fields (applicantId, industry, questionIds, answers)" });
+    return;
+  }
+  if (!isValidCTIndustry(industry)) {
+    res.status(400).json({ error: "Invalid industry" });
+    return;
+  }
+  try {
+    const grading = gradeCriticalThinking(
+      industry,
+      questionIds as string[],
+      answers as Record<string, number>,
+    );
+    const passed = grading.score >= 60;
+    const headline = passed
+      ? `Strong critical thinking — ${grading.correctCount}/${grading.total} correct.`
+      : `Keep practising — ${grading.correctCount}/${grading.total} correct.`;
+    const ctData = encodeCTData({
+      used: questionIds as string[],
+      details: grading.details,
+      industry,
+    });
+    const feedback = `${headline} ${ctData}`;
+    const resolvedJobId = typeof jobId === "number" && jobId > 0 ? jobId : null;
+    const [saved] = await db.insert(assessmentResultsTable).values({
+      applicantId,
+      assessmentId: CT_ASSESSMENT_ID,
+      assessmentTitle: `Critical Thinking — ${industry}`,
+      score: grading.score,
+      passed,
+      feedback,
+      jobId: resolvedJobId,
+    }).returning();
+
+    const excludeIds = await getApplicantCTExcludeIds(applicantId, industry);
+    const remainingPool = Math.max(0, CT_QUESTIONS_PER_INDUSTRY - excludeIds.length);
+
+    res.json({
+      ...saved,
+      completedAt: saved.completedAt.toISOString(),
+      grading: {
+        score: grading.score,
+        correctCount: grading.correctCount,
+        total: grading.total,
+        details: grading.details,
+      },
+      remainingPool,
+      totalPerIndustry: CT_QUESTIONS_PER_INDUSTRY,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to save critical-thinking result");
     res.status(500).json({ error: "Internal server error" });
   }
 });

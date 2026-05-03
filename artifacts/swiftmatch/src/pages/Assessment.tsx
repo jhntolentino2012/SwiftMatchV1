@@ -14,6 +14,7 @@ import {
 import KnowledgeQuiz from "./KnowledgeQuiz";
 import PersonalityQuiz from "./PersonalityQuiz";
 import CulturalFitQuiz from "./CulturalFitQuiz";
+import CriticalThinkingQuiz from "./CriticalThinkingQuiz";
 
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
@@ -94,6 +95,7 @@ export default function AssessmentCenter() {
   const [showKEQuiz, setShowKEQuiz] = useState(false);
   const [showPersonalityQuiz, setShowPersonalityQuiz] = useState(false);
   const [showCulturalFitQuiz, setShowCulturalFitQuiz] = useState(false);
+  const [showCriticalThinkingQuiz, setShowCriticalThinkingQuiz] = useState(false);
   const [answers, setAnswers]       = useState<Record<number, any[]>>({});
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [videoFile, setVideoFile]   = useState<File | null>(null);
@@ -231,6 +233,28 @@ export default function AssessmentCenter() {
               }
             }}
             onBack={() => setShowKEQuiz(false)}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ── Critical Thinking quiz view ──
+  if (showCriticalThinkingQuiz) {
+    const ctIndustry = jobContext?.industry || effectiveIndustry || user?.targetIndustry || "";
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navigation />
+        <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+          <CriticalThinkingQuiz
+            applicantId={applicantId}
+            industry={ctIndustry}
+            jobId={jobContext?.jobId ?? null}
+            onComplete={async () => {
+              await fetchResults();
+              toast({ title: "Critical thinking submitted", description: "Your reasoning result has been recorded." });
+            }}
+            onBack={() => { setShowCriticalThinkingQuiz(false); fetchResults(); }}
           />
         </main>
       </div>
@@ -484,12 +508,13 @@ export default function AssessmentCenter() {
                           <div className="flex items-center gap-1.5 text-green-600 font-semibold text-sm">
                             <CheckCircle className="w-4 h-4" /> Done
                           </div>
-                          {result && (cooldownBypassed || test.category === "cultural_fit" || canRetake(result)) ? (
+                          {result && (cooldownBypassed || test.category === "cultural_fit" || test.category === "critical_thinking" || canRetake(result)) ? (
                             <button
                               onClick={() => {
                                 if (isKE) setShowKEQuiz(true);
                                 else if (isPersonality) setShowPersonalityQuiz(true);
                                 else if (test.category === "cultural_fit") setShowCulturalFitQuiz(true);
+                                else if (test.category === "critical_thinking") setShowCriticalThinkingQuiz(true);
                                 else setActiveTest(test);
                               }}
                               className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
@@ -510,6 +535,7 @@ export default function AssessmentCenter() {
                             if (isKE) setShowKEQuiz(true);
                             else if (isPersonality) setShowPersonalityQuiz(true);
                             else if (test.category === "cultural_fit") setShowCulturalFitQuiz(true);
+                            else if (test.category === "critical_thinking") setShowCriticalThinkingQuiz(true);
                             else setActiveTest(test);
                           }}
                           disabled={!applicantId}
