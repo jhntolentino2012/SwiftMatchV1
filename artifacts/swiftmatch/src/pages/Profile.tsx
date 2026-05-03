@@ -1041,8 +1041,45 @@ export default function ProfilePage() {
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Expertise</label>
-                          <p className="text-[11px] text-slate-400 mb-2">Add areas of expertise (press Enter or comma to add)</p>
-                          <div className="flex gap-2 mb-2">
+                          <p className="text-[11px] text-slate-400 mb-2">Click to select, or type a custom one and press Enter</p>
+
+                          {/* Preset suggestions */}
+                          {([
+                            { group: "Leadership", items: ["Team Leadership", "People Management", "Coaching & Mentoring", "Change Management", "Executive Leadership"] },
+                            { group: "Operations", items: ["Process Improvement", "Quality Assurance", "Performance Management", "Project Management", "Workforce Planning"] },
+                            { group: "Customer & Sales", items: ["Customer Success", "Client Relations", "Account Management", "Business Development", "Sales Strategy"] },
+                            { group: "Data & Tech", items: ["Data Analysis", "Digital Transformation", "AI Integration", "Reporting & Analytics", "Systems Administration"] },
+                            { group: "HR & Training", items: ["Talent Acquisition", "Training & Development", "Employee Engagement", "Compensation & Benefits"] },
+                          ] as { group: string; items: string[] }[]).map(({ group, items }) => (
+                            <div key={group} className="mb-3">
+                              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">{group}</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {items.map(item => {
+                                  const selected = editCareer.expertise.includes(item);
+                                  return (
+                                    <button key={item} type="button"
+                                      onClick={() => setEditCareer(c => ({
+                                        ...c,
+                                        expertise: selected
+                                          ? c.expertise.filter(e => e !== item)
+                                          : [...c.expertise, item],
+                                      }))}
+                                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                                        selected
+                                          ? "bg-accent text-white border-accent"
+                                          : "bg-white text-slate-600 border-slate-200 hover:border-accent/50 hover:text-accent"
+                                      }`}
+                                    >
+                                      {selected ? "✓ " : ""}{item}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Custom input */}
+                          <div className="flex gap-2 mt-1">
                             <input
                               value={expertiseInput}
                               onChange={e => setExpertiseInput(e.target.value)}
@@ -1056,7 +1093,7 @@ export default function ProfilePage() {
                                   setExpertiseInput("");
                                 }
                               }}
-                              placeholder="e.g. Process Improvement, Team Coaching…"
+                              placeholder="Add custom expertise…"
                               className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
                             />
                             <button type="button"
@@ -1070,16 +1107,21 @@ export default function ProfilePage() {
                               className="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap"
                             >Add</button>
                           </div>
+
+                          {/* Selected tags summary */}
                           {editCareer.expertise.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {editCareer.expertise.map((tag, i) => (
-                                <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-accent/[0.08] text-accent text-xs font-semibold rounded-full border border-accent/20">
-                                  {tag}
-                                  <button type="button" onClick={() => setEditCareer(c => ({ ...c, expertise: c.expertise.filter((_, j) => j !== i) }))} className="hover:text-red-500 transition-colors ml-0.5">
-                                    <X className="w-2.5 h-2.5" />
-                                  </button>
-                                </span>
-                              ))}
+                            <div className="mt-3 pt-3 border-t border-slate-100">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Selected ({editCareer.expertise.length})</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {editCareer.expertise.map((tag, i) => (
+                                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-accent/[0.08] text-accent text-xs font-semibold rounded-full border border-accent/20">
+                                    {tag}
+                                    <button type="button" onClick={() => setEditCareer(c => ({ ...c, expertise: c.expertise.filter((_, j) => j !== i) }))} className="hover:text-red-500 transition-colors ml-0.5">
+                                      <X className="w-2.5 h-2.5" />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>
