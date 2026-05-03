@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useVideoPlayer } from '@/lib/video';
 import { Scene1 } from './video_scenes/Scene1';
 import { Scene2 } from './video_scenes/Scene2';
@@ -68,6 +68,7 @@ export default function VideoTemplate({
   const SceneComponent = SCENE_COMPONENTS[baseSceneKey];
 
   return (
+    <MotionConfig transition={{ duration: 0 }}>
     <div className="w-full h-screen overflow-hidden relative bg-[#F8FAFC]">
       <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-multiply">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
@@ -99,5 +100,6 @@ export default function VideoTemplate({
         {SceneComponent && <SceneComponent key={currentSceneKey} />}
       </AnimatePresence>
     </div>
+    </MotionConfig>
   );
 }

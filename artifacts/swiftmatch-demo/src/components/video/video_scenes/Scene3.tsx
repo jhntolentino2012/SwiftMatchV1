@@ -10,13 +10,13 @@ const TESTS = [
 ];
 
 export function Scene3() {
-  const [phase, setPhase] = useState(0);
+  const [phase, setPhase] = useState(99);
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 500),
-      setTimeout(() => setPhase(2), 1500),
-      setTimeout(() => setPhase(3), 13500),
+      setTimeout(() => setPhase(99), 500),
+      setTimeout(() => setPhase(99), 1500),
+      setTimeout(() => setPhase(99), 13500),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);

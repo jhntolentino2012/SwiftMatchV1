@@ -2,13 +2,13 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export function Scene9() {
-  const [phase, setPhase] = useState(0);
+  const [phase, setPhase] = useState(99);
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 500), // Card 1
-      setTimeout(() => setPhase(2), 4000), // Card 2
-      setTimeout(() => setPhase(3), 10500),
+      setTimeout(() => setPhase(99), 500), // Card 1
+      setTimeout(() => setPhase(99), 4000), // Card 2
+      setTimeout(() => setPhase(99), 10500),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);

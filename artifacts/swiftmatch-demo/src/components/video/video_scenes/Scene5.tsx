@@ -2,15 +2,15 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export function Scene5() {
-  const [phase, setPhase] = useState(0);
+  const [phase, setPhase] = useState(99);
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 1000), // Question appears
-      setTimeout(() => setPhase(2), 2500), // Timer ticks
-      setTimeout(() => setPhase(3), 5000), // Selects option
-      setTimeout(() => setPhase(4), 6500), // Next question
-      setTimeout(() => setPhase(5), 10500),
+      setTimeout(() => setPhase(99), 1000), // Question appears
+      setTimeout(() => setPhase(99), 2500), // Timer ticks
+      setTimeout(() => setPhase(99), 5000), // Selects option
+      setTimeout(() => setPhase(99), 6500), // Next question
+      setTimeout(() => setPhase(99), 10500),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);

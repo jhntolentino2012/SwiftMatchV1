@@ -2,13 +2,13 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export function Scene7() {
-  const [phase, setPhase] = useState(0);
+  const [phase, setPhase] = useState(99);
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 500),
-      setTimeout(() => setPhase(2), 1500),
-      setTimeout(() => setPhase(3), 2500),
+      setTimeout(() => setPhase(99), 500),
+      setTimeout(() => setPhase(99), 1500),
+      setTimeout(() => setPhase(99), 2500),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);

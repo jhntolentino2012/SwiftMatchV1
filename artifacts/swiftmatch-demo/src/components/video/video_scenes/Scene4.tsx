@@ -2,15 +2,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export function Scene4() {
-  const [phase, setPhase] = useState(0);
+  const [phase, setPhase] = useState(99);
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 500),
-      setTimeout(() => setPhase(2), 2000),
-      setTimeout(() => setPhase(3), 4000),
-      setTimeout(() => setPhase(4), 6000),
-      setTimeout(() => setPhase(5), 8500),
+      setTimeout(() => setPhase(99), 500),
+      setTimeout(() => setPhase(99), 2000),
+      setTimeout(() => setPhase(99), 4000),
+      setTimeout(() => setPhase(99), 6000),
+      setTimeout(() => setPhase(99), 8500),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
