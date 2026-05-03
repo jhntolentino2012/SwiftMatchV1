@@ -26,26 +26,28 @@ export function Navigation() {
 
           {/* Logo */}
           <div className="flex items-center gap-3 shrink-0">
-            <Link href="/" className="group flex items-center gap-3">
-              <div className="relative w-11 h-11 flex-shrink-0" style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}>
-                <img
-                  src="/images/swiftmatch-logo.png"
-                  alt="SwiftMatch logo"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-              <span className="font-display font-extrabold text-2xl tracking-tight" style={{ color: "hsl(214 80% 34%)" }}>
-                Swift<span style={{ color: "hsl(24 95% 52%)" }}>Match</span>
-              </span>
+            {/* Hexagon — links to home */}
+            <Link href="/" className="group relative w-11 h-11 flex-shrink-0" style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}>
+              <img
+                src="/images/swiftmatch-logo.png"
+                alt="SwiftMatch logo"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              />
             </Link>
-            {user && (
-              <Link
-                href="/profile"
-                className="hidden sm:block text-[11px] text-slate-400 font-medium truncate max-w-[160px] hover:text-accent transition-colors border-l border-slate-200 pl-3"
-              >
-                {user.email}
+            {/* Wordmark + email stacked — separate from the hexagon link */}
+            <div className="flex flex-col leading-tight">
+              <Link href="/" className="font-display font-extrabold text-2xl tracking-tight leading-none" style={{ color: "hsl(214 80% 34%)" }}>
+                Swift<span style={{ color: "hsl(24 95% 52%)" }}>Match</span>
               </Link>
-            )}
+              {user && (
+                <Link
+                  href="/profile"
+                  className="text-[11px] text-slate-400 font-medium truncate max-w-[180px] hover:text-accent transition-colors mt-0.5"
+                >
+                  {user.email}
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Nav links */}
