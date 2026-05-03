@@ -159,6 +159,7 @@ export default function ProfilePage() {
   const [editingName, setEditingName] = useState(false);
   const [editFirst, setEditFirst] = useState("");
   const [editLast, setEditLast] = useState("");
+  const [editNickname, setEditNickname] = useState("");
   const [editSuffix, setEditSuffix] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
 
@@ -229,6 +230,7 @@ export default function ProfilePage() {
   function startEditName() {
     setEditFirst(profile?.firstName ?? "");
     setEditLast(profile?.lastName ?? "");
+    setEditNickname(profile?.nickname ?? "");
     setEditSuffix(profile?.suffix ?? "");
     setEditingName(true);
   }
@@ -246,7 +248,7 @@ export default function ProfilePage() {
       const res = await fetch(`${BASE}/api/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ firstName: editFirst.trim(), lastName: editLast.trim(), suffix: editSuffix.trim() || null }),
+        body: JSON.stringify({ firstName: editFirst.trim(), lastName: editLast.trim(), nickname: editNickname.trim() || null, suffix: editSuffix.trim() || null }),
       });
       if (res.ok) {
         const updated: ApplicantProfile = await res.json();
@@ -405,6 +407,13 @@ export default function ProfilePage() {
                     onChange={e => setEditLast(e.target.value)}
                     placeholder="Last name"
                     className="font-display font-bold text-xl text-primary bg-slate-50 border border-primary/30 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30 w-32"
+                    onKeyDown={e => { if (e.key === "Enter") saveEditName(); if (e.key === "Escape") cancelEditName(); }}
+                  />
+                  <input
+                    value={editNickname}
+                    onChange={e => setEditNickname(e.target.value)}
+                    placeholder="Nickname (e.g. JT)"
+                    className="font-display font-bold text-xl text-primary bg-slate-50 border border-primary/30 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-primary/30 w-36"
                     onKeyDown={e => { if (e.key === "Enter") saveEditName(); if (e.key === "Escape") cancelEditName(); }}
                   />
                   <input
