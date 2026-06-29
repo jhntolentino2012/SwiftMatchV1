@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SwiftMatch — Business Plan</title>
+<style>
+  :root{
+    --navy:#0f2a4a; --navy2:#13325a; --orange:#f97316; --orange-soft:#fff4ec;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg-soft:#f8fafc;
+  }
+  *{box-sizing:border-box;}
+  @page{ size:A4; margin:18mm 16mm 20mm 16mm;
+    @bottom-center{ content:"SwiftMatch — Confidential Business Plan"; font-size:8pt; color:#94a3b8; }
+    @bottom-right{ content:"Page " counter(page) " of " counter(pages); font-size:8pt; color:#94a3b8; }
+  }
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink);
+    font-size:10.5pt; line-height:1.55; -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  h1,h2,h3,h4{ color:var(--navy); line-height:1.2; margin:0 0 .4em; font-weight:800; }
+  h2{ font-size:19pt; margin-top:0; padding-bottom:.25em; border-bottom:3px solid var(--orange); }
+  h3{ font-size:13pt; margin-top:1.3em; color:var(--navy2); }
+  h4{ font-size:11pt; margin-top:1em; color:var(--orange); text-transform:uppercase; letter-spacing:.04em; }
+  p{margin:0 0 .7em;}
+  ul,ol{margin:0 0 .8em; padding-left:1.1em;}
+  li{margin-bottom:.32em;}
+  strong{color:var(--navy2);}
+  a{color:var(--orange); text-decoration:none;}
+  .section{ page-break-before:always; padding-top:2mm; }
+  .muted{color:var(--muted);}
+  .tag{ display:inline-block; background:var(--orange-soft); color:var(--orange);
+    font-size:8.5pt; font-weight:700; padding:2px 9px; border-radius:20px; letter-spacing:.03em; }
+  .lead{ font-size:11.5pt; color:var(--navy2); }
+
+  /* COVER */
+  .cover{ height:255mm; display:flex; flex-direction:column; justify-content:space-between;
+    background:linear-gradient(150deg,var(--navy) 0%,var(--navy2) 55%,#1c4480 100%);
+    color:#fff; margin:-18mm -16mm 0; padding:30mm 22mm; }
+  .cover-logo{ font-size:13pt; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#cfe0f5; }
+  .cover-logo b{color:var(--orange);}
+  .cover-title{ font-size:54pt; font-weight:800; line-height:1.02; margin:0; color:#fff; }
+  .cover-sub{ font-size:16pt; color:var(--orange); font-weight:700; margin-top:14px; }
+  .cover-tag{ font-size:13pt; color:#dbe7f7; margin-top:26px; max-width:135mm; line-height:1.5; }
+  .cover-meta{ font-size:10pt; color:#9db8da; border-top:1px solid rgba(255,255,255,.18); padding-top:14px; }
+  .cover-meta b{color:#fff;}
+
+  /* layout helpers */
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .card{ background:var(--bg-soft); border:1px solid var(--line); border-left:4px solid var(--orange);
+    border-radius:8px; padding:12px 14px; }
+  .card h4{margin-top:0;}
+  .stat{ background:var(--navy); color:#fff; border-radius:10px; padding:14px 16px; text-align:center; }
+  .stat .n{ font-size:24pt; font-weight:800; color:#fff; line-height:1; }
+  .stat .l{ font-size:8.5pt; color:#a9c4e6; margin-top:6px; text-transform:uppercase; letter-spacing:.05em; }
+  .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin:.4em 0 1em;}
+
+  table{ width:100%; border-collapse:collapse; margin:.5em 0 1em; font-size:9.5pt; }
+  th,td{ text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ background:var(--navy); color:#fff; font-size:8.5pt; text-transform:uppercase; letter-spacing:.04em; }
+  tr:nth-child(even) td{ background:var(--bg-soft); }
+  td.num,th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+
+  .callout{ background:var(--orange-soft); border:1px solid #fcd9bd; border-radius:8px; padding:12px 15px; margin:1em 0; }
+  .callout p{margin:0;}
+  .toc-item{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px dotted var(--line); font-size:11pt; }
+  .toc-item b{color:var(--navy2); font-weight:700;}
+  .toc-num{ color:var(--orange); font-weight:800; width:26px; }
+  .two-col{ column-count:2; column-gap:18px; }
+  .avoid{ break-inside:avoid; }
+</style>
+</head>
+<body>
+
+<!-- ░░ COVER ░░ -->
+<div class="cover">
+  <div class="cover-logo">Swift<b>Match</b></div>
+  <div>
+    <div class="cover-title">Business<br>Plan</div>
+    <div class="cover-sub">Don't search. Get spotted.</div>
+    <div class="cover-tag">An assessment-first recruitment platform connecting Filipino talent with employers through verified skills, multi-dimensional evaluation, and AI-readiness — not résumés alone.</div>
+  </div>
+  <div class="cover-meta">
+    <b>Prepared for:</b> Founders, Investors &amp; Strategic Partners<br>
+    <b>Market:</b> Republic of the Philippines &nbsp;·&nbsp; <b>Status:</b> MVP live, pre-seed<br>
+    <b>Version:</b> 1.0 &nbsp;·&nbsp; <b>Date:</b> June 2026 &nbsp;·&nbsp; <b>Confidential</b>
+  </div>
+</div>
+
+<!-- ░░ TOC ░░ -->
+<div class="section">
+  <h2>Table of Contents</h2>
+  <div class="toc-item"><span><span class="toc-num">01</span><b>Executive Summary</b></span><span class="muted">Vision &amp; opportunity</span></div>
+  <div class="toc-item"><span><span class="toc-num">02</span><b>Company Overview</b></span><span class="muted">Mission, vision, values</span></div>
+  <div class="toc-item"><span><span class="toc-num">03</span><b>The Problem</b></span><span class="muted">Why hiring is broken</span></div>
+  <div class="toc-item"><span><span class="toc-num">04</span><b>The Solution</b></span><span class="muted">Get spotted, don't search</span></div>
+  <div class="toc-item"><span><span class="toc-num">05</span><b>Product &amp; Technology</b></span><span class="muted">Platform deep-dive</span></div>
+  <div class="toc-item"><span><span class="toc-num">06</span><b>Market Analysis</b></span><span class="muted">TAM / SAM / SOM</span></div>
+  <div class="toc-item"><span><span class="toc-num">07</span><b>Business Model</b></span><span class="muted">Revenue streams</span></div>
+  <div class="toc-item"><span><span class="toc-num">08</span><b>Go-to-Market Strategy</b></span><span class="muted">Acquisition plan</span></div>
+  <div class="toc-item"><span><span class="toc-num">09</span><b>Competitive Landscape</b></span><span class="muted">Positioning</span></div>
+  <div class="toc-item"><span><span class="toc-num">10</span><b>Operations &amp; Team</b></span><span class="muted">Execution</span></div>
+  <div class="toc-item"><span><span class="toc-num">11</span><b>Financial Projections</b></span><span class="muted">3-year model</span></div>
+  <div class="toc-item"><span><span class="toc-num">12</span><b>Funding &amp; Roadmap</b></span><span class="muted">The ask</span></div>
+  <div class="toc-item"><span><span class="toc-num">13</span><b>Risk Analysis</b></span><span class="muted">Mitigation</span></div>
+</div>
+
+<!-- ░░ 01 EXEC ░░ -->
+<div class="section">
+  <span class="tag">01 · EXECUTIVE SUMMARY</span>
+  <h2>Executive Summary</h2>
+  <p class="lead">SwiftMatch is an assessment-first recruitment platform built for the Philippine labor market. We flip the hiring model on its head: instead of applicants endlessly searching and spraying résumés, verified talent gets <strong>spotted</strong> by employers based on objective, multi-dimensional evidence of capability.</p>
+
+  <p>Traditional job boards optimize for volume, not fit. Employers drown in unqualified applications; qualified candidates are filtered out by keyword-matching software before a human ever reads their story. SwiftMatch replaces the résumé-keyword lottery with a structured evaluation engine that scores every candidate across five dimensions — <strong>Knowledge &amp; Expertise, Personality &amp; Work Style, Cultural Fit, Critical Thinking, and AI Readiness</strong> — across 22 industries including the fast-growing Virtual Assistance sector.</p>
+
+  <div class="grid3" style="margin:18px 0;">
+    <div class="stat"><div class="n">22</div><div class="l">Industries covered</div></div>
+    <div class="stat"><div class="n">5</div><div class="l">Assessment dimensions</div></div>
+    <div class="stat"><div class="n">#1</div><div class="l">Get-spotted model</div></div>
+  </div>
+
+  <h3>The Opportunity</h3>
+  <p>The Philippines has a workforce of <strong>~49 million</strong>, one of the world's largest English-speaking talent pools, a globally dominant <strong>BPO industry (~1.7M employed)</strong>, and an explosively growing remote / virtual-assistance economy serving US, AU, and UK clients. Yet hiring infrastructure remains stuck on résumé-keyword job boards. SwiftMatch is positioned to become the trusted, skills-verified layer between this talent and the employers who need it.</p>
+
+  <h3>Business Model</h3>
+  <p>SwiftMatch operates a <strong>freemium two-sided model</strong>. Applicants build a verified profile and take assessments for free. A <strong>Premium tier</strong> unlocks the full candidate analytics report, career-transition recommendations, and priority visibility. Employers pay for access to the ranked candidate pool, advanced matching, custom per-job assessments, and a hiring pipeline with built-in pass/fail decisioning and candidate notifications.</p>
+
+  <div class="callout"><p><strong>The ask:</strong> SwiftMatch is raising a pre-seed round to convert a live MVP into a revenue-generating platform — funding go-to-market, employer sales, assessment-science validation, and email/notification infrastructure across the first 18 months.</p></div>
+</div>
+
+<!-- ░░ 02 COMPANY ░░ -->
+<div class="section">
+  <span class="tag">02 · COMPANY OVERVIEW</span>
+  <h2>Company Overview</h2>
+
+  <div class="grid2">
+    <div class="card avoid"><h4>Mission</h4><p>To make hiring fair and fast by letting verified skills — not connections or keyword luck — decide who gets spotted.</p></div>
+    <div class="card avoid"><h4>Vision</h4><p>To become the Philippines' default trust layer for talent: the place where every serious candidate is objectively measured and every employer hires with confidence.</p></div>
+  </div>
+
+  <h3>Tagline</h3>
+  <p class="lead" style="color:var(--orange); font-weight:800; font-size:16pt;">"Don't search. Get spotted."</p>
+  <p>The tagline is the product strategy. SwiftMatch inverts the burden of effort: candidates invest once in a rich, verified profile and assessment record, and from then on the platform surfaces them to relevant employers automatically.</p>
+
+  <h3>Core Values</h3>
+  <ul>
+    <li><strong>Evidence over assertion.</strong> Every claim on a SwiftMatch profile is backed by a structured assessment or verified record.</li>
+    <li><strong>Fairness by design.</strong> Randomized question banks, cooldowns, and server-side grading prevent gaming and bias.</li>
+    <li><strong>Filipino-first.</strong> Industries, roles, locations, salary norms, and labor context are built for the Philippine market, not bolted on.</li>
+    <li><strong>Dignity in rejection.</strong> Even candidates who aren't selected receive constructive next steps — training and alternative-industry guidance.</li>
+  </ul>
+
+  <h3>Current Status</h3>
+  <p>SwiftMatch has a <strong>live MVP</strong> with a complete applicant journey (10-step profile wizard, résumé auto-fill, five assessments), an employer-facing candidate analytics report with ranked pools and per-job custom assessments, and a premium subscription gate. A public buildathon site and a 2-minute product walkthrough video support market validation and fundraising.</p>
+</div>
+
+<!-- ░░ 03 PROBLEM ░░ -->
+<div class="section">
+  <span class="tag">03 · THE PROBLEM</span>
+  <h2>The Problem</h2>
+  <p class="lead">Hiring in the Philippines is high-volume, low-signal, and exhausting for both sides of the market.</p>
+
+  <h3>For Job Seekers</h3>
+  <ul>
+    <li><strong>The application black hole.</strong> Candidates submit dozens of applications and hear nothing. Résumé-keyword filters reject qualified people before a human reviews them.</li>
+    <li><strong>No way to prove real skill.</strong> A self-written résumé can't demonstrate critical thinking, cultural fit, or AI fluency. Strong candidates with weak résumé-writing skills lose out.</li>
+    <li><strong>Wasted effort.</strong> The same person re-enters the same data into ten different portals, tailors ten résumés, and still competes on presentation rather than ability.</li>
+  </ul>
+
+  <h3>For Employers</h3>
+  <ul>
+    <li><strong>Application overload.</strong> A single posting attracts hundreds of unqualified applicants; screening is manual and slow.</li>
+    <li><strong>Poor signal.</strong> Résumés don't predict on-the-job performance, retention, or team fit — leading to costly mis-hires.</li>
+    <li><strong>No standardized comparison.</strong> Two candidates can't be objectively compared because there's no common measurement.</li>
+    <li><strong>AI blind spot.</strong> As AI reshapes every role, employers have no way to measure a candidate's actual AI readiness.</li>
+  </ul>
+
+  <div class="callout"><p><strong>The core gap:</strong> The market has plenty of <em>job boards</em> (places to post and apply) but no trusted <em>measurement layer</em> (a way to objectively know who is actually qualified and a good fit). SwiftMatch is that layer.</p></div>
+</div>
+
+<!-- ░░ 04 SOLUTION ░░ -->
+<div class="section">
+  <span class="tag">04 · THE SOLUTION</span>
+  <h2>The Solution</h2>
+  <p class="lead">SwiftMatch turns every candidate into a structured, comparable, verified data profile — and surfaces the best-fit people to employers automatically.</p>
+
+  <h3>How It Works</h3>
+  <ol>
+    <li><strong>Build once.</strong> Candidates complete a guided 10-step profile (with résumé auto-fill via AI) capturing skills, history, references, preferences, and an intro video.</li>
+    <li><strong>Get measured.</strong> Candidates take industry-scoped assessments across five dimensions. Questions are randomized and graded server-side for integrity.</li>
+    <li><strong>Get spotted.</strong> Employers browse a ranked candidate pool, run per-job custom assessments, compare candidates on a common scale, and make pass/fail decisions.</li>
+    <li><strong>Close the loop.</strong> Passed candidates move into the hiring pipeline and are notified; others receive a respectful message with training and alternative-industry suggestions.</li>
+  </ol>
+
+  <h3>The Five-Dimensional Assessment Engine</h3>
+  <div class="grid2">
+    <div class="card avoid"><h4>Knowledge &amp; Expertise</h4><p>Industry-specific competency, with randomized difficulty-weighted questions and role-prioritized banks.</p></div>
+    <div class="card avoid"><h4>Personality &amp; Work Style</h4><p>DOPE Bird / MBTI routing based on role and seniority to capture interpersonal vs. cognitive style.</p></div>
+    <div class="card avoid"><h4>Cultural Fit</h4><p>Alignment with team and workplace norms, scored per industry.</p></div>
+    <div class="card avoid"><h4>Critical Thinking</h4><p>Scenario-based reasoning and judgment under realistic constraints.</p></div>
+  </div>
+  <div class="card avoid" style="margin-top:12px;"><h4>AI Readiness</h4><p>A 50-question, industry-scoped bank measuring practical fluency with AI tools — the dimension legacy job boards entirely ignore, and the one employers increasingly demand.</p></div>
+
+  <h3>Why It Wins</h3>
+  <p>SwiftMatch is not a better job board — it is a <strong>different product category</strong>. By owning objective measurement, it becomes the trusted source of truth that both candidates and employers anchor on, creating a defensible two-sided network effect.</p>
+</div>
+
+<!-- ░░ 05 PRODUCT ░░ -->
+<div class="section">
+  <span class="tag">05 · PRODUCT &amp; TECHNOLOGY</span>
+  <h2>Product &amp; Technology</h2>
+
+  <h3>Applicant Experience</h3>
+  <ul>
+    <li><strong>Résumé / CV auto-fill</strong> — upload a PDF/Word résumé; AI extracts and pre-populates the profile, removing the biggest onboarding friction.</li>
+    <li><strong>10-step guided profile wizard</strong> — personal info, contact, skills (autocomplete), employment history, certificates, references, social links, job preferences, pre-assessment, and intro video.</li>
+    <li><strong>Five assessments</strong> across 22 industries, with random question selection, fairness cooldowns, and instant scored results.</li>
+    <li><strong>Personalized dashboard</strong> — profile summary, recommended job matches, assessment results, and recommended training to close skill gaps.</li>
+  </ul>
+
+  <h3>Employer Experience</h3>
+  <ul>
+    <li><strong>Candidate Analytics Report</strong> — a ranked candidate pool scored across all five dimensions, with radar comparisons and pool benchmarks.</li>
+    <li><strong>Job-fit matching</strong> — candidates ranked by compatibility with a specific posting across industry, role, level, and assessment factors.</li>
+    <li><strong>Custom per-job assessments</strong> — recruiters build their own scored questions (multiple-choice and text) graded automatically.</li>
+    <li><strong>Pass / Fail decisioning</strong> — a built-in hiring decision control on each candidate, designed to drive pipeline automation and candidate notifications.</li>
+  </ul>
+
+  <h3>Technology Foundation</h3>
+  <table>
+    <tr><th>Layer</th><th>Stack</th><th>Why it matters</th></tr>
+    <tr><td>Frontend</td><td>React, Vite, Tailwind, Framer Motion</td><td>Fast, polished, mobile-friendly UX</td></tr>
+    <tr><td>API</td><td>Express, TypeScript, Zod validation</td><td>Type-safe, contract-first reliability</td></tr>
+    <tr><td>Data</td><td>PostgreSQL, Drizzle ORM</td><td>Structured, queryable talent graph</td></tr>
+    <tr><td>AI</td><td>GPT via managed integration</td><td>Résumé parsing &amp; future matching intelligence</td></tr>
+    <tr><td>Integrity</td><td>Server-side grading, randomized banks</td><td>Assessment results that employers can trust</td></tr>
+  </table>
+  <p class="muted">A contract-first OpenAPI architecture and shared component libraries let the team ship features across web, mobile, and marketing surfaces quickly and consistently.</p>
+</div>
+
+<!-- ░░ 06 MARKET ░░ -->
+<div class="section">
+  <span class="tag">06 · MARKET ANALYSIS</span>
+  <h2>Market Analysis</h2>
+  <p class="lead">The Philippines is one of the most attractive talent markets in the world — and one of the most underserved by modern hiring technology.</p>
+
+  <h3>Market Sizing</h3>
+  <table>
+    <tr><th>Layer</th><th>Definition</th><th>Scale</th></tr>
+    <tr><td><strong>TAM</strong></td><td>Total PH recruitment &amp; HR-tech spend, all employers &amp; the ~49M workforce</td><td>Billions USD annually</td></tr>
+    <tr><td><strong>SAM</strong></td><td>Digitally-hiring SMEs, BPOs, and remote-staffing firms recruiting online</td><td>Hundreds of thousands of employers</td></tr>
+    <tr><td><strong>SOM (3-yr)</strong></td><td>Premium applicants + paying employers across priority verticals (BPO, IT, VA, healthcare)</td><td>Initial beachhead segment</td></tr>
+  </table>
+
+  <h3>Tailwinds</h3>
+  <div class="grid3">
+    <div class="card avoid"><h4>BPO Engine</h4><p>~1.7M employed and growing; constant, high-volume, screen-heavy hiring — ideal for assessment-based ranking.</p></div>
+    <div class="card avoid"><h4>VA Boom</h4><p>Explosive remote virtual-assistance economy serving overseas clients who desperately need verified, trustworthy talent.</p></div>
+    <div class="card avoid"><h4>AI Shift</h4><p>Every role now needs AI fluency. Employers have no way to measure it — except SwiftMatch.</p></div>
+  </div>
+
+  <h3>Target Segments (Beachhead → Expansion)</h3>
+  <ol>
+    <li><strong>Virtual Assistance &amp; remote staffing</strong> — high pain around trust/verification, overseas-funded budgets, fast adoption.</li>
+    <li><strong>BPO / Call Center</strong> — massive volume hiring where standardized scoring saves real money.</li>
+    <li><strong>Technology / IT &amp; Healthcare</strong> — high-value roles where mis-hires are expensive and AI-readiness matters.</li>
+    <li><strong>Long tail</strong> — the remaining 18 industries already supported on the platform.</li>
+  </ol>
+</div>
+
+<!-- ░░ 07 BUSINESS MODEL ░░ -->
+<div class="section">
+  <span class="tag">07 · BUSINESS MODEL</span>
+  <h2>Business Model</h2>
+  <p class="lead">A freemium, two-sided model: free access builds the talent graph; premium and employer subscriptions monetize the trust it creates.</p>
+
+  <h3>Revenue Streams</h3>
+  <table>
+    <tr><th>Stream</th><th>Buyer</th><th>What they get</th><th>Model</th></tr>
+    <tr><td><strong>Applicant Premium</strong></td><td>Job seekers</td><td>Full analytics report, career-transition recommendations, priority visibility</td><td>Monthly subscription</td></tr>
+    <tr><td><strong>Employer Access</strong></td><td>Employers / recruiters</td><td>Ranked candidate pool, job-fit matching, custom assessments, hiring pipeline</td><td>Tiered subscription</td></tr>
+    <tr><td><strong>Per-Hire / Placement</strong></td><td>Employers</td><td>Success-based fee on confirmed hires</td><td>Transaction fee</td></tr>
+    <tr><td><strong>Assessment Credits</strong></td><td>Employers</td><td>Volume custom-assessment runs for high-throughput hiring</td><td>Usage / packs</td></tr>
+    <tr><td><strong>Training Marketplace</strong></td><td>Both sides</td><td>Recommended courses to close skill gaps (the "bench")</td><td>Referral / revenue share</td></tr>
+  </table>
+
+  <h3>Why Freemium Works Here</h3>
+  <ul>
+    <li><strong>Supply first.</strong> Free assessments attract candidates, building the verified talent graph that makes employer subscriptions valuable.</li>
+    <li><strong>Natural upgrade triggers.</strong> Candidates see a blurred premium report and a clear reason to upgrade; employers hit value the moment they need to compare or shortlist.</li>
+    <li><strong>Compounding moat.</strong> Each assessment adds proprietary, structured data that competitors cannot replicate by scraping résumés.</li>
+  </ul>
+
+  <div class="callout"><p><strong>Unit-economics thesis:</strong> Candidate acquisition is cheap (free, viral, assessment-driven). Revenue concentrates on the employer side, where willingness-to-pay is highest and a single avoided mis-hire pays for the subscription many times over.</p></div>
+</div>
+
+<!-- ░░ 08 GTM ░░ -->
+<div class="section">
+  <span class="tag">08 · GO-TO-MARKET STRATEGY</span>
+  <h2>Go-to-Market Strategy</h2>
+
+  <h3>Phase 1 — Seed the Talent Graph (Months 0–6)</h3>
+  <ul>
+    <li>Launch free assessments in the <strong>Virtual Assistance &amp; BPO</strong> verticals where candidate demand for credible verification is highest.</li>
+    <li>Drive candidate acquisition through social proof ("get your verified SwiftMatch score"), community partnerships, and the shareable results report.</li>
+    <li>Goal: a critical mass of verified, scored candidates that makes the employer side immediately valuable.</li>
+  </ul>
+
+  <h3>Phase 2 — Monetize the Employer Side (Months 6–12)</h3>
+  <ul>
+    <li>Direct sales to <strong>remote-staffing agencies, BPOs, and high-volume SMEs</strong>.</li>
+    <li>Land-and-expand: free trial of the candidate pool → paid access → custom assessments → placement fees.</li>
+    <li>Activate pass/fail pipeline + automated candidate notifications as a retention and stickiness driver.</li>
+  </ul>
+
+  <h3>Phase 3 — Scale &amp; Defend (Months 12–24)</h3>
+  <ul>
+    <li>Expand across all 22 industries; introduce the training marketplace and per-hire monetization.</li>
+    <li>Launch mobile app for candidates to maximize reach in a mobile-first market.</li>
+    <li>Build employer-brand and content moat: "SwiftMatch-verified" becomes a recognized signal.</li>
+  </ul>
+
+  <h3>Acquisition Channels</h3>
+  <div class="grid2">
+    <div class="card avoid"><h4>Candidate side</h4><p>Organic/viral score-sharing, social media, school &amp; community partnerships, SEO on role/industry pages.</p></div>
+    <div class="card avoid"><h4>Employer side</h4><p>Founder-led direct sales, staffing-agency partnerships, referral incentives, case studies on reduced time-to-hire.</p></div>
+  </div>
+</div>
+
+<!-- ░░ 09 COMPETITION ░░ -->
+<div class="section">
+  <span class="tag">09 · COMPETITIVE LANDSCAPE</span>
+  <h2>Competitive Landscape</h2>
+  <p class="lead">SwiftMatch competes adjacent to job boards but owns a category they don't: trusted, multi-dimensional skills measurement.</p>
+
+  <table>
+    <tr><th>Category</th><th>Examples</th><th>Their model</th><th>SwiftMatch edge</th></tr>
+    <tr><td>Job boards</td><td>Generic PH/global boards</td><td>Post &amp; apply, keyword search</td><td>We measure &amp; rank, not just list</td></tr>
+    <tr><td>Pro networks</td><td>Professional social networks</td><td>Self-reported profiles</td><td>Verified, scored, gameable-resistant</td></tr>
+    <tr><td>Staffing agencies</td><td>VA / BPO staffing firms</td><td>Manual, opaque, slow</td><td>Standardized, fast, transparent scoring</td></tr>
+    <tr><td>Assessment tools</td><td>Standalone test vendors</td><td>One-dimensional, employer-only</td><td>Five dimensions + two-sided marketplace</td></tr>
+  </table>
+
+  <h3>Defensibility</h3>
+  <ul>
+    <li><strong>Proprietary data moat.</strong> A growing graph of structured, verified assessment results across 22 industries — impossible to scrape or fake at scale.</li>
+    <li><strong>Two-sided network effects.</strong> More verified candidates → more employer value → more candidates.</li>
+    <li><strong>Assessment science.</strong> Industry-scoped, role-prioritized, integrity-protected banks are hard and slow for competitors to replicate credibly.</li>
+    <li><strong>Local depth.</strong> Built natively for Philippine industries, roles, locations, and salary norms.</li>
+  </ul>
+</div>
+
+<!-- ░░ 10 OPS & TEAM ░░ -->
+<div class="section">
+  <span class="tag">10 · OPERATIONS &amp; TEAM</span>
+  <h2>Operations &amp; Team</h2>
+
+  <h3>Operating Model</h3>
+  <p>SwiftMatch is a lean, technology-led operation. The platform automates the highest-cost parts of recruiting — screening, scoring, ranking, and candidate communication — so the team can stay small while serving a large two-sided market.</p>
+
+  <h3>Key Functions to Build</h3>
+  <table>
+    <tr><th>Function</th><th>Role of the team</th><th>Priority</th></tr>
+    <tr><td>Engineering &amp; Product</td><td>Platform reliability, mobile app, matching intelligence</td><td>High</td></tr>
+    <tr><td>Assessment Science</td><td>Validate question banks, scoring fairness, predictive value</td><td>High</td></tr>
+    <tr><td>Employer Sales</td><td>Land-and-expand with staffing firms, BPOs, SMEs</td><td>High</td></tr>
+    <tr><td>Growth / Community</td><td>Candidate acquisition, content, partnerships</td><td>Medium</td></tr>
+    <tr><td>Trust &amp; Support</td><td>Verification integrity, candidate experience</td><td>Medium</td></tr>
+  </table>
+
+  <h3>Milestones Achieved</h3>
+  <ul>
+    <li>Live MVP: full applicant journey, five assessments, employer analytics report.</li>
+    <li>22-industry coverage including the high-growth Virtual Assistance vertical.</li>
+    <li>AI Readiness assessment shipped — a differentiated, future-facing dimension.</li>
+    <li>Employer pass/fail decisioning groundwork laid for pipeline automation.</li>
+  </ul>
+</div>
+
+<!-- ░░ 11 FINANCIALS ░░ -->
+<div class="section">
+  <span class="tag">11 · FINANCIAL PROJECTIONS</span>
+  <h2>Financial Projections</h2>
+  <p class="lead">An illustrative 3-year model. Figures are directional planning assumptions for a pre-seed company, not guarantees.</p>
+
+  <h3>Revenue Build (Illustrative)</h3>
+  <table>
+    <tr><th>Metric</th><th class="num">Year 1</th><th class="num">Year 2</th><th class="num">Year 3</th></tr>
+    <tr><td>Registered candidates</td><td class="num">25,000</td><td class="num">120,000</td><td class="num">400,000</td></tr>
+    <tr><td>Premium applicants (paid)</td><td class="num">750</td><td class="num">6,000</td><td class="num">24,000</td></tr>
+    <tr><td>Paying employers</td><td class="num">40</td><td class="num">220</td><td class="num">700</td></tr>
+    <tr><td>Applicant Premium revenue</td><td class="num">$27K</td><td class="num">$216K</td><td class="num">$864K</td></tr>
+    <tr><td>Employer subscription revenue</td><td class="num">$96K</td><td class="num">$660K</td><td class="num">$2.52M</td></tr>
+    <tr><td>Placement &amp; other revenue</td><td class="num">$12K</td><td class="num">$120K</td><td class="num">$520K</td></tr>
+    <tr><td><strong>Total revenue</strong></td><td class="num"><strong>$135K</strong></td><td class="num"><strong>$996K</strong></td><td class="num"><strong>$3.90M</strong></td></tr>
+  </table>
+  <p class="muted">Assumes ~$3/mo blended applicant premium and ~$200/mo blended employer subscription, conservative conversion (3% applicant, employer land-and-expand). Currency in USD for investor comparability.</p>
+
+  <h3>Cost Structure</h3>
+  <div class="grid3">
+    <div class="card avoid"><h4>Team</h4><p>Engineering, assessment science, sales — the largest line item early.</p></div>
+    <div class="card avoid"><h4>Acquisition</h4><p>Employer sales &amp; candidate growth; CAC kept low by viral free assessments.</p></div>
+    <div class="card avoid"><h4>Infrastructure</h4><p>Hosting, AI inference, email/notifications — scales sub-linearly with users.</p></div>
+  </div>
+
+  <h3>Path to Profitability</h3>
+  <p>Candidate-side costs stay low (free, viral). Gross margin is high (software + data). As employer ARR compounds and placement fees layer on, the model crosses into profitability as employer revenue outpaces a deliberately lean cost base — targeted around the Year 2–3 transition.</p>
+</div>
+
+<!-- ░░ 12 FUNDING & ROADMAP ░░ -->
+<div class="section">
+  <span class="tag">12 · FUNDING &amp; ROADMAP</span>
+  <h2>Funding &amp; Roadmap</h2>
+
+  <h3>The Ask</h3>
+  <p>SwiftMatch is raising a <strong>pre-seed round</strong> to take a live MVP to repeatable revenue. Capital is allocated to the highest-leverage gaps between "it works" and "it sells."</p>
+
+  <h3>Use of Funds</h3>
+  <table>
+    <tr><th>Area</th><th>What it funds</th><th class="num">Allocation</th></tr>
+    <tr><td>Product &amp; Engineering</td><td>Mobile app, matching intelligence, pipeline automation</td><td class="num">35%</td></tr>
+    <tr><td>Employer Sales &amp; GTM</td><td>Founder-led sales, partnerships, candidate growth</td><td class="num">30%</td></tr>
+    <tr><td>Assessment Science</td><td>Validate banks, scoring fairness, predictive value</td><td class="num">15%</td></tr>
+    <tr><td>Infrastructure</td><td>Email/notifications, scaling, AI inference</td><td class="num">12%</td></tr>
+    <tr><td>Operations &amp; Buffer</td><td>Legal, compliance, runway buffer</td><td class="num">8%</td></tr>
+  </table>
+
+  <h3>Roadmap</h3>
+  <table>
+    <tr><th>Horizon</th><th>Focus</th><th>Key deliverables</th></tr>
+    <tr><td><strong>Q1–Q2</strong></td><td>Monetization rails</td><td>Server-side premium gate, email/notification engine, pass/fail pipeline live</td></tr>
+    <tr><td><strong>Q3–Q4</strong></td><td>Employer revenue</td><td>Employer subscriptions, custom-assessment packs, first placement fees</td></tr>
+    <tr><td><strong>Year 2</strong></td><td>Scale</td><td>Mobile app, training marketplace, all-industry expansion, AI matching</td></tr>
+    <tr><td><strong>Year 3</strong></td><td>Category leadership</td><td>"SwiftMatch-verified" as a market standard; regional expansion exploration</td></tr>
+  </table>
+
+  <div class="callout"><p><strong>Immediate next builds:</strong> (1) move the premium gate server-side for a real paywall; (2) wire pass/fail decisions to candidate email notifications — hiring-process invite on pass, respectful thank-you + training/industry guidance on fail.</p></div>
+</div>
+
+<!-- ░░ 13 RISK ░░ -->
+<div class="section">
+  <span class="tag">13 · RISK ANALYSIS</span>
+  <h2>Risk Analysis &amp; Mitigation</h2>
+
+  <table>
+    <tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr><td><strong>Cold-start (two-sided)</strong></td><td>Hard to attract employers without candidates and vice versa</td><td>Supply-first: free viral assessments seed the candidate graph before employer monetization</td></tr>
+    <tr><td><strong>Assessment gaming</strong></td><td>Cheating erodes employer trust</td><td>Randomized banks, server-side grading, cooldowns; ongoing integrity investment</td></tr>
+    <tr><td><strong>Assessment validity</strong></td><td>Scores must predict real performance</td><td>Dedicated assessment-science function; iterate banks against hiring outcomes</td></tr>
+    <tr><td><strong>Employer willingness-to-pay</strong></td><td>Revenue concentration risk</td><td>Tie pricing to avoided mis-hire cost &amp; time-to-hire savings; land-and-expand</td></tr>
+    <tr><td><strong>Incumbent response</strong></td><td>Job boards add testing</td><td>Data moat + two-sided network + local depth are hard to replicate quickly</td></tr>
+    <tr><td><strong>Data privacy / compliance</strong></td><td>Sensitive candidate data</td><td>PH Data Privacy Act alignment, secure handling, server-side trust boundaries</td></tr>
+  </table>
+
+  <h3>Closing</h3>
+  <p class="lead">SwiftMatch is built on a simple, durable insight: in a market overflowing with talent and starved of trust, whoever owns objective measurement owns the hiring relationship.</p>
+  <p>With a live product, a differentiated assessment engine, deep Philippine-market fit, and a clear path from free supply to employer revenue, SwiftMatch is positioned to become the verified talent layer for one of the world's most important workforces.</p>
+
+  <p style="margin-top:24px; font-weight:800; color:var(--orange); font-size:14pt;">Don't search. Get spotted.</p>
+  <p class="muted" style="font-size:8.5pt; margin-top:30px; border-top:1px solid var(--line); padding-top:10px;">This document contains forward-looking statements and illustrative projections prepared for planning and discussion purposes. Actual results may differ materially. Confidential — not for distribution without permission. © 2026 SwiftMatch.</p>
+</div>
+
+</body>
+</html>

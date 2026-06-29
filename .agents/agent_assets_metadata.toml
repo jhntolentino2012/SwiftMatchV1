@@ -35,3 +35,9 @@ id = "k_wIdqT9Vg8fkD4fl5jXl"
 uri = "file://exports/swiftmatch-demo.mp4"
 type = "video"
 title = "SwiftMatch Demo MP4 (for Facebook upload)"
+
+[[outputs]]
+id = "QCgKwP4kBHzbvfTzitgli"
+uri = "file://exports/swiftmatch-business-plan.pdf"
+type = "pdf"
+title = "SwiftMatch — Business Plan (PDF)"
