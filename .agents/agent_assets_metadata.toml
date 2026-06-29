@@ -41,3 +41,9 @@ id = "QCgKwP4kBHzbvfTzitgli"
 uri = "file://exports/swiftmatch-business-plan.pdf"
 type = "pdf"
 title = "SwiftMatch — Business Plan (PDF)"
+
+[[outputs]]
+id = "2PPqRPjtCLPYTRqDssrvA"
+uri = "file://exports/swiftmatch-build-procedure.pdf"
+type = "pdf"
+title = "SwiftMatch — Step-by-Step Build Procedure (PDF)"

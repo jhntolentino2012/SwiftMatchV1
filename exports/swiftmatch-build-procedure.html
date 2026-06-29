@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SwiftMatch — Step-by-Step Build Procedure</title>
+<style>
+  :root{
+    --navy:#0f2a4a; --navy2:#13325a; --orange:#f97316; --orange-soft:#fff4ec;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg-soft:#f8fafc;
+  }
+  *{box-sizing:border-box;}
+  @page{ size:A4; margin:18mm 16mm 20mm 16mm;
+    @bottom-center{ content:"SwiftMatch — Build Procedure"; font-size:8pt; color:#94a3b8; }
+    @bottom-right{ content:"Page " counter(page) " of " counter(pages); font-size:8pt; color:#94a3b8; }
+  }
+  html,body{margin:0;padding:0;}
+  body{ font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink);
+    font-size:10.5pt; line-height:1.55; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  h1,h2,h3,h4{ color:var(--navy); line-height:1.2; margin:0 0 .4em; font-weight:800; }
+  h2{ font-size:18pt; margin-top:0; padding-bottom:.25em; border-bottom:3px solid var(--orange); }
+  h3{ font-size:12.5pt; margin-top:1.2em; color:var(--navy2); }
+  h4{ font-size:10.5pt; margin-top:1em; color:var(--orange); text-transform:uppercase; letter-spacing:.04em; }
+  p{margin:0 0 .65em;}
+  ul,ol{margin:0 0 .7em; padding-left:1.15em;}
+  li{margin-bottom:.3em;}
+  strong{color:var(--navy2);}
+  code{ font-family:"SF Mono",Menlo,Consolas,monospace; background:#f1f5f9; color:#0f2a4a;
+    font-size:8.8pt; padding:1px 5px; border-radius:4px; border:1px solid #e2e8f0; }
+  pre{ background:#0f2a4a; color:#e2e8f0; border-radius:8px; padding:12px 14px; font-size:8.4pt;
+    line-height:1.5; overflow:hidden; white-space:pre-wrap; word-break:break-word; margin:.5em 0 1em;
+    font-family:"SF Mono",Menlo,Consolas,monospace; }
+  pre .c{color:#7d9bc1;} /* comment */
+  .section{ page-break-before:always; padding-top:2mm; }
+  .muted{color:var(--muted);}
+  .tag{ display:inline-block; background:var(--orange-soft); color:var(--orange);
+    font-size:8.5pt; font-weight:700; padding:2px 9px; border-radius:20px; letter-spacing:.03em; }
+  .lead{ font-size:11.5pt; color:var(--navy2); }
+  .callout{ background:var(--orange-soft); border:1px solid #fcd9bd; border-radius:8px; padding:11px 14px; margin:1em 0; }
+  .callout p{margin:0;}
+  .card{ background:var(--bg-soft); border:1px solid var(--line); border-left:4px solid var(--orange);
+    border-radius:8px; padding:11px 14px; }
+  .card h4{margin-top:0;}
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  table{ width:100%; border-collapse:collapse; margin:.5em 0 1em; font-size:9.3pt; }
+  th,td{ text-align:left; padding:6px 9px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ background:var(--navy); color:#fff; font-size:8.3pt; text-transform:uppercase; letter-spacing:.04em; }
+  tr:nth-child(even) td{ background:var(--bg-soft); }
+  .avoid{break-inside:avoid;}
+  .step-meta{ font-size:9pt; color:var(--muted); margin:-.2em 0 .9em; }
+  .step-meta b{color:var(--navy2);}
+
+  /* COVER */
+  .cover{ height:255mm; display:flex; flex-direction:column; justify-content:space-between;
+    background:linear-gradient(150deg,var(--navy) 0%,var(--navy2) 55%,#1c4480 100%);
+    color:#fff; margin:-18mm -16mm 0; padding:30mm 22mm; }
+  .cover-logo{ font-size:13pt; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#cfe0f5; }
+  .cover-logo b{color:var(--orange);}
+  .cover-title{ font-size:46pt; font-weight:800; line-height:1.04; margin:0; color:#fff; }
+  .cover-sub{ font-size:15pt; color:var(--orange); font-weight:700; margin-top:14px; }
+  .cover-tag{ font-size:12.5pt; color:#dbe7f7; margin-top:24px; max-width:140mm; line-height:1.5; }
+  .cover-meta{ font-size:10pt; color:#9db8da; border-top:1px solid rgba(255,255,255,.18); padding-top:14px; }
+  .cover-meta b{color:#fff;}
+
+  .toc-item{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dotted var(--line); font-size:10.5pt; }
+  .toc-item b{color:var(--navy2); font-weight:700;}
+  .toc-num{ color:var(--orange); font-weight:800; width:30px; display:inline-block; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-logo">Swift<b>Match</b></div>
+  <div>
+    <div class="cover-title">How We<br>Built It</div>
+    <div class="cover-sub">Step-by-Step Build Procedure</div>
+    <div class="cover-tag">The complete, ordered engineering playbook used to build SwiftMatch — from an empty monorepo to a live, assessment-first recruitment platform across 22 industries.</div>
+  </div>
+  <div class="cover-meta">
+    <b>Project:</b> SwiftMatch — "Don't search. Get spotted."<br>
+    <b>Stack:</b> pnpm monorepo · TypeScript · React + Vite · Express 5 · PostgreSQL + Drizzle<br>
+    <b>Version:</b> 1.0 &nbsp;·&nbsp; <b>Date:</b> June 2026 &nbsp;·&nbsp; <b>Technical Documentation</b>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="section">
+  <h2>Build Roadmap</h2>
+  <p class="lead">SwiftMatch was built in 14 sequential phases. Each phase below lists its goal, the actions taken, and the key outcome.</p>
+  <div class="toc-item"><span><span class="toc-num">01</span><b>Project &amp; Monorepo Foundation</b></span><span class="muted">pnpm workspace + TypeScript</span></div>
+  <div class="toc-item"><span><span class="toc-num">02</span><b>Database Schema Design</b></span><span class="muted">PostgreSQL + Drizzle ORM</span></div>
+  <div class="toc-item"><span><span class="toc-num">03</span><b>Contract-First API Spec</b></span><span class="muted">OpenAPI + Zod + Orval</span></div>
+  <div class="toc-item"><span><span class="toc-num">04</span><b>Backend API Server</b></span><span class="muted">Express 5 routes &amp; seeding</span></div>
+  <div class="toc-item"><span><span class="toc-num">05</span><b>Frontend Scaffold</b></span><span class="muted">React + Vite + Tailwind</span></div>
+  <div class="toc-item"><span><span class="toc-num">06</span><b>Applicant Profile Wizard</b></span><span class="muted">10-step onboarding</span></div>
+  <div class="toc-item"><span><span class="toc-num">07</span><b>Résumé Auto-Fill (AI)</b></span><span class="muted">PDF/DOCX → GPT parsing</span></div>
+  <div class="toc-item"><span><span class="toc-num">08</span><b>Assessment Engine</b></span><span class="muted">5 dimensions × 22 industries</span></div>
+  <div class="toc-item"><span><span class="toc-num">09</span><b>Jobs, Applications &amp; Matching</b></span><span class="muted">Apply flow + scoring</span></div>
+  <div class="toc-item"><span><span class="toc-num">10</span><b>Recruiter Custom Assessments</b></span><span class="muted">Per-job question builder</span></div>
+  <div class="toc-item"><span><span class="toc-num">11</span><b>Employer Report &amp; Decisioning</b></span><span class="muted">Ranked pool + Pass/Fail</span></div>
+  <div class="toc-item"><span><span class="toc-num">12</span><b>Authentication &amp; Owner Accounts</b></span><span class="muted">JWT + role bypasses</span></div>
+  <div class="toc-item"><span><span class="toc-num">13</span><b>Premium Gating</b></span><span class="muted">Freemium paywall</span></div>
+  <div class="toc-item"><span><span class="toc-num">14</span><b>Supporting Artifacts &amp; Launch</b></span><span class="muted">Marketing, video, deploy</span></div>
+</div>
+
+<!-- 01 -->
+<div class="section">
+  <span class="tag">PHASE 01</span>
+  <h2>Project &amp; Monorepo Foundation</h2>
+  <p class="step-meta"><b>Goal:</b> A clean, type-safe multi-package workspace where each app and library manages its own dependencies.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Initialize a <strong>pnpm workspace monorepo</strong> with <code>pnpm-workspace.yaml</code> declaring the <code>artifacts/*</code> and <code>lib/*</code> package globs.</li>
+    <li>Create a shared <code>tsconfig.base.json</code> with strict TypeScript defaults (<code>composite: true</code>, incremental builds) and a root <code>tsconfig.json</code> solution file referencing all composite libraries.</li>
+    <li>Pin shared dependency versions in the workspace <strong>catalog</strong> so every package resolves the same React, TypeScript, etc.</li>
+    <li>Establish the folder structure: deployable apps in <code>artifacts/</code>, shared code in <code>lib/</code>, utility scripts in <code>scripts/</code>.</li>
+  </ol>
+
+  <pre><span class="c"># Resulting structure</span>
+artifacts-monorepo/
+├── artifacts/
+│   ├── api-server/     <span class="c"># Express API</span>
+│   └── swiftmatch/     <span class="c"># React + Vite frontend</span>
+├── lib/
+│   ├── api-spec/       <span class="c"># OpenAPI + Orval config</span>
+│   ├── api-client-react/  <span class="c"># Generated React Query hooks</span>
+│   ├── api-zod/        <span class="c"># Generated Zod schemas</span>
+│   └── db/             <span class="c"># Drizzle schema + connection</span>
+├── pnpm-workspace.yaml
+└── tsconfig.base.json</pre>
+
+  <div class="callout"><p><strong>Principle:</strong> Leaf apps (<code>artifacts/*</code>) never import each other. Anything shared becomes a <code>lib/*</code> package — keeping boundaries clean and types portable.</p></div>
+</div>
+
+<!-- 02 -->
+<div class="section">
+  <span class="tag">PHASE 02</span>
+  <h2>Database Schema Design</h2>
+  <p class="step-meta"><b>Goal:</b> A structured talent graph in PostgreSQL, modeled with Drizzle ORM in the <code>@workspace/db</code> library.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Provision a <strong>PostgreSQL</strong> database; expose its connection via the <code>DATABASE_URL</code> environment variable.</li>
+    <li>Model the domain as Drizzle schema files, one per concern, under <code>lib/db/schema/</code>.</li>
+    <li>Use <code>drizzle-zod</code> to derive validation schemas directly from table definitions, keeping DB and API contracts in sync.</li>
+    <li>Push schema changes with <code>pnpm --filter @workspace/db run push</code> (no manual SQL migrations).</li>
+  </ol>
+
+  <h3>Core Tables</h3>
+  <table>
+    <tr><th>Schema file</th><th>Holds</th></tr>
+    <tr><td><code>applicants.ts</code></td><td>Candidate profiles: personal info, contact, skills, history, references, preferences</td></tr>
+    <tr><td><code>assessments.ts</code></td><td>Assessment definitions + <code>assessment_results</code> (with nullable <code>job_id</code> FK)</td></tr>
+    <tr><td><code>jobs.ts</code></td><td>Job postings, <code>custom_questions</code> JSONB, and <code>job_applications</code></td></tr>
+    <tr><td><code>courses.ts</code></td><td>Training / course recommendations (the skill-enhancement "bench")</td></tr>
+  </table>
+
+  <pre><span class="c"># job_applications — the join between candidate and job</span>
+(id, applicant_id, job_id, job_title, company,
+ industry, status, ke_score,
+ custom_score, custom_correct_count, custom_total_count,
+ custom_answers JSONB, created_at)
+ UNIQUE(applicant_id, job_id)</pre>
+</div>
+
+<!-- 03 -->
+<div class="section">
+  <span class="tag">PHASE 03</span>
+  <h2>Contract-First API Spec</h2>
+  <p class="step-meta"><b>Goal:</b> Define every endpoint once in OpenAPI, then generate type-safe clients and validators — no hand-written API glue.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Author the <strong>OpenAPI specification</strong> in <code>lib/api-spec/</code> describing all routes, request bodies, and responses.</li>
+    <li>Configure <strong>Orval</strong> to generate, from that single spec:
+      <ul>
+        <li><code>@workspace/api-client-react</code> — React Query hooks for the frontend.</li>
+        <li><code>@workspace/api-zod</code> — Zod schemas for runtime validation on both sides.</li>
+      </ul>
+    </li>
+    <li>Run codegen whenever the contract changes:</li>
+  </ol>
+  <pre>pnpm --filter @workspace/api-spec run codegen</pre>
+
+  <div class="callout"><p><strong>Why contract-first:</strong> The server validates inputs/outputs with the generated Zod schemas, and the client calls the generated hooks. The compiler catches any drift between frontend and backend before it ships.</p></div>
+
+  <p class="muted">Note: the OpenAPI <code>info.title</code> drives generated filenames, so it stays fixed once established.</p>
+</div>
+
+<!-- 04 -->
+<div class="section">
+  <span class="tag">PHASE 04</span>
+  <h2>Backend API Server</h2>
+  <p class="step-meta"><b>Goal:</b> An Express 5 + TypeScript server exposing the talent graph, with auto-seeded demo data.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Scaffold the <code>@workspace/api-server</code> Express application; bind it to the <code>PORT</code> env var and mount everything under the <code>/api</code> base path.</li>
+    <li>Implement route handlers grouped by concern (applicants, assessments, jobs, courses, skills, résumé, auth).</li>
+    <li>Validate all inputs and outputs against the generated Zod schemas.</li>
+    <li>Use structured logging (<code>req.log</code> in handlers) — never <code>console.log</code> in server code.</li>
+    <li>Auto-seed demo content on boot: assessments, 6 sample jobs, 8 courses.</li>
+  </ol>
+
+  <h3>Key Endpoints</h3>
+  <table>
+    <tr><th>Route</th><th>Purpose</th></tr>
+    <tr><td><code>GET /api/healthz</code></td><td>Health check</td></tr>
+    <tr><td><code>GET/POST /api/applicants</code></td><td>List / create candidate profiles</td></tr>
+    <tr><td><code>GET /api/jobs</code> · <code>/:id</code></td><td>List / fetch postings (answer keys stripped)</td></tr>
+    <tr><td><code>POST /api/jobs/:id/apply</code></td><td>Apply to a job (JWT required, 409 if duplicate)</td></tr>
+    <tr><td><code>POST /api/resume/parse</code></td><td>Parse uploaded résumé into structured data</td></tr>
+    <tr><td><code>GET /api/skills/suggestions?q=</code></td><td>Skill autocomplete</td></tr>
+  </table>
+</div>
+
+<!-- 05 -->
+<div class="section">
+  <span class="tag">PHASE 05</span>
+  <h2>Frontend Scaffold</h2>
+  <p class="step-meta"><b>Goal:</b> A fast, polished React single-page app served at the root path.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Scaffold the <code>@workspace/swiftmatch</code> app with <strong>React + Vite</strong>.</li>
+    <li>Add <strong>Tailwind CSS</strong> and <strong>shadcn/ui</strong> for a consistent design system; <strong>Framer Motion</strong> for animation.</li>
+    <li>Configure Vite to read <code>PORT</code> and allow proxied hosts (<code>server.allowedHosts: true</code>) so the preview renders through Replit's iframe proxy.</li>
+    <li>Wire data fetching through the generated <code>@workspace/api-client-react</code> hooks — using base-path-aware URLs, never root-relative ones.</li>
+    <li>Establish the brand: navy primary, orange accent, the "Don't search. Get spotted." identity.</li>
+  </ol>
+
+  <div class="callout"><p><strong>Routing model:</strong> A global reverse proxy routes by path — the frontend lives at <code>/</code>, the API at <code>/api</code>. Each service handles its own full base path; no Vite proxy hacks needed.</p></div>
+</div>
+
+<!-- 06 -->
+<div class="section">
+  <span class="tag">PHASE 06</span>
+  <h2>Applicant Profile Wizard</h2>
+  <p class="step-meta"><b>Goal:</b> Capture a rich, structured candidate profile through a guided 10-step flow.</p>
+
+  <h3>The 10 Steps</h3>
+  <table>
+    <tr><th>#</th><th>Step</th><th>Captures</th></tr>
+    <tr><td>1</td><td>Personal Info</td><td>Name, pronoun, nickname, suffix</td></tr>
+    <tr><td>2</td><td>Contact Info</td><td>Addresses, phone (area code), email</td></tr>
+    <tr><td>3</td><td>Skills</td><td>API autocomplete, max 5 tags</td></tr>
+    <tr><td>4</td><td>Employment History</td><td>Company, position, years, reason for leaving</td></tr>
+    <tr><td>5</td><td>Certificates &amp; Training</td><td>Up to 3 entries</td></tr>
+    <tr><td>6</td><td>Character References</td><td>Up to 3, with phone + email</td></tr>
+    <tr><td>7</td><td>Social Links</td><td>Facebook + LinkedIn</td></tr>
+    <tr><td>8</td><td>Job Preferences</td><td>Salary, negotiable toggle, availability date</td></tr>
+    <tr><td>9</td><td>Pre-Assessment</td><td>4 categories of baseline questions</td></tr>
+    <tr><td>10</td><td>Introduction Video</td><td>Upload</td></tr>
+  </table>
+
+  <h3>Steps to Build</h3>
+  <ol>
+    <li>Model each step as a discrete form component with local validation.</li>
+    <li>Persist progress to the applicant record via the generated mutation hooks.</li>
+    <li>Add the résumé upload card above the wizard (see Phase 07) to pre-fill the steps.</li>
+  </ol>
+</div>
+
+<!-- 07 -->
+<div class="section">
+  <span class="tag">PHASE 07</span>
+  <h2>Résumé Auto-Fill (AI)</h2>
+  <p class="step-meta"><b>Goal:</b> Remove onboarding friction — let a candidate upload a résumé and have the profile fill itself.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Add a résumé upload card (PDF, .docx/.doc, plain text; up to 10MB) above the 10-step wizard.</li>
+    <li>Implement <code>POST /api/resume/parse</code> (multipart, field <code>resume</code>).</li>
+    <li>Extract raw text server-side: <code>pdf-parse</code> for PDFs, <code>mammoth</code> for DOCX.</li>
+    <li>Send the text to <strong>GPT (gpt-5-mini)</strong> via the Replit-managed OpenAI AI Integration — no user API key required.</li>
+    <li>Map the model's structured output to wizard fields: name, contact, address, skills, employment history, certificates, salary, availability, social links.</li>
+  </ol>
+
+  <pre><span class="c"># Managed via env vars — billed to Replit credits</span>
+AI_INTEGRATIONS_OPENAI_BASE_URL
+AI_INTEGRATIONS_OPENAI_API_KEY</pre>
+
+  <div class="callout"><p><strong>Result:</strong> A candidate goes from "upload" to a mostly-complete profile in seconds, then reviews and refines — dramatically improving completion rates.</p></div>
+</div>
+
+<!-- 08 -->
+<div class="section">
+  <span class="tag">PHASE 08</span>
+  <h2>Assessment Engine</h2>
+  <p class="step-meta"><b>Goal:</b> Score every candidate objectively across five dimensions and 22 industries — fairly and un-gameably.</p>
+
+  <h3>The Five Dimensions</h3>
+  <div class="grid2">
+    <div class="card avoid"><h4>Knowledge &amp; Expertise</h4><p>Industry competency; difficulty-weighted, role-prioritized banks.</p></div>
+    <div class="card avoid"><h4>Personality &amp; Work Style</h4><p>DOPE Bird / MBTI routing by role &amp; seniority.</p></div>
+    <div class="card avoid"><h4>Cultural Fit</h4><p>Workplace-norm alignment, per industry.</p></div>
+    <div class="card avoid"><h4>Critical Thinking</h4><p>Scenario-based reasoning.</p></div>
+  </div>
+  <div class="card avoid" style="margin-top:10px;"><h4>AI Readiness</h4><p>50-question industry-scoped bank measuring practical AI-tool fluency — the differentiator.</p></div>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Build the question banks in <code>industry-questions.ts</code> with <code>INDUSTRY_QUESTIONS</code>, <code>INDUSTRY_ROLES</code>, and an <code>ANSWER_KEY</code> per industry.</li>
+    <li>Implement <code>pickQuiz</code> to randomize 10 questions per session (3 easy, 4 medium, 3 hard) so no two candidates get the same test.</li>
+    <li>Grade <strong>server-side</strong> only — the client never sees answer keys.</li>
+    <li>Enforce a <strong>1-month retake cooldown</strong> (bypassed for the owner account during testing).</li>
+    <li>Normalize raw industry strings to canonical quiz keys via <code>normalizeIndustry()</code>.</li>
+    <li>Scale coverage to <strong>22 industries</strong> — including adding Virtual Assistance end-to-end (question bank, routing, role maps, slug maps).</li>
+  </ol>
+</div>
+
+<!-- 09 -->
+<div class="section">
+  <span class="tag">PHASE 09</span>
+  <h2>Jobs, Applications &amp; Matching</h2>
+  <p class="step-meta"><b>Goal:</b> Let candidates apply to jobs and auto-trigger the right assessment, while linking results back to each application.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Render job cards and a detail panel with an <strong>Apply</strong> button (hidden for employer sessions).</li>
+    <li>On apply: if JWT valid → <code>POST /api/jobs/:id/apply</code> → redirect to the assessment pre-loaded with the job's industry/role/company; if no JWT → redirect to signup.</li>
+    <li>Create a <code>job_applications</code> row (unique per applicant+job; 409 on duplicates).</li>
+    <li>On K&amp;E submit, pass the <code>jobId</code> so the score updates <code>job_applications.ke_score</code> and sets <code>status = "assessed"</code>.</li>
+    <li>Show a job-context banner in the quiz and auto-start the assessment from URL params or from the profile's target industry/role.</li>
+  </ol>
+
+  <div class="callout"><p><strong>Outcome:</strong> Applying and getting measured become a single, seamless flow — every application carries an objective score.</p></div>
+</div>
+
+<!-- 10 -->
+<div class="section">
+  <span class="tag">PHASE 10</span>
+  <h2>Recruiter Custom Assessments</h2>
+  <p class="step-meta"><b>Goal:</b> Let recruiters attach their own scored questions to a specific job and grade them automatically.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Add a <code>custom_questions</code> JSONB column to <code>jobs</code>; each question = <code>{ id, prompt, type, options?, correctAnswers[] }</code>.</li>
+    <li>Build the recruiter question builder in the Jobs editor — multiple-choice (checkbox for correct option) and text (pipe-separated accepted answers). Use functional <code>setState</code> to avoid stale-closure drops on rapid edits.</li>
+    <li>Gate editing with <code>canEditJob</code> = admin OR employer-owner.</li>
+    <li><strong>Strip answer keys</strong> from all public reads (<code>stripJobAnswerKeys</code>); expose sanitized questions via <code>GET /api/jobs/:id/custom-assessment</code>.</li>
+    <li>Grade on submit (<code>POST .../custom-assessment/submit</code>): case-insensitive trimmed equality; persist atomically with <code>INSERT … ON CONFLICT … DO UPDATE</code> when a profile exists.</li>
+  </ol>
+
+  <div class="callout"><p><strong>Security principle:</strong> Correct answers never leave the server for public consumers. The grading boundary lives entirely server-side.</p></div>
+</div>
+
+<!-- 11 -->
+<div class="section">
+  <span class="tag">PHASE 11</span>
+  <h2>Employer Report &amp; Decisioning</h2>
+  <p class="step-meta"><b>Goal:</b> Give employers a ranked, comparable candidate pool and a way to act on it.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Build the <strong>Candidate Analytics Report</strong>: a ranked pool scored across all five dimensions, with radar comparison (top candidate vs. pool average).</li>
+    <li>Add a <strong>job-fit matching</strong> view ranking candidates by compatibility (industry, role, level, assessment factors).</li>
+    <li>Render per-candidate <strong>Pass / Fail decision radios</strong> in both tables — emerald Pass, rose Fail — isolated from the row's "View Report" click.</li>
+    <li>Hold decisions in a state map keyed by candidate id (UI-first), ready to wire to a backend column and notifications.</li>
+  </ol>
+
+  <h3>Planned Next (decisioning pipeline)</h3>
+  <ul>
+    <li>Persist decisions to a DB column via a new endpoint.</li>
+    <li>On <strong>Pass</strong> → email the candidate a hiring-process invite.</li>
+    <li>On <strong>Fail</strong> → respectful thank-you email plus training / alternative-industry suggestions.</li>
+  </ul>
+</div>
+
+<!-- 12 -->
+<div class="section">
+  <span class="tag">PHASE 12</span>
+  <h2>Authentication &amp; Owner Accounts</h2>
+  <p class="step-meta"><b>Goal:</b> Identify candidates vs. employers vs. admins, and enable safe testing bypasses.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Implement signup/login issuing a <strong>JWT</strong>; protect apply, submit, and admin routes with it.</li>
+    <li>Maintain owner/admin emails in two synced places: backend <code>DEFAULT_OWNER_EMAILS</code> (extendable via <code>OWNER_EMAILS</code> env var) and frontend <code>owner.ts</code> (<code>isOwnerEmail()</code>).</li>
+    <li>Add owner bypasses for testing: skip email confirmation on signup, and treat owner accounts as premium.</li>
+    <li>Tie bypasses to the authenticated identity (<code>useAuth()</code> + <code>isOwnerEmail()</code>), not device-local flags.</li>
+  </ol>
+
+  <div class="callout"><p><strong>Deferred:</strong> Email delivery (confirmation + reset). The email lib logs the link to the server console until an SMTP/email integration is connected — a known, documented gap.</p></div>
+</div>
+
+<!-- 13 -->
+<div class="section">
+  <span class="tag">PHASE 13</span>
+  <h2>Premium Gating</h2>
+  <p class="step-meta"><b>Goal:</b> Monetize the full analytics report behind a premium tier.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Compute premium status on the Results page: <code>isPremium = localStorage.sm_subscription === "active" || isOwnerEmail(user?.email)</code>.</li>
+    <li>Wrap the full report in a <code>LockOverlay</code> — blurred preview + subscribe upsell for free users.</li>
+    <li>Owner accounts see the full report with no lock, for demos and testing.</li>
+  </ol>
+
+  <div class="callout"><p><strong>Known limitation &amp; next build:</strong> the gate is currently client-side (bypassable). Moving it server-side — so the API itself withholds premium data from unentitled users — is the priority hardening step before charging real customers.</p></div>
+</div>
+
+<!-- 14 -->
+<div class="section">
+  <span class="tag">PHASE 14</span>
+  <h2>Supporting Artifacts &amp; Launch</h2>
+  <p class="step-meta"><b>Goal:</b> Surround the product with everything needed to demo, market, and ship it.</p>
+
+  <h3>Steps</h3>
+  <ol>
+    <li>Build a <strong>buildathon marketing site</strong> artifact (brand/positioning showcase) at its own path.</li>
+    <li>Produce a <strong>2-minute product walkthrough video</strong> artifact.</li>
+    <li>Maintain a <strong>mockup-sandbox</strong> artifact for isolated component previews on the canvas.</li>
+    <li>Verify each artifact with <code>pnpm --filter @workspace/&lt;slug&gt; run typecheck</code> (not <code>build</code>, which needs workflow env vars).</li>
+    <li>Run each app via its <strong>workflow</strong>; confirm the preview renders through the proxy.</li>
+    <li>Review major features with an architect pass; fix severe issues before shipping.</li>
+    <li><strong>Deploy</strong> — the platform handles build, hosting, TLS, and health checks.</li>
+  </ol>
+
+  <h3>Standard Verification Loop (used throughout)</h3>
+  <table>
+    <tr><th>Command</th><th>Checks</th></tr>
+    <tr><td><code>pnpm run typecheck</code></td><td>Full workspace type safety (libs then apps)</td></tr>
+    <tr><td><code>pnpm --filter @workspace/api-spec run codegen</code></td><td>Regenerate client/Zod after contract changes</td></tr>
+    <tr><td><code>pnpm --filter @workspace/db run push</code></td><td>Apply schema changes to the database</td></tr>
+  </table>
+
+  <p style="margin-top:22px; font-weight:800; color:var(--orange); font-size:14pt;">From empty repo to live platform — Don't search. Get spotted.</p>
+  <p class="muted" style="font-size:8.5pt; margin-top:26px; border-top:1px solid var(--line); padding-top:10px;">Technical build documentation for SwiftMatch. Reflects the architecture and procedure as of June 2026. © 2026 SwiftMatch.</p>
+</div>
+
+</body>
+</html>
