@@ -1,1 +1,10 @@
-{"rewrites": [{"source": "/(.*)", "destination": "/index.html"}]}
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/swiftmatch run build",
+  "outputDirectory": "dist/public",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
