@@ -161,6 +161,9 @@ router.post("/parse", requireVerifiedUser, upload.single("resume"), async (req, 
       res.status(500).json({ error: "Failed to parse AI response. Please try again." });
       return;
     }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      res.status(500).json({ error: "Invalid AI response. Please try again." }); return;
+    }
 
     // Step 3: Sanitize and return
     const result = {
@@ -177,12 +180,16 @@ router.post("/parse", requireVerifiedUser, upload.single("resume"), async (req, 
       currentAddress: parsed.currentAddress ?? null,
       facebookUrl: parsed.facebookUrl ?? null,
       linkedinUrl: parsed.linkedinUrl ?? null,
-      skills: Array.isArray(parsed.skills) ? (parsed.skills as string[]).slice(0, 5) : [],
+       skills: Array.isArray(parsed.skills) ? parsed.skills.filter((s): s is string => typeof s === "string").slice(0, 5) : [],
       expectedSalary: parsed.expectedSalary ?? null,
       salaryNegotiable: parsed.salaryNegotiable !== false,
       availabilityDate: parsed.availabilityDate ?? null,
-      employmentHistory: Array.isArray(parsed.employmentHistory) ? parsed.employmentHistory : [],
-      certificates: Array.isArray(parsed.certificates) ? (parsed.certificates as unknown[]).slice(0, 3) : [],
+       employmentHistory: Array.isArray(parsed.employmentHistory) ? parsed.employmentHistory.filter(
+         (entry): entry is Record<string, unknown> => entry !== null && typeof entry === "object" && !Array.isArray(entry)
+       ) : [],
+       certificates: Array.isArray(parsed.certificates) ? parsed.certificates.filter(
+         (entry): entry is Record<string, unknown> => entry !== null && typeof entry === "object" && !Array.isArray(entry)
+       ).slice(0, 3) : [],
       references: [],
     };
 
@@ -354,14 +361,15 @@ router.get("/match-analysis", requireVerifiedUser, requireReportSubscription, as
       applicant.targetIndustry ? `Target Industry: ${applicant.targetIndustry}` : null,
       applicant.targetRole     ? `Target Role: ${applicant.targetRole}`         : null,
       applicant.careerLevel    ? `Career Level: ${applicant.careerLevel}`       : null,
-      applicant.skills.length  ? `Listed Skills: ${applicant.skills.join(", ")}` : null,
+       Array.isArray(applicant.skills) && applicant.skills.length
+         ? `Listed Skills: ${applicant.skills.join(", ")}` : null,
     ].filter(Boolean).join("\n") || "Not specified";
 
     const scoresText = Object.entries(latestScores)
       .map(([title, score]) => `${title}: ${score}%`).join(", ");
 
     const jobsContext = matchingJobs.map((j, i) =>
-      `${i + 1}. ${j.title} at ${j.company} — ${(j.requirements ?? []).slice(0, 3).join("; ") || j.description.slice(0, 150)}`
+      `${i + 1}. ${j.title} at ${j.company} — ${(Array.isArray(j.requirements) ? j.requirements : []).slice(0, 3).join("; ") || j.description.slice(0, 150)}`
     ).join("\n");
 
     const cvSnippet = applicant.cvText.slice(0, 2000).replace(/\s+/g, " ").trim();
@@ -416,6 +424,9 @@ Return JSON with exactly these fields: overallAlignment (integer 50-85), summary
     catch (parseErr) {
       req.log.error({ rawContent: rawContent.slice(0, 500), parseErr }, "Failed to parse AI JSON response");
       res.status(500).json({ error: "Failed to parse AI response. Please try again." }); return;
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      res.status(500).json({ error: "Invalid AI response. Please try again." }); return;
     }
 
     /* 8 ── Sanitize and return */
@@ -478,7 +489,7 @@ router.get("/view/:token", async (req, res) => {
       targetRole: applicant.targetRole ?? null,
       careerLevel: applicant.careerLevel ?? null,
       workSetup: applicant.workSetup ?? null,
-      skills: applicant.skills ?? [],
+       skills: Array.isArray(applicant.skills) ? applicant.skills : [],
       expertise: applicant.expertise ?? null,
       availabilityDate: applicant.availabilityDate ?? null,
       cvText: applicant.cvText,

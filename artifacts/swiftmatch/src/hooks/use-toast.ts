@@ -72,6 +72,7 @@ const addToRemoveQueue = (toastId: string) => {
 }
 
 export const reducer = (state: State, action: Action): State => {
+  state = { ...state, toasts: Array.isArray(state.toasts) ? state.toasts : [] }
   switch (action.type) {
     case "ADD_TOAST":
       return {

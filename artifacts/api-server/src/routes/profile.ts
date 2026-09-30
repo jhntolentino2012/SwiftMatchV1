@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { usersTable, applicantsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { requireVerifiedUser } from "../middlewares/report-access";
+import { UpdateApplicantBody } from "@workspace/api-zod";
 
 const router = Router();
 router.use(requireVerifiedUser);
@@ -44,6 +45,10 @@ router.get("/", async (req, res) => {
 
     res.json({
       ...applicant,
+      skills: Array.isArray(applicant.skills) ? applicant.skills : [],
+      employmentHistory: Array.isArray(applicant.employmentHistory) ? applicant.employmentHistory : [],
+      certificates: Array.isArray(applicant.certificates) ? applicant.certificates : [],
+      references: Array.isArray(applicant.references) ? applicant.references : [],
       phone: user.phone,
       createdAt: applicant.createdAt.toISOString(),
       updatedAt: applicant.updatedAt.toISOString(),
@@ -62,6 +67,18 @@ router.put("/", async (req, res) => {
   const payload = requireAuth(req);
   if (!payload) { res.status(401).json({ error: "Authentication required." }); return; }
 
+  const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+    ? req.body as Record<string, unknown> : {};
+  const arrayFields = ["skills", "employmentHistory", "certificates", "references"] as const;
+  const arrayUpdates: Record<string, unknown> = {};
+  for (const field of arrayFields) {
+    if (body[field] !== undefined) arrayUpdates[field] = body[field];
+  }
+  const validated = UpdateApplicantBody.safeParse(arrayUpdates);
+  if (!validated.success) {
+    res.status(400).json({ error: validated.error.message }); return;
+  }
+
   try {
     const [user] = await db.select().from(usersTable)
       .where(eq(usersTable.id, payload.userId)).limit(1);
@@ -79,7 +96,7 @@ router.put("/", async (req, res) => {
 
     const updates: Record<string, unknown> = {};
     for (const field of ALLOWED) {
-      if (req.body[field] !== undefined) updates[field] = req.body[field] ?? null;
+      if (body[field] !== undefined) updates[field] = body[field] ?? null;
     }
     if (Object.keys(updates).length === 0) {
       res.status(400).json({ error: "No valid fields to update." }); return;
@@ -93,6 +110,10 @@ router.put("/", async (req, res) => {
 
     res.json({
       ...updated,
+      skills: Array.isArray(updated.skills) ? updated.skills : [],
+      employmentHistory: Array.isArray(updated.employmentHistory) ? updated.employmentHistory : [],
+      certificates: Array.isArray(updated.certificates) ? updated.certificates : [],
+      references: Array.isArray(updated.references) ? updated.references : [],
       phone: user.phone,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),

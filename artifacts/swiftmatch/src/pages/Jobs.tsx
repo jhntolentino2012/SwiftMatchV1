@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BulletTextarea } from "@/components/BulletTextarea";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
@@ -37,6 +38,31 @@ type Job = {
   isDemo?: boolean;
   createdAt: string;
 };
+
+function normalizeQuestions(value: unknown): CustomQuestion[] {
+  return arrayOrEmpty<CustomQuestion>(value)
+    .filter((q): q is CustomQuestion => !!q && typeof q === "object" && !Array.isArray(q))
+    .map(q => ({
+      ...q,
+      text: typeof q.text === "string" ? q.text : "",
+      options: arrayOrEmpty<string>(q.options).filter(o => typeof o === "string"),
+      correctAnswers: arrayOrEmpty<string>(q.correctAnswers).filter(a => typeof a === "string"),
+    }));
+}
+
+function normalizeJob(job: Job): Job {
+  return {
+    ...job,
+    title: typeof job.title === "string" ? job.title : "",
+    company: typeof job.company === "string" ? job.company : "",
+    location: typeof job.location === "string" ? job.location : "",
+    industry: typeof job.industry === "string" ? job.industry : "",
+    description: typeof job.description === "string" ? job.description : "",
+    salaryRange: typeof job.salaryRange === "string" ? job.salaryRange : "",
+    requirements: arrayOrEmpty<string>(job.requirements).filter(r => typeof r === "string"),
+    customQuestions: normalizeQuestions(job.customQuestions),
+  };
+}
 
 function newQuestion(): CustomQuestion {
   return {
@@ -247,7 +273,9 @@ export default function JobsPage() {
   const filterIndustry = params.get("industry") || "";
   const filterLocation = params.get("location") || "";
 
-  const jobs = rawJobs as Job[];
+  const jobs = arrayOrEmpty<Job>(rawJobs)
+    .filter((job): job is Job => !!job && typeof job === "object" && !Array.isArray(job))
+    .map(normalizeJob);
   const filtered = jobs.filter(j => {
     const matchIndustry = filterIndustry
       ? (j.industry ?? "").toLowerCase().includes(filterIndustry.toLowerCase()) ||
@@ -276,10 +304,10 @@ export default function JobsPage() {
       industry: job.industry,
       description: baseDesc,
       companyDescription: job.companyDescription || "",
-      requirements: job.requirements.length > 0 ? [...job.requirements] : [""],
+       requirements: arrayOrEmpty<string>(job.requirements).length > 0 ? [...arrayOrEmpty<string>(job.requirements)] : [""],
       workSetup,
       employmentType,
-      customQuestions: job.customQuestions ? [...job.customQuestions] : [],
+       customQuestions: normalizeQuestions(job.customQuestions),
     });
     setSaveError("");
     setNeedsSignIn(false);
@@ -316,19 +344,19 @@ export default function JobsPage() {
   function togglePill(field: "workSetup" | "employmentType", val: string) {
     setEditForm(p => ({
       ...p,
-      [field]: p[field].includes(val) ? p[field].filter(v => v !== val) : [...p[field], val],
+      [field]: arrayOrEmpty<string>(p[field]).includes(val) ? arrayOrEmpty<string>(p[field]).filter(v => v !== val) : [...arrayOrEmpty<string>(p[field]), val],
     }));
   }
 
-  function addReq() { setEF("requirements", [...editForm.requirements, ""]); }
-  function removeReq(i: number) { setEF("requirements", editForm.requirements.filter((_, idx) => idx !== i)); }
+  function addReq() { setEF("requirements", [...arrayOrEmpty<string>(editForm.requirements), ""]); }
+  function removeReq(i: number) { setEF("requirements", arrayOrEmpty<string>(editForm.requirements).filter((_, idx) => idx !== i)); }
   function setReqVal(i: number, val: string) {
-    const r = [...editForm.requirements]; r[i] = val; setEF("requirements", r);
+    const r = [...arrayOrEmpty<string>(editForm.requirements)]; r[i] = val; setEF("requirements", r);
   }
 
   // ── Custom assessment question helpers (functional updates to avoid stale state) ─
   function mutateQs(fn: (qs: CustomQuestion[]) => CustomQuestion[]) {
-    setEditForm(p => ({ ...p, customQuestions: fn(p.customQuestions) }));
+    setEditForm(p => ({ ...p, customQuestions: fn(normalizeQuestions(p.customQuestions)) }));
   }
   function addCustomQ() { mutateQs(qs => [...qs, newQuestion()]); }
   function removeCustomQ(i: number) { mutateQs(qs => qs.filter((_, idx) => idx !== i)); }
@@ -338,9 +366,9 @@ export default function JobsPage() {
       next[i] = { ...next[i], ...patch };
       if (patch.type === "text") {
         delete next[i].options;
-        if (next[i].correctAnswers.length === 0) next[i].correctAnswers = [];
+        if (arrayOrEmpty<string>(next[i].correctAnswers).length === 0) next[i].correctAnswers = [];
       }
-      if (patch.type === "multiple_choice" && (!next[i].options || next[i].options!.length < 2)) {
+      if (patch.type === "multiple_choice" && arrayOrEmpty<string>(next[i].options).length < 2) {
         next[i].options = ["", ""];
         next[i].correctAnswers = [];
       }
@@ -350,13 +378,13 @@ export default function JobsPage() {
   function setCustomQOption(i: number, optIdx: number, val: string) {
     mutateQs(qs => {
       const next = [...qs];
-      const opts = [...(next[i].options ?? [])];
+      const opts = [...arrayOrEmpty<string>(next[i].options)];
       const oldVal = opts[optIdx];
       opts[optIdx] = val;
       next[i] = {
         ...next[i],
         options: opts,
-        correctAnswers: next[i].correctAnswers.map(a => (a === oldVal ? val : a)),
+        correctAnswers: arrayOrEmpty<string>(next[i].correctAnswers).map(a => (a === oldVal ? val : a)),
       };
       return next;
     });
@@ -364,19 +392,19 @@ export default function JobsPage() {
   function addCustomQOption(i: number) {
     mutateQs(qs => {
       const next = [...qs];
-      next[i] = { ...next[i], options: [...(next[i].options ?? []), ""] };
+      next[i] = { ...next[i], options: [...arrayOrEmpty<string>(next[i].options), ""] };
       return next;
     });
   }
   function removeCustomQOption(i: number, optIdx: number) {
     mutateQs(qs => {
       const next = [...qs];
-      const opts = (next[i].options ?? []).filter((_, idx) => idx !== optIdx);
-      const removed = (next[i].options ?? [])[optIdx];
+      const opts = arrayOrEmpty<string>(next[i].options).filter((_, idx) => idx !== optIdx);
+      const removed = arrayOrEmpty<string>(next[i].options)[optIdx];
       next[i] = {
         ...next[i],
         options: opts,
-        correctAnswers: next[i].correctAnswers.filter(a => a !== removed),
+        correctAnswers: arrayOrEmpty<string>(next[i].correctAnswers).filter(a => a !== removed),
       };
       return next;
     });
@@ -384,12 +412,13 @@ export default function JobsPage() {
   function toggleMCCorrect(i: number, opt: string) {
     mutateQs(qs => {
       const next = [...qs];
-      const has = next[i].correctAnswers.includes(opt);
+      const answers = arrayOrEmpty<string>(next[i].correctAnswers);
+      const has = answers.includes(opt);
       next[i] = {
         ...next[i],
         correctAnswers: has
-          ? next[i].correctAnswers.filter(a => a !== opt)
-          : [...next[i].correctAnswers, opt],
+          ? answers.filter(a => a !== opt)
+          : [...answers, opt],
       };
       return next;
     });
@@ -410,7 +439,7 @@ export default function JobsPage() {
     setSaving(true); setSaveError("");
     try {
       const token = localStorage.getItem("sm_auth_token");
-      const fullDescription = buildFullDescription(editForm.description, editForm.workSetup, editForm.employmentType);
+       const fullDescription = buildFullDescription(editForm.description, arrayOrEmpty<string>(editForm.workSetup), arrayOrEmpty<string>(editForm.employmentType));
       const payload = {
         title: editForm.title.trim(),
         company: editForm.company.trim(),
@@ -419,13 +448,13 @@ export default function JobsPage() {
         industry: editForm.industry.trim(),
         description: fullDescription,
         companyDescription: editForm.companyDescription.trim(),
-        requirements: editForm.requirements.map(r => r.trim()).filter(Boolean),
-        customQuestions: editForm.customQuestions
+         requirements: arrayOrEmpty<string>(editForm.requirements).filter(r => typeof r === "string").map(r => r.trim()).filter(Boolean),
+         customQuestions: normalizeQuestions(editForm.customQuestions)
           .map(q => ({
             ...q,
             text: q.text.trim(),
-            options: q.options?.map(o => o.trim()).filter(Boolean),
-            correctAnswers: q.correctAnswers.map(a => a.trim()).filter(Boolean),
+            options: arrayOrEmpty<string>(q.options).map(o => o.trim()).filter(Boolean),
+            correctAnswers: arrayOrEmpty<string>(q.correctAnswers).map(a => a.trim()).filter(Boolean),
           }))
           .filter(q =>
             q.text &&
@@ -448,9 +477,12 @@ export default function JobsPage() {
         setNeedsSignIn(true);
         return;
       }
-      if (!res.ok) throw new Error(data.error || "Save failed");
+       if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Save failed");
 
-      const updated: Job = { ...selectedJob, ...data };
+       if (!data || typeof data !== "object" || Array.isArray(data)) {
+         throw new Error("Save failed: invalid job response.");
+       }
+       const updated: Job = normalizeJob({ ...selectedJob, ...data });
       setSelectedJob(updated);
       setEditing(false);
       setNeedsSignIn(false);
@@ -729,7 +761,7 @@ export default function JobsPage() {
                       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block">Work Setup</label>
                       <div className="flex flex-wrap gap-2">
                         {["Onsite", "Work from Home", "Hybrid"].map(ws => {
-                          const sel = editForm.workSetup.includes(ws);
+                          const sel = arrayOrEmpty<string>(editForm.workSetup).includes(ws);
                           return (
                             <button key={ws} type="button" onClick={() => togglePill("workSetup", ws)}
                               className={cn("px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all",
@@ -746,7 +778,7 @@ export default function JobsPage() {
                       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block">Employment Type</label>
                       <div className="flex flex-wrap gap-2">
                         {["Full-time", "Part-time", "Project-based", "Contractual"].map(et => {
-                          const sel = editForm.employmentType.includes(et);
+                          const sel = arrayOrEmpty<string>(editForm.employmentType).includes(et);
                           return (
                             <button key={et} type="button" onClick={() => togglePill("employmentType", et)}
                               className={cn("px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all",
@@ -777,11 +809,11 @@ export default function JobsPage() {
                     <div className="space-y-2">
                       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block">Requirements</label>
                       <div className="space-y-2">
-                        {editForm.requirements.map((r, i) => (
+                        {arrayOrEmpty<string>(editForm.requirements).map((r, i) => (
                           <div key={i} className="flex items-center gap-2">
                             <input value={r} onChange={e => setReqVal(i, e.target.value)}
                               placeholder={`Requirement ${i + 1}`} className={cn(inputCls, "flex-1")} />
-                            {editForm.requirements.length > 1 && (
+                            {arrayOrEmpty<string>(editForm.requirements).length > 1 && (
                               <button type="button" onClick={() => removeReq(i)}
                                 className="p-2 text-slate-400 hover:text-red-500 transition-colors">
                                 <X className="w-4 h-4" />
@@ -819,14 +851,14 @@ export default function JobsPage() {
                           <label className="text-sm font-bold text-accent">Custom Assessment Questions</label>
                         </div>
                         <span className="text-xs text-slate-500">
-                          {editForm.customQuestions.length} question{editForm.customQuestions.length === 1 ? "" : "s"}
+                          {arrayOrEmpty<CustomQuestion>(editForm.customQuestions).length} question{arrayOrEmpty<CustomQuestion>(editForm.customQuestions).length === 1 ? "" : "s"}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500">
                         Applicants will answer these after the K&E quiz. Multiple-choice answers are matched exactly. For free-text, separate accepted answers with <code className="px-1 bg-white rounded">|</code>.
                       </p>
 
-                      {editForm.customQuestions.map((q, i) => (
+                      {normalizeQuestions(editForm.customQuestions).map((q, i) => (
                         <div key={q.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-2">
@@ -861,8 +893,8 @@ export default function JobsPage() {
                               <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
                                 <CheckSquare className="w-3 h-3" /> Tap the box to mark correct answer(s)
                               </div>
-                              {(q.options ?? []).map((opt, optIdx) => {
-                                const isCorrect = !!opt && q.correctAnswers.includes(opt);
+                              {arrayOrEmpty<string>(q.options).map((opt, optIdx) => {
+                                const isCorrect = !!opt && arrayOrEmpty<string>(q.correctAnswers).includes(opt);
                                 return (
                                   <div key={optIdx} className="flex items-center gap-2">
                                     <button type="button"
@@ -884,7 +916,7 @@ export default function JobsPage() {
                                       placeholder={`Option ${optIdx + 1}`}
                                       className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                                     />
-                                    {(q.options ?? []).length > 2 && (
+                                    {arrayOrEmpty<string>(q.options).length > 2 && (
                                       <button type="button" onClick={() => removeCustomQOption(i, optIdx)}
                                         className="p-1.5 text-slate-400 hover:text-red-500">
                                         <X className="w-3.5 h-3.5" />
@@ -904,7 +936,7 @@ export default function JobsPage() {
                                 <FileText className="w-3 h-3" /> Accepted answer(s) — separate with <code className="px-1 bg-slate-100 rounded">|</code>
                               </label>
                               <input
-                                value={q.correctAnswers.join(" | ")}
+                                value={arrayOrEmpty<string>(q.correctAnswers).join(" | ")}
                                 onChange={e => setTextCorrect(i, e.target.value)}
                                 placeholder="e.g. Manila | Metro Manila | NCR"
                                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
@@ -932,11 +964,11 @@ export default function JobsPage() {
                       <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                         {selectedJob.description}
                       </p>
-                      {selectedJob.requirements.length > 0 && (
+                      {arrayOrEmpty<string>(selectedJob.requirements).length > 0 && (
                         <div className="mt-6">
                           <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Requirements</p>
                           <ul className="space-y-2.5">
-                            {selectedJob.requirements.map((req, i) => (
+                            {arrayOrEmpty<string>(selectedJob.requirements).map((req, i) => (
                               <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
                                 <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                                 {req}
@@ -947,7 +979,7 @@ export default function JobsPage() {
                       )}
                     </section>
 
-                    {selectedJob.customQuestions && selectedJob.customQuestions.length > 0 && (
+                    {arrayOrEmpty<CustomQuestion>(selectedJob.customQuestions).length > 0 && (
                       <>
                         <div className="border-t border-slate-100" />
                         <section className="rounded-xl bg-accent/5 border border-accent/20 p-4">
@@ -956,7 +988,7 @@ export default function JobsPage() {
                             <h3 className="font-display font-bold text-accent text-sm">Custom Assessment Included</h3>
                           </div>
                           <p className="text-xs text-slate-600 mt-1.5">
-                            This role includes {selectedJob.customQuestions.length} recruiter-set question{selectedJob.customQuestions.length === 1 ? "" : "s"} after the K&E quiz.
+                            This role includes {arrayOrEmpty<CustomQuestion>(selectedJob.customQuestions).length} recruiter-set question{arrayOrEmpty<CustomQuestion>(selectedJob.customQuestions).length === 1 ? "" : "s"} after the K&E quiz.
                           </p>
                         </section>
                       </>

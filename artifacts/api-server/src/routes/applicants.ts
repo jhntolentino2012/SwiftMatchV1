@@ -14,6 +14,10 @@ const router: IRouter = Router();
 function formatApplicant(a: typeof applicantsTable.$inferSelect) {
   return {
     ...a,
+    skills: Array.isArray(a.skills) ? a.skills : [],
+    employmentHistory: Array.isArray(a.employmentHistory) ? a.employmentHistory : [],
+    certificates: Array.isArray(a.certificates) ? a.certificates : [],
+    references: Array.isArray(a.references) ? a.references : [],
     createdAt: a.createdAt.toISOString(),
     updatedAt: a.updatedAt.toISOString(),
   };

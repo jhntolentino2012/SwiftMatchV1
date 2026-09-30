@@ -10,6 +10,7 @@ import {
   Upload, FileText, X, Sparkles, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 import { useCreateApplicant } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -117,17 +118,17 @@ export default function ApplicationFlow() {
       setIsSubmitting(true);
       const apiPayload = {
         ...formData,
-        targetRole: formData.targetRole.length > 0 ? formData.targetRole.join(", ") : undefined,
-        careerLevel: formData.careerLevel.length > 0 ? (formData.careerLevel as string[]).join(", ") : undefined,
-        workSetup: formData.workSetup.length > 0 ? formData.workSetup.join(", ") : undefined,
+        targetRole: arrayOrEmpty(formData.targetRole).length > 0 ? arrayOrEmpty(formData.targetRole).join(", ") : undefined,
+        careerLevel: arrayOrEmpty(formData.careerLevel).length > 0 ? arrayOrEmpty(formData.careerLevel).join(", ") : undefined,
+        workSetup: arrayOrEmpty(formData.workSetup).length > 0 ? arrayOrEmpty(formData.workSetup).join(", ") : undefined,
       };
       const applicant = await createApplicant({ data: apiPayload as any });
       // Persist applicant ID so the Assessment page can use it
       localStorage.setItem("sm_applicant_id", String(applicant.id));
       if (formData.targetIndustry) {
         localStorage.setItem(`sm_ke_industry_${applicant.id}`, formData.targetIndustry);
-        if (formData.targetRole.length > 0) {
-          localStorage.setItem(`sm_ke_role_${applicant.id}_${encodeURIComponent(formData.targetIndustry)}`, formData.targetRole.join(", "));
+        if (arrayOrEmpty(formData.targetRole).length > 0) {
+          localStorage.setItem(`sm_ke_role_${applicant.id}_${encodeURIComponent(formData.targetIndustry)}`, arrayOrEmpty(formData.targetRole).join(", "));
         }
       }
       if ((formData as any).careerLevel) {
@@ -446,7 +447,7 @@ function Select({ label, options, ...props }: any) {
         {...props}
       >
         <option value="">Select option...</option>
-        {options.map((o:any) => <option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}
+        {arrayOrEmpty<any>(options).map((o:any) => <option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}
       </select>
     </div>
   );
@@ -517,9 +518,10 @@ function StepContactInfo({ data, update }: any) {
 
 function StepSkills({ data, update }: any) {
   const [input, setInput] = useState("");
+  const skills = arrayOrEmpty<string>(data.skills);
   const addSkill = () => {
-    if (input.trim() && data.skills.length < 5 && !data.skills.includes(input.trim())) {
-      update('skills', [...data.skills, input.trim()]);
+    if (input.trim() && skills.length < 5 && !skills.includes(input.trim())) {
+      update('skills', [...skills, input.trim()]);
       setInput("");
     }
   };
@@ -541,30 +543,31 @@ function StepSkills({ data, update }: any) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {data.skills.map((skill:string) => (
+        {skills.map((skill:string) => (
           <div key={skill} className="px-4 py-2 rounded-full bg-accent/10 text-accent font-medium text-sm flex items-center gap-2 border border-accent/20">
             {skill}
-            <button onClick={() => update('skills', data.skills.filter((s:string)=>s!==skill))} className="hover:text-primary">&times;</button>
+            <button onClick={() => update('skills', skills.filter((s:string)=>s!==skill))} className="hover:text-primary">&times;</button>
           </div>
         ))}
-        {data.skills.length === 0 && <span className="text-slate-400 text-sm">No skills added yet.</span>}
+        {skills.length === 0 && <span className="text-slate-400 text-sm">No skills added yet.</span>}
       </div>
     </div>
   );
 }
 
 function StepEmployment({ data, update }: any) {
-  const addRecord = () => update('employmentHistory', [...data.employmentHistory, { companyName:'', position:'', yearsStayed:'', reasonForLeaving:'', workSetup: [] }]);
+  const history = arrayOrEmpty<any>(data.employmentHistory);
+  const addRecord = () => update('employmentHistory', [...history, { companyName:'', position:'', yearsStayed:'', reasonForLeaving:'', workSetup: [] }]);
   const updateRecord = (index: number, field: string, val: string) => {
-    const arr = [...data.employmentHistory];
+    const arr = [...history];
     arr[index][field] = val;
     update('employmentHistory', arr);
   };
-  const removeRecord = (index: number) => update('employmentHistory', data.employmentHistory.filter((_:any,i:number)=>i!==index));
+  const removeRecord = (index: number) => update('employmentHistory', history.filter((_:any,i:number)=>i!==index));
 
   return (
     <div className="space-y-6">
-      {data.employmentHistory.map((emp:any, i:number) => (
+      {history.map((emp:any, i:number) => (
         <div key={i} className="p-5 rounded-xl border border-slate-200 bg-white relative space-y-4">
           <button onClick={()=>removeRecord(i)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500">&times;</button>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -581,13 +584,13 @@ function StepEmployment({ data, update }: any) {
             <label className="text-sm font-semibold text-slate-700">Work Setup</label>
             <div className="flex flex-wrap gap-2">
               {["Onsite", "Work from Home", "Hybrid"].map(option => {
-                const selected = Array.isArray(emp.workSetup) ? emp.workSetup.includes(option) : false;
+                const selected = arrayOrEmpty<string>(emp?.workSetup).includes(option);
                 return (
                   <button
                     key={option}
                     type="button"
                     onClick={() => {
-                      const current: string[] = Array.isArray(emp.workSetup) ? emp.workSetup : [];
+                      const current = arrayOrEmpty<string>(emp?.workSetup);
                       updateRecord(i, 'workSetup', (selected ? current.filter(v => v !== option) : [...current, option]) as any);
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
@@ -613,20 +616,21 @@ function StepEmployment({ data, update }: any) {
 
 function StepCertificates({ data, update }: any) {
   // Similar to Employment, kept simple
+  const certificates = arrayOrEmpty<any>(data.certificates);
   const addRecord = () => {
-    if(data.certificates.length < 3) update('certificates', [...data.certificates, { name:'', issuingOrg:'', year:'' }]);
+    if(certificates.length < 3) update('certificates', [...certificates, { name:'', issuingOrg:'', year:'' }]);
   }
   const updateRecord = (index: number, field: string, val: string) => {
-    const arr = [...data.certificates];
+    const arr = [...certificates];
     arr[index][field] = val;
     update('certificates', arr);
   };
-  const removeRecord = (index: number) => update('certificates', data.certificates.filter((_:any,i:number)=>i!==index));
+  const removeRecord = (index: number) => update('certificates', certificates.filter((_:any,i:number)=>i!==index));
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-slate-500">Add up to 3 relevant certificates or training completions.</p>
-      {data.certificates.map((cert:any, i:number) => (
+      {certificates.map((cert:any, i:number) => (
         <div key={i} className="p-5 rounded-xl border border-slate-200 bg-white relative grid sm:grid-cols-3 gap-4">
           <button onClick={()=>removeRecord(i)} className="absolute top-2 right-3 text-slate-400 hover:text-red-500 text-lg">&times;</button>
           <Input label="Name" value={cert.name} onChange={(e:any)=>updateRecord(i,'name',e.target.value)} />
@@ -634,7 +638,7 @@ function StepCertificates({ data, update }: any) {
           <Input label="Year" type="number" value={cert.year} onChange={(e:any)=>updateRecord(i,'year',e.target.value)} />
         </div>
       ))}
-      {data.certificates.length < 3 && (
+      {certificates.length < 3 && (
         <button onClick={addRecord} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 font-medium hover:border-accent hover:text-accent transition-colors">
           + Add Certificate
         </button>
@@ -644,18 +648,19 @@ function StepCertificates({ data, update }: any) {
 }
 
 function StepReferences({ data, update }: any) {
-  const addRecord = () => update('references', [...data.references, { name:'', relationship:'', phone:'', email:'' }]);
+  const references = arrayOrEmpty<any>(data.references);
+  const addRecord = () => update('references', [...references, { name:'', relationship:'', phone:'', email:'' }]);
   const updateRecord = (index: number, field: string, val: string) => {
-    const arr = [...data.references];
+    const arr = [...references];
     arr[index][field] = val;
     update('references', arr);
   };
-  const removeRecord = (index: number) => update('references', data.references.filter((_:any,i:number)=>i!==index));
+  const removeRecord = (index: number) => update('references', references.filter((_:any,i:number)=>i!==index));
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-slate-500">Provide at least 1 character reference.</p>
-      {data.references.map((ref:any, i:number) => (
+      {references.map((ref:any, i:number) => (
         <div key={i} className="p-5 rounded-xl border border-slate-200 bg-white relative grid sm:grid-cols-2 gap-4">
           <button onClick={()=>removeRecord(i)} className="absolute top-2 right-3 text-slate-400 hover:text-red-500 text-lg">&times;</button>
           <Input label="Full Name" value={ref.name} onChange={(e:any)=>updateRecord(i,'name',e.target.value)} />
@@ -664,7 +669,7 @@ function StepReferences({ data, update }: any) {
           <Input label="Email" type="email" value={ref.email} onChange={(e:any)=>updateRecord(i,'email',e.target.value)} />
         </div>
       ))}
-      {data.references.length < 3 && (
+      {references.length < 3 && (
         <button onClick={addRecord} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 font-medium hover:border-accent hover:text-accent transition-colors">
           + Add Reference
         </button>
@@ -734,6 +739,7 @@ function RoleMultiSelect({ roles, selected, onChange, disabled }: {
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const selectedRoles = arrayOrEmpty(selected);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -744,10 +750,10 @@ function RoleMultiSelect({ roles, selected, onChange, disabled }: {
   }, []);
 
   const toggle = (role: string) => {
-    if (selected.includes(role)) {
-      onChange(selected.filter(r => r !== role));
+    if (selectedRoles.includes(role)) {
+      onChange(selectedRoles.filter(r => r !== role));
     } else {
-      onChange([...selected, role]);
+      onChange([...selectedRoles, role]);
     }
   };
 
@@ -762,10 +768,10 @@ function RoleMultiSelect({ roles, selected, onChange, disabled }: {
           disabled && "opacity-50 cursor-not-allowed"
         )}
       >
-        {selected.length === 0 ? (
+        {selectedRoles.length === 0 ? (
           <span className="text-slate-400">— Select role —</span>
         ) : (
-          selected.map(role => (
+          selectedRoles.map(role => (
             <span key={role} className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full">
               {role}
               <button
@@ -781,11 +787,11 @@ function RoleMultiSelect({ roles, selected, onChange, disabled }: {
       </button>
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg max-h-56 overflow-y-auto">
-          {roles.map(role => (
+          {arrayOrEmpty(roles).map(role => (
             <label key={role} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm">
               <input
                 type="checkbox"
-                checked={selected.includes(role)}
+                checked={selectedRoles.includes(role)}
                 onChange={() => toggle(role)}
                 className="accent-primary"
               />
@@ -799,7 +805,7 @@ function RoleMultiSelect({ roles, selected, onChange, disabled }: {
 }
 
 function StepPreferences({ data, update }: any) {
-  const roles = PREF_ROLES[data.targetIndustry] ?? [];
+  const roles = arrayOrEmpty(PREF_ROLES[data.targetIndustry]);
 
   return (
     <div className="space-y-6">
@@ -843,13 +849,13 @@ function StepPreferences({ data, update }: any) {
         </div>
         <div className="flex flex-wrap gap-3">
           {["Onsite", "Work from Home", "Hybrid"].map(option => {
-            const selected = (data.workSetup as string[]).includes(option);
+             const selected = arrayOrEmpty<string>(data.workSetup).includes(option);
             return (
               <button
                 key={option}
                 type="button"
                 onClick={() => {
-                  const current = data.workSetup as string[];
+                   const current = arrayOrEmpty<string>(data.workSetup);
                   update("workSetup", selected ? current.filter((v: string) => v !== option) : [...current, option]);
                 }}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
@@ -873,13 +879,13 @@ function StepPreferences({ data, update }: any) {
         </div>
         <div className="flex flex-wrap gap-2">
           {CAREER_LEVELS.map(lvl => {
-            const selected = (data.careerLevel as string[]).includes(lvl);
+             const selected = arrayOrEmpty<string>(data.careerLevel).includes(lvl);
             return (
               <button
                 key={lvl}
                 type="button"
                 onClick={() => {
-                  const current = data.careerLevel as string[];
+                   const current = arrayOrEmpty<string>(data.careerLevel);
                   update("careerLevel", selected ? current.filter((v: string) => v !== lvl) : [...current, lvl]);
                 }}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${

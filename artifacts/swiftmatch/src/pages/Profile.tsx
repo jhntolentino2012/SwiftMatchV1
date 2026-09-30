@@ -10,6 +10,7 @@ import {
   AlertCircle, Copy, Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 const EMPLOYER_PROFILE_KEY = "sm_employer_profile";
@@ -51,6 +52,29 @@ type ApplicantProfile = {
   status: string;
   createdAt: string;
 };
+
+function profileRow(value: unknown, fields: string[]): Record<string, string> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  if (!fields.some(field => typeof row[field] === "string" && (row[field] as string).trim())) return null;
+  return Object.fromEntries(fields.map(field => [field, typeof row[field] === "string" ? row[field] : ""])) as Record<string, string>;
+}
+
+function normalizeProfileArrays(raw: ApplicantProfile): { value: ApplicantProfile; invalid: boolean } {
+  const skills = arrayOrEmpty<unknown>(raw.skills).filter((s): s is string => typeof s === "string" && !!s.trim());
+  const rows = (value: unknown, fields: string[]) => arrayOrEmpty<unknown>(value)
+    .map(row => profileRow(row, fields)).filter((row): row is Record<string, string> => row !== null);
+  const employmentHistory = rows(raw.employmentHistory, ["title", "position", "company", "startDate", "endDate", "description"]);
+  const certificates = rows(raw.certificates, ["name", "title", "issuer", "date"]);
+  const references = rows(raw.references, ["name", "position", "company", "email", "phone"]);
+  return {
+    value: { ...raw, skills, employmentHistory, certificates, references },
+    invalid: !Array.isArray(raw.skills) || skills.length !== raw.skills.length ||
+      !Array.isArray(raw.employmentHistory) || employmentHistory.length !== raw.employmentHistory.length ||
+      !Array.isArray(raw.certificates) || certificates.length !== raw.certificates.length ||
+      !Array.isArray(raw.references) || references.length !== raw.references.length,
+  };
+}
 
 type EmployerProfile = {
   companyName: string;
@@ -159,6 +183,17 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ApplicantProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileDataWarning, setProfileDataWarning] = useState(false);
+
+  function applyProfile(raw: ApplicantProfile) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      setProfileError("Invalid profile data received.");
+      return;
+    }
+    const normalized = normalizeProfileArrays(raw);
+    setProfileDataWarning(normalized.invalid);
+    setProfile(normalized.value);
+  }
 
   // ── Profile picture ──────────────────────────────────
   const [picSrc, setPicSrc] = useState<string | null>(null);
@@ -225,7 +260,7 @@ export default function ProfilePage() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data: ApplicantProfile) => setProfile(data))
+      .then((data: ApplicantProfile) => applyProfile(data))
       .catch((status) => {
         if (status !== 404) setProfileError("Could not load profile data.");
       })
@@ -271,7 +306,7 @@ export default function ProfilePage() {
       });
       if (res.ok) {
         const updated: ApplicantProfile = await res.json();
-        setProfile(updated);
+        applyProfile(updated);
         setEditingName(false);
       }
     } finally {
@@ -296,7 +331,7 @@ export default function ProfilePage() {
       });
       if (res.ok) {
         const updated: ApplicantProfile = await res.json();
-        setProfile(updated);
+        applyProfile(updated);
         setEditingHeadline(false);
       }
     } finally {
@@ -322,7 +357,7 @@ export default function ProfilePage() {
       if (!res.ok) { setCvUploadError(data.error || "Upload failed."); return; }
       // Refresh profile to get updated cvText + cvShareToken
       const profileRes = await fetch(`${BASE}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
-      if (profileRes.ok) { setProfile(await profileRes.json()); }
+      if (profileRes.ok) { applyProfile(await profileRes.json()); }
       setCvUploadSuccess(true);
       setTimeout(() => setCvUploadSuccess(false), 4000);
     } catch {
@@ -374,13 +409,13 @@ export default function ProfilePage() {
         body: JSON.stringify({
           targetIndustry: editIndustry || null,
           targetRole: editRole || null,
-          careerLevel: editLevel.length > 0 ? editLevel.join(", ") : null,
-          workSetup: editWorkSetup.length > 0 ? editWorkSetup.join(", ") : null,
+          careerLevel: arrayOrEmpty<string>(editLevel).length > 0 ? arrayOrEmpty<string>(editLevel).join(", ") : null,
+          workSetup: arrayOrEmpty<string>(editWorkSetup).length > 0 ? arrayOrEmpty<string>(editWorkSetup).join(", ") : null,
         }),
       });
       if (res.ok) {
         const updated: ApplicantProfile = await res.json();
-        setProfile(updated);
+        applyProfile(updated);
         setEditingTags(false);
       }
     } finally {
@@ -417,7 +452,7 @@ export default function ProfilePage() {
           permanentAddress: editContactAddr.sameAsCurrent ? editContactAddr.current.trim() : editContactAddr.permanent.trim(),
         }),
       });
-      if (res.ok) { setProfile(await res.json()); setEditingContact(false); }
+      if (res.ok) { applyProfile(await res.json()); setEditingContact(false); }
     } finally { setContactSaving(false); }
   }
 
@@ -479,14 +514,14 @@ export default function ProfilePage() {
         body: JSON.stringify({
           targetIndustry: editCareer.targetIndustry || null,
           targetRole: editCareer.targetRole || null,
-          careerLevel: editCareer.careerLevel.length > 0 ? editCareer.careerLevel.join(", ") : null,
+          careerLevel: arrayOrEmpty<string>(editCareer.careerLevel).length > 0 ? arrayOrEmpty<string>(editCareer.careerLevel).join(", ") : null,
           expertise: editCareer.expertise,
-          workSetup: editCareer.workSetup.length > 0 ? editCareer.workSetup.join(", ") : null,
+          workSetup: arrayOrEmpty<string>(editCareer.workSetup).length > 0 ? arrayOrEmpty<string>(editCareer.workSetup).join(", ") : null,
           expectedSalary: editCareer.expectedSalary || null,
           salaryNegotiable: editCareer.salaryNegotiable,
         }),
       });
-      if (res.ok) { setProfile(await res.json()); setEditingCareerPrefs(false); }
+      if (res.ok) { applyProfile(await res.json()); setEditingCareerPrefs(false); }
     } finally { setCareerPrefsSaving(false); }
   }
 
@@ -666,8 +701,8 @@ export default function ProfilePage() {
 
               {/* ── Current company · education ── */}
               {profile && (() => {
-                const emp = profile.employmentHistory as any[];
-                const cert = profile.certificates as any[];
+                const emp = arrayOrEmpty<Record<string, string>>(profile.employmentHistory);
+                const cert = arrayOrEmpty<Record<string, string>>(profile.certificates);
                 const company = emp.length > 0 ? (emp[emp.length - 1]?.company ?? null) : null;
                 const edu = cert.length > 0 ? (cert[0]?.issuer ?? cert[0]?.name ?? null) : null;
                 const line = [company, edu].filter(Boolean).join(" · ");
@@ -721,12 +756,12 @@ export default function ProfilePage() {
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Career Level</label>
                     <div className="flex flex-wrap gap-2">
                       {["Entry Level / Fresh Graduate","Associate / Junior Professional","Senior / Experienced Specialist","Team Leader / Supervisor","Manager / Department Head","Director / Executive / C-Suite"].map(lvl => {
-                        const selected = editLevel.includes(lvl);
+                        const selected = arrayOrEmpty<string>(editLevel).includes(lvl);
                         return (
                           <button
                             key={lvl}
                             type="button"
-                            onClick={() => setEditLevel(selected ? editLevel.filter(v => v !== lvl) : [...editLevel, lvl])}
+                            onClick={() => setEditLevel(selected ? arrayOrEmpty<string>(editLevel).filter(v => v !== lvl) : [...arrayOrEmpty<string>(editLevel), lvl])}
                             className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
                               selected ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"
                             }`}
@@ -742,12 +777,12 @@ export default function ProfilePage() {
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Work Setup</label>
                     <div className="flex flex-wrap gap-2">
                       {["Onsite", "Work from Home", "Hybrid"].map(option => {
-                        const selected = editWorkSetup.includes(option);
+                        const selected = arrayOrEmpty<string>(editWorkSetup).includes(option);
                         return (
                           <button
                             key={option}
                             type="button"
-                            onClick={() => setEditWorkSetup(selected ? editWorkSetup.filter(v => v !== option) : [...editWorkSetup, option])}
+                            onClick={() => setEditWorkSetup(selected ? arrayOrEmpty<string>(editWorkSetup).filter(v => v !== option) : [...arrayOrEmpty<string>(editWorkSetup), option])}
                             className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
                               selected ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"
                             }`}
@@ -858,6 +893,11 @@ export default function ProfilePage() {
                   Create your applicant profile
                 </Link>{" "}
                 to get started.
+              </div>
+            )}
+            {profileDataWarning && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-5 text-sm mb-4">
+                Some profile list data could not be displayed because it was invalid.
               </div>
             )}
 
@@ -1027,10 +1067,10 @@ export default function ProfilePage() {
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Career Level</label>
                           <div className="flex flex-wrap gap-2">
                             {["Entry Level / Fresh Graduate","Associate / Junior Professional","Senior / Experienced Specialist","Team Leader / Supervisor","Manager / Department Head","Director / Executive / C-Suite"].map(lvl => {
-                              const sel = editCareer.careerLevel.includes(lvl);
+                              const sel = arrayOrEmpty<string>(editCareer.careerLevel).includes(lvl);
                               return (
                                 <button key={lvl} type="button"
-                                  onClick={() => setEditCareer(c => ({...c, careerLevel: sel ? c.careerLevel.filter(v => v !== lvl) : [...c.careerLevel, lvl]}))}
+                                  onClick={() => setEditCareer(c => ({...c, careerLevel: sel ? arrayOrEmpty<string>(c.careerLevel).filter(v => v !== lvl) : [...arrayOrEmpty<string>(c.careerLevel), lvl]}))}
                                   className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${sel ? "bg-primary text-white border-primary" : "bg-white text-slate-600 border-slate-200 hover:border-primary/40 hover:text-primary"}`}>
                                   {lvl}
                                 </button>
@@ -1106,10 +1146,10 @@ export default function ProfilePage() {
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Work Setup</label>
                           <div className="flex flex-wrap gap-2">
                             {["Onsite","Work from Home","Hybrid"].map(ws => {
-                              const sel = editCareer.workSetup.includes(ws);
+                              const sel = arrayOrEmpty<string>(editCareer.workSetup).includes(ws);
                               return (
                                 <button key={ws} type="button"
-                                  onClick={() => setEditCareer(c => ({...c, workSetup: sel ? c.workSetup.filter(v => v !== ws) : [...c.workSetup, ws]}))}
+                                  onClick={() => setEditCareer(c => ({...c, workSetup: sel ? arrayOrEmpty<string>(c.workSetup).filter(v => v !== ws) : [...arrayOrEmpty<string>(c.workSetup), ws]}))}
                                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${sel ? "bg-teal-600 text-white border-teal-600" : "bg-white text-slate-600 border-slate-200 hover:border-teal-400 hover:text-teal-700"}`}>
                                   {ws}
                                 </button>
@@ -1174,10 +1214,10 @@ export default function ProfilePage() {
                     )}
                   </SectionCard>
 
-                  {profile.skills.length > 0 && (
+                  {arrayOrEmpty<string>(profile.skills).length > 0 && (
                     <SectionCard title="Skills" icon={ListChecks}>
                       <div className="flex flex-wrap gap-2">
-                        {profile.skills.map((skill, i) => (
+                        {arrayOrEmpty<string>(profile.skills).filter(s => typeof s === "string").map((skill, i) => (
                           <span
                             key={i}
                             className="px-3 py-1 bg-primary/[0.07] text-primary text-xs font-semibold rounded-full border border-primary/15"
@@ -1189,14 +1229,14 @@ export default function ProfilePage() {
                     </SectionCard>
                   )}
 
-                  {profile.employmentHistory.length > 0 && (
+                  {arrayOrEmpty<Record<string, string>>(profile.employmentHistory).length > 0 && (
                     <SectionCard title="Employment History" icon={Briefcase}>
                       <div className="space-y-4">
-                        {(profile.employmentHistory as any[]).map((job, i) => (
+                        {arrayOrEmpty<Record<string, string>>(profile.employmentHistory).filter(job => !!job && typeof job === "object").map((job, i) => (
                           <div key={i} className="flex gap-3">
                             <div className="flex flex-col items-center">
                               <div className="w-2.5 h-2.5 rounded-full bg-accent mt-1.5 shrink-0" />
-                              {i < profile.employmentHistory.length - 1 && (
+                              {i < arrayOrEmpty<Record<string, string>>(profile.employmentHistory).length - 1 && (
                                 <div className="w-px flex-1 bg-slate-100 mt-1" />
                               )}
                             </div>
@@ -1222,10 +1262,10 @@ export default function ProfilePage() {
                     </SectionCard>
                   )}
 
-                  {profile.certificates.length > 0 && (
+                  {arrayOrEmpty<Record<string, string>>(profile.certificates).length > 0 && (
                     <SectionCard title="Certificates & Training" icon={GraduationCap}>
                       <div className="space-y-3">
-                        {(profile.certificates as any[]).map((cert, i) => (
+                        {arrayOrEmpty<Record<string, string>>(profile.certificates).filter(cert => !!cert && typeof cert === "object").map((cert, i) => (
                           <div key={i} className="flex gap-3 items-start">
                             <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
                               <GraduationCap className="w-4 h-4 text-accent" />
@@ -1247,10 +1287,10 @@ export default function ProfilePage() {
                     </SectionCard>
                   )}
 
-                  {profile.references.length > 0 && (
+                  {arrayOrEmpty<Record<string, string>>(profile.references).length > 0 && (
                     <SectionCard title="References" icon={Users}>
                       <div className="grid sm:grid-cols-2 gap-3">
-                        {(profile.references as any[]).map((ref, i) => (
+                        {arrayOrEmpty<Record<string, string>>(profile.references).filter(ref => !!ref && typeof ref === "object").map((ref, i) => (
                           <div key={i} className="bg-slate-50 rounded-xl p-4">
                             <p className="font-semibold text-sm text-slate-800">{ref.name}</p>
                             {ref.position && (

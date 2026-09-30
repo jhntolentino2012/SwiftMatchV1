@@ -156,6 +156,7 @@ router.get("/", async (req, res) => {
     const assessments = await db.select().from(assessmentsTable);
     res.json(assessments.map(a => ({
       ...a,
+      questions: Array.isArray(a.questions) ? a.questions : [],
       createdAt: a.createdAt.toISOString(),
     })));
   } catch (err) {
@@ -347,9 +348,9 @@ router.post("/cultural-fit/submit", requireVerifiedUser, applicantAccess(req => 
   if (
     !applicantId ||
     !industry ||
-    !Array.isArray(questionIds) ||
+     !Array.isArray(questionIds) || !questionIds.every(id => typeof id === "string") ||
     !answers ||
-    typeof answers !== "object"
+     typeof answers !== "object" || Array.isArray(answers)
   ) {
     res.status(400).json({ error: "Missing required fields (applicantId, industry, questionIds, answers)" });
     return;
@@ -460,9 +461,9 @@ router.post("/critical-thinking/submit", requireVerifiedUser, applicantAccess(re
   if (
     !applicantId ||
     !industry ||
-    !Array.isArray(questionIds) ||
+     !Array.isArray(questionIds) || !questionIds.every(id => typeof id === "string") ||
     !answers ||
-    typeof answers !== "object"
+     typeof answers !== "object" || Array.isArray(answers)
   ) {
     res.status(400).json({ error: "Missing required fields (applicantId, industry, questionIds, answers)" });
     return;
@@ -572,9 +573,9 @@ router.post("/ai-readiness/submit", requireVerifiedUser, applicantAccess(req => 
   if (
     !applicantId ||
     !industry ||
-    !Array.isArray(questionIds) ||
+     !Array.isArray(questionIds) || !questionIds.every(id => typeof id === "string") ||
     !answers ||
-    typeof answers !== "object"
+     typeof answers !== "object" || Array.isArray(answers)
   ) {
     res.status(400).json({ error: "Missing required fields (applicantId, industry, questionIds, answers)" });
     return;
@@ -644,7 +645,8 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({ error: "Assessment not found" });
       return;
     }
-    res.json({ ...assessment, createdAt: assessment.createdAt.toISOString() });
+    res.json({ ...assessment, questions: Array.isArray(assessment.questions) ? assessment.questions : [],
+      createdAt: assessment.createdAt.toISOString() });
   } catch (err) {
     req.log.error({ err }, "Failed to get assessment");
     res.status(500).json({ error: "Internal server error" });
@@ -680,13 +682,9 @@ router.post("/:id/submit", requireVerifiedUser, applicantAccess(req => req.body?
       }
     }
 
-    const questions = assessment.questions as Array<{ id: number; type: string }>;
+    const questions = Array.isArray(assessment.questions) ? assessment.questions : [];
     const answeredCount = parsed.data.answers.length;
     const totalQuestions = questions.length;
-    const mcAnswers = parsed.data.answers.filter(a => {
-      const q = questions.find(q => q.id === a.questionId);
-      return q?.type === "multiple_choice";
-    });
 
     const score = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
     const passed = score >= 60;

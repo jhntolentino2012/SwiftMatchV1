@@ -8,6 +8,7 @@ import {
   Loader2, Download, ExternalLink, Copy, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
@@ -148,6 +149,7 @@ function CandidateCard({ applicant }: { applicant: Applicant }) {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const displayName = [applicant.firstName, applicant.lastName].filter(Boolean).join(" ");
+  const skills = arrayOrEmpty<string>(applicant.skills).filter(s => typeof s === "string");
 
   function copyLink() {
     if (!applicant.cvShareToken) return;
@@ -231,9 +233,9 @@ function CandidateCard({ applicant }: { applicant: Applicant }) {
             )}
           </div>
 
-          {applicant.skills.length > 0 && (
+          {skills.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
-              {applicant.skills.slice(0, 5).map(s => <SkillBadge key={s} label={s} />)}
+              {skills.slice(0, 5).map(s => <SkillBadge key={s} label={s} />)}
             </div>
           )}
           {applicant.expertise?.trim() && (() => {
@@ -299,18 +301,31 @@ export default function CandidatesPage() {
           : r.status === 403 ? "An employer account with candidate access is required."
           : "Could not load candidates. Please try again."
       )))
-      .then(data => setCandidates(data))
+       .then(data => setCandidates(
+         arrayOrEmpty<Applicant>(data)
+           .filter((candidate): candidate is Applicant => !!candidate && typeof candidate === "object" && !Array.isArray(candidate))
+           .map(candidate => ({
+             ...candidate,
+             firstName: typeof candidate.firstName === "string" ? candidate.firstName : "",
+             lastName: typeof candidate.lastName === "string" ? candidate.lastName : "",
+             headline: typeof candidate.headline === "string" ? candidate.headline : null,
+             targetRole: typeof candidate.targetRole === "string" ? candidate.targetRole : null,
+             targetIndustry: typeof candidate.targetIndustry === "string" ? candidate.targetIndustry : null,
+             expertise: typeof candidate.expertise === "string" ? candidate.expertise : null,
+             skills: arrayOrEmpty<string>(candidate.skills).filter(skill => typeof skill === "string"),
+           }))
+       ))
       .catch((error: Error) => setFetchError(error.message || "Could not load candidates. Please try again."))
       .finally(() => setFetchLoading(false));
   }, [user, loading]);
 
-  const industries = Array.from(new Set(candidates.map(c => c.targetIndustry).filter(Boolean) as string[])).sort();
+   const industries = Array.from(new Set(arrayOrEmpty<Applicant>(candidates).map(c => c.targetIndustry).filter(Boolean) as string[])).sort();
 
-  const filtered = candidates.filter(c => {
+   const filtered = arrayOrEmpty<Applicant>(candidates).filter(c => {
     const fullName = `${c.firstName} ${c.lastName}`.toLowerCase();
     const matchQuery = !query || fullName.includes(query.toLowerCase())
       || (c.headline ?? "").toLowerCase().includes(query.toLowerCase())
-      || c.skills.some(s => s.toLowerCase().includes(query.toLowerCase()))
+       || arrayOrEmpty<string>(c.skills).some(s => typeof s === "string" && s.toLowerCase().includes(query.toLowerCase()))
       || (c.targetRole ?? "").toLowerCase().includes(query.toLowerCase());
     const matchCv = !filterCvOnly || !!c.cvText;
     const matchIndustry = !filterIndustry || c.targetIndustry === filterIndustry;
@@ -379,7 +394,7 @@ export default function CandidatesPage() {
               Showing <strong className="text-slate-600">{filtered.length}</strong> of <strong className="text-slate-600">{candidates.length}</strong> candidates
             </p>
             <p className="text-xs text-slate-400">
-              <strong className="text-green-600">{candidates.filter(c => !!c.cvText).length}</strong> with CV uploaded
+               <strong className="text-green-600">{arrayOrEmpty<Applicant>(candidates).filter(c => !!c.cvText).length}</strong> with CV uploaded
             </p>
           </div>
         )}

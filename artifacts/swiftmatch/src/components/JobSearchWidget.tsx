@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Search, MapPin, Briefcase, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 
 /* ─── Comprehensive PH data ─── */
 export const PH_JOB_DIRECTORY: { industry: string; roles: string[]; locations: string[] }[] = [
@@ -49,8 +50,9 @@ function AutocompleteField({ icon: Icon, label, placeholder, value, suggestions,
 
   const filtered = useMemo(() => {
     const q = value.toLowerCase().trim();
-    if (!q) return suggestions;
-    return suggestions.filter(s => s.toLowerCase().includes(q));
+    const safeSuggestions = arrayOrEmpty<string>(suggestions).filter(s => typeof s === "string");
+    if (!q) return safeSuggestions;
+    return safeSuggestions.filter(s => s.toLowerCase().includes(q));
   }, [value, suggestions]);
 
   useEffect(() => {

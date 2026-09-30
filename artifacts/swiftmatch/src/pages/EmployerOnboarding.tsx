@@ -7,6 +7,7 @@ import {
   ClipboardList, Lock, Crown, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 import { BulletTextarea } from "@/components/BulletTextarea";
 
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
@@ -101,14 +102,14 @@ export default function EmployerOnboarding() {
   function togglePill(field: "workSetup" | "employmentType", val: string) {
     setJob(p => ({
       ...p,
-      [field]: p[field].includes(val) ? p[field].filter(v => v !== val) : [...p[field], val],
+      [field]: arrayOrEmpty(p[field]).includes(val) ? arrayOrEmpty(p[field]).filter(v => v !== val) : [...arrayOrEmpty(p[field]), val],
     }));
   }
 
-  function addReq() { setJob(p => ({ ...p, requirements: [...p.requirements, ""] })); }
-  function removeReq(i: number) { setJob(p => ({ ...p, requirements: p.requirements.filter((_, idx) => idx !== i) })); }
+  function addReq() { setJob(p => ({ ...p, requirements: [...arrayOrEmpty(p.requirements), ""] })); }
+  function removeReq(i: number) { setJob(p => ({ ...p, requirements: arrayOrEmpty(p.requirements).filter((_, idx) => idx !== i) })); }
   function setReq(i: number, val: string) {
-    setJob(p => { const r = [...p.requirements]; r[i] = val; return { ...p, requirements: r }; });
+    setJob(p => { const r = [...arrayOrEmpty(p.requirements)]; r[i] = val; return { ...p, requirements: r }; });
   }
 
   function step0Valid() {
@@ -118,14 +119,14 @@ export default function EmployerOnboarding() {
     return contact.contactPerson.trim() && contact.contactPosition.trim() && contact.contactEmail.trim();
   }
   function step2Valid() {
-    return job.title.trim() && job.description.trim() && job.workSetup.length > 0;
+    return job.title.trim() && job.description.trim() && arrayOrEmpty(job.workSetup).length > 0;
   }
 
   async function handleSubmit() {
     const token = localStorage.getItem("sm_auth_token");
     setSaving(true);
     try {
-      const reqs = job.requirements.map(r => r.trim()).filter(Boolean);
+      const reqs = arrayOrEmpty(job.requirements).map(r => r.trim()).filter(Boolean);
       const payload = {
         title: job.title.trim(),
         company: company.companyName.trim(),
@@ -135,8 +136,8 @@ export default function EmployerOnboarding() {
         salaryRange: job.salaryRange.trim() || "Competitive — to be discussed",
         industry: company.industry,
         companyDescription: company.description.trim(),
-        workSetup: job.workSetup.join(", "),
-        employmentType: job.employmentType.join(", "),
+        workSetup: arrayOrEmpty(job.workSetup).join(", "),
+        employmentType: arrayOrEmpty(job.employmentType).join(", "),
         isDemo: false,
       };
       const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -196,7 +197,7 @@ export default function EmployerOnboarding() {
     );
   }
 
-  const previewReqs = job.requirements.map(r => r.trim()).filter(Boolean);
+  const previewReqs = arrayOrEmpty(job.requirements).map(r => r.trim()).filter(Boolean);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -383,7 +384,7 @@ export default function EmployerOnboarding() {
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {["Onsite", "Work from Home", "Hybrid"].map(ws => {
-                        const sel = job.workSetup.includes(ws);
+                         const sel = arrayOrEmpty(job.workSetup).includes(ws);
                         return (
                           <button key={ws} type="button" onClick={() => togglePill("workSetup", ws)}
                             className={cn("px-4 py-2 rounded-lg text-sm font-semibold border transition-all",
@@ -400,7 +401,7 @@ export default function EmployerOnboarding() {
                     <label className="text-sm font-semibold text-slate-700 mb-2 block">Employment Type</label>
                     <div className="flex flex-wrap gap-2">
                       {["Full-time", "Part-time", "Project-based", "Contractual"].map(et => {
-                        const sel = job.employmentType.includes(et);
+                         const sel = arrayOrEmpty(job.employmentType).includes(et);
                         return (
                           <button key={et} type="button" onClick={() => togglePill("employmentType", et)}
                             className={cn("px-4 py-2 rounded-lg text-sm font-semibold border transition-all",
@@ -444,11 +445,11 @@ export default function EmployerOnboarding() {
                   <div>
                     <label className="text-sm font-semibold text-slate-700 mb-2 block">Requirements</label>
                     <div className="space-y-2">
-                      {job.requirements.map((r, i) => (
+                      {arrayOrEmpty(job.requirements).map((r, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <input value={r} onChange={e => setReq(i, e.target.value)}
                             placeholder={`e.g. Requirement ${i + 1}`} className={cn(inputCls, "flex-1")} />
-                          {job.requirements.length > 1 && (
+                          {arrayOrEmpty(job.requirements).length > 1 && (
                             <button type="button" onClick={() => removeReq(i)}
                               className="p-2 text-slate-400 hover:text-red-500 transition-colors">
                               <X className="w-4 h-4" />
@@ -537,12 +538,12 @@ export default function EmployerOnboarding() {
                           <Banknote className="w-3.5 h-3.5" /> {job.salaryRange}
                         </div>
                       )}
-                      {(job.workSetup.length > 0 || job.employmentType.length > 0) && (
+                      {(arrayOrEmpty(job.workSetup).length > 0 || arrayOrEmpty(job.employmentType).length > 0) && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
-                          {job.workSetup.map(w => (
+                          {arrayOrEmpty(job.workSetup).map(w => (
                             <span key={w} className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium">{w}</span>
                           ))}
-                          {job.employmentType.map(e => (
+                          {arrayOrEmpty(job.employmentType).map(e => (
                             <span key={e} className="text-xs px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 font-medium">{e}</span>
                           ))}
                         </div>

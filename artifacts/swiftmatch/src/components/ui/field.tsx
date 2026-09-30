@@ -196,7 +196,7 @@ function FieldError({
       return children
     }
 
-    if (!errors) {
+    if (!Array.isArray(errors)) {
       return null
     }
 

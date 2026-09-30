@@ -9,33 +9,40 @@ import { isOwnerEmail } from "../lib/owner";
 const router: IRouter = Router();
 
 /** Strip recruiter answer keys from a job object before sending to public/applicant clients. */
+function readCustomQuestions(value: unknown): CustomQuestion[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((q): q is CustomQuestion =>
+    q !== null && typeof q === "object" && !Array.isArray(q) &&
+    typeof q.id === "string" && typeof q.text === "string" &&
+    (q.type === "text" || q.type === "multiple_choice"));
+}
+
 function stripJobAnswerKeys<T extends { customQuestions?: CustomQuestion[] | null }>(job: T): T {
-  if (!job.customQuestions || job.customQuestions.length === 0) return job;
   return {
     ...job,
-    customQuestions: job.customQuestions.map(q => {
+    customQuestions: readCustomQuestions(job.customQuestions).map(q => {
       const { correctAnswers: _ca, ...rest } = q as CustomQuestion;
       return rest as unknown as CustomQuestion;
     }),
   };
 }
 
-function sanitizeCustomQuestions(raw: unknown[]): CustomQuestion[] {
+function sanitizeCustomQuestions(raw: unknown[]): CustomQuestion[] | null {
   const out: CustomQuestion[] = [];
   for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
     const q = item as Record<string, unknown>;
     const text = typeof q.text === "string" ? q.text.trim() : "";
     const type = q.type === "multiple_choice" || q.type === "text" ? q.type : null;
-    if (!text || !type) continue;
-    const correctAnswers = Array.isArray(q.correctAnswers)
-      ? (q.correctAnswers as unknown[]).filter((s): s is string => typeof s === "string" && s.trim() !== "").map(s => s.trim())
-      : [];
-    if (correctAnswers.length === 0) continue;
+    if (!text || !type || !Array.isArray(q.correctAnswers) ||
+      !q.correctAnswers.every(s => typeof s === "string" && s.trim() !== "")) return null;
+    const correctAnswers = (q.correctAnswers as string[]).map(s => s.trim());
+    if (correctAnswers.length === 0) return null;
     const options = type === "multiple_choice" && Array.isArray(q.options)
       ? (q.options as unknown[]).filter((s): s is string => typeof s === "string" && s.trim() !== "").map(s => s.trim())
       : undefined;
-    if (type === "multiple_choice" && (!options || options.length < 2)) continue;
+    if (type === "multiple_choice" && (!options || options.length < 2 ||
+      (q.options as unknown[]).length !== options.length)) return null;
     const id = typeof q.id === "string" && q.id ? q.id : `q_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const points = typeof q.points === "number" && q.points > 0 ? q.points : 1;
     const cq: CustomQuestion = { id, text, type, correctAnswers, points };
@@ -306,7 +313,8 @@ async function ensureJobsSeeded() {
 }
 
 router.post("/", async (req, res) => {
-  const body = req.body as Record<string, unknown>;
+  const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+    ? req.body as Record<string, unknown> : {};
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const company = typeof body.company === "string" ? body.company.trim() : "";
   const location = typeof body.location === "string" ? body.location.trim() : "";
@@ -322,17 +330,22 @@ router.post("/", async (req, res) => {
   const companyDescription = typeof body.companyDescription === "string" ? body.companyDescription.trim() : "";
   const workSetup = typeof body.workSetup === "string" ? body.workSetup : "";
   const employmentType = typeof body.employmentType === "string" ? body.employmentType : "";
-  const rawReqs = Array.isArray(body.requirements) ? body.requirements : [];
-  const requirements = (rawReqs as unknown[]).filter((r): r is string => typeof r === "string" && r.trim() !== "").map(r => r.trim());
+  if ((body.requirements !== undefined && (!Array.isArray(body.requirements) ||
+    !body.requirements.every(r => typeof r === "string" && r.trim()))) ||
+    (body.customQuestions !== undefined && !Array.isArray(body.customQuestions))) {
+    res.status(400).json({ error: "requirements and customQuestions must be valid arrays." }); return;
+  }
+  const requirements = ((body.requirements ?? []) as string[]).map(r => r.trim());
   const fullDescription = [
     description,
     workSetup ? `\n\nWork Setup: ${workSetup}` : "",
     employmentType ? `\nEmployment Type: ${employmentType}` : "",
   ].join("");
   try {
-    const customQuestions = Array.isArray(body.customQuestions)
-      ? sanitizeCustomQuestions(body.customQuestions)
-      : [];
+    const customQuestions = sanitizeCustomQuestions((body.customQuestions ?? []) as unknown[]);
+    if (!customQuestions) {
+      res.status(400).json({ error: "Invalid customQuestions array." }); return;
+    }
     const [job] = await db.insert(jobsTable).values({
       title, company, location, description: fullDescription,
       requirements, salaryRange, industry, companyDescription, customQuestions, isDemo: false,
@@ -427,9 +440,15 @@ router.put("/:id", requireAuth, async (req, res) => {
     if (!existing) { res.status(404).json({ error: "Job not found" }); return; }
     if (existing.isDemo) { res.status(403).json({ error: "Demo jobs cannot be edited." }); return; }
 
-    const body = req.body as Record<string, unknown>;
+    const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
+      ? req.body as Record<string, unknown> : {};
     const updates: Partial<typeof jobsTable.$inferInsert> = {};
 
+    if ((body.requirements !== undefined && (!Array.isArray(body.requirements) ||
+      !body.requirements.every(r => typeof r === "string" && r.trim()))) ||
+      (body.customQuestions !== undefined && !Array.isArray(body.customQuestions))) {
+      res.status(400).json({ error: "requirements and customQuestions must be valid arrays." }); return;
+    }
     if (typeof body.title === "string" && body.title.trim()) updates.title = body.title.trim();
     if (typeof body.company === "string" && body.company.trim()) updates.company = body.company.trim();
     if (typeof body.location === "string") updates.location = body.location.trim();
@@ -438,12 +457,12 @@ router.put("/:id", requireAuth, async (req, res) => {
     if (typeof body.industry === "string" && body.industry.trim()) updates.industry = body.industry.trim();
     if (typeof body.companyDescription === "string") updates.companyDescription = body.companyDescription.trim();
     if (Array.isArray(body.requirements)) {
-      updates.requirements = (body.requirements as unknown[])
-        .filter((r): r is string => typeof r === "string" && r.trim() !== "")
-        .map(r => r.trim());
+      updates.requirements = (body.requirements as string[]).map(r => r.trim());
     }
     if (Array.isArray(body.customQuestions)) {
-      updates.customQuestions = sanitizeCustomQuestions(body.customQuestions);
+      const questions = sanitizeCustomQuestions(body.customQuestions);
+      if (!questions) { res.status(400).json({ error: "Invalid customQuestions array." }); return; }
+      updates.customQuestions = questions;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -597,8 +616,9 @@ router.get("/:id/custom-assessment", async (req, res) => {
       customQuestions: jobsTable.customQuestions,
     }).from(jobsTable).where(eq(jobsTable.id, jobId)).limit(1);
     if (!job) { res.status(404).json({ error: "Job not found" }); return; }
-    const sanitized = (job.customQuestions ?? []).map(q => ({
-      id: q.id, text: q.text, type: q.type, options: q.options ?? [], points: q.points ?? 1,
+    const sanitized = readCustomQuestions(job.customQuestions).map(q => ({
+      id: q.id, text: q.text, type: q.type,
+      options: Array.isArray(q.options) ? q.options : [], points: q.points ?? 1,
     }));
     res.json({ jobId: job.id, jobTitle: job.title, company: job.company, questions: sanitized });
   } catch (err) {
@@ -626,16 +646,19 @@ router.post("/:id/custom-assessment/submit", requireAuth, async (req, res) => {
     }).from(jobsTable).where(eq(jobsTable.id, jobId)).limit(1);
     if (!job) { res.status(404).json({ error: "Job not found" }); return; }
 
-    const questions = job.customQuestions ?? [];
+    const questions = readCustomQuestions(job.customQuestions);
     if (questions.length === 0) {
       res.status(400).json({ error: "This job has no custom assessment." });
       return;
     }
 
-    const submittedAnswers = (req.body?.answers ?? {}) as Record<string, string>;
+    const submittedAnswers = req.body?.answers && typeof req.body.answers === "object" &&
+      !Array.isArray(req.body.answers) ? req.body.answers as Record<string, unknown> : {};
     const graded = questions.map(q => {
       const raw = String(submittedAnswers[q.id] ?? "").trim();
-      const accepted = (q.correctAnswers ?? []).map(s => String(s).trim().toLowerCase()).filter(Boolean);
+      const accepted = (Array.isArray(q.correctAnswers) ? q.correctAnswers : [])
+        .filter((s): s is string => typeof s === "string")
+        .map(s => s.trim().toLowerCase()).filter(Boolean);
       const given = raw.toLowerCase();
       const correct = !!given && accepted.includes(given);
       return { questionId: q.id, answer: raw, correct };
@@ -677,7 +700,7 @@ router.post("/:id/custom-assessment/submit", requireAuth, async (req, res) => {
           questionText: q?.text ?? "",
           type: q?.type ?? "text",
           yourAnswer: g.answer,
-          correctAnswers: q?.correctAnswers ?? [],
+          correctAnswers: Array.isArray(q?.correctAnswers) ? q.correctAnswers : [],
           correct: g.correct,
         };
       }),

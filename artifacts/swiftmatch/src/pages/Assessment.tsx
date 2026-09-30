@@ -91,9 +91,11 @@ export default function AssessmentCenter() {
   const effectiveRole = storedRole || (storedIndustry ? "" : user?.targetRole || "");
   const { data: assessmentData, isLoading, isError, refetch } = useListAssessments();
   const assessments = arrayOrEmpty<any>(assessmentData).filter(
-    test => test && typeof test === "object" && typeof test.id === "number",
+    test => test && typeof test === "object" && typeof test.id === "number" &&
+      typeof test.title === "string" && typeof test.category === "string",
   );
-  const invalidAssessments = assessmentData !== undefined && !Array.isArray(assessmentData);
+  const invalidAssessments = assessmentData !== undefined &&
+    (!Array.isArray(assessmentData) || assessments.length !== assessmentData.length);
   const { mutateAsync: submitAssessment } = useSubmitAssessment();
   const { toast } = useToast();
 
@@ -114,6 +116,7 @@ export default function AssessmentCenter() {
   const [keResult, setKeResult]                 = useState<AssessmentResult | null>(null);
   const [personalityResult, setPersonalityResult] = useState<AssessmentResult | null>(null);
   const [loadingResults, setLoadingResults]     = useState(true);
+  const [resultsError, setResultsError] = useState<string | null>(null);
 
   // Job context — populated when redirected from Apply flow via URL params
   const jobContext = useMemo(() => {
@@ -142,13 +145,16 @@ export default function AssessmentCenter() {
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
     try {
       const res = await fetch(`${BASE_URL}/api/assessments/applicant/${applicantId}/results`, { headers });
-      if (!res.ok) return;
-      const results = arrayOrEmpty<AssessmentResult>(await res.json());
+      if (!res.ok) throw new Error(`Results could not be loaded (${res.status}).`);
+      const payload: unknown = await res.json();
+      if (!Array.isArray(payload)) throw new Error("Invalid assessment results response.");
+      const results = arrayOrEmpty<AssessmentResult>(payload);
       const map: Record<number, AssessmentResult> = {};
       let ke: AssessmentResult | null = null;
       let personality: AssessmentResult | null = null;
       results.forEach(r => {
-        if (!r || typeof r !== "object") return;
+        if (!r || typeof r !== "object" || typeof r.score !== "number" ||
+          typeof r.completedAt !== "string") return;
         if (r.assessmentId) map[r.assessmentId] = r;
         const title = typeof r.assessmentTitle === "string" ? r.assessmentTitle.toLowerCase() : "";
         if (title.includes("knowledge")) ke = r;
@@ -157,7 +163,10 @@ export default function AssessmentCenter() {
       setCompletedResults(map);
       setKeResult(ke);
       setPersonalityResult(personality);
-    } catch { /* silent */ } finally {
+      setResultsError(null);
+    } catch (error: any) {
+      setResultsError(error?.message || "Results could not be loaded.");
+    } finally {
       setLoadingResults(false);
     }
   }, [applicantId]);
@@ -180,12 +189,16 @@ export default function AssessmentCenter() {
       return;
     }
     const testAnswers = arrayOrEmpty<any>(answers[test.id]);
-    const questions = arrayOrEmpty<any>(test.questions).filter(q => q && typeof q === "object");
-    if (questions.length === 0) {
+    const questions = arrayOrEmpty<any>(test?.questions);
+    if (!Array.isArray(test?.questions) || !questions.length || questions.some(q =>
+      !q || typeof q !== "object" || typeof q.id !== "number" || typeof q.text !== "string" ||
+      (q.type === "multiple_choice" && (!Array.isArray(q.options) || !q.options.length ||
+        q.options.some((opt: unknown) => typeof opt !== "string"))))) {
       toast({ title: "Questions unavailable", description: "Please reload the assessments and try again.", variant: "destructive" });
       return;
     }
-    if (testAnswers.length < questions.length) {
+    if (questions.some(q => !testAnswers.some(a => a && a.questionId === q.id &&
+      typeof a.answer === "string" && a.answer.trim().length > 0))) {
       toast({ title: "Incomplete", description: "Please answer all questions before submitting.", variant: "destructive" });
       return;
     }
@@ -429,7 +442,13 @@ export default function AssessmentCenter() {
                 <div className="p-6 space-y-5">
                   <p className="text-slate-600 text-sm">{activeTest.description}</p>
 
-                  {arrayOrEmpty<any>(activeTest.questions).filter(q => q && typeof q === "object").map((q, idx) => {
+                  {!Array.isArray(activeTest.questions) || !activeTest.questions.length ||
+                    arrayOrEmpty<any>(activeTest.questions).some(q => !q || typeof q !== "object" ||
+                      typeof q.id !== "number" || typeof q.text !== "string" ||
+                      (q.type === "multiple_choice" && (!Array.isArray(q.options) || !q.options.length ||
+                        q.options.some((opt: unknown) => typeof opt !== "string")))) ? (
+                    <p role="alert" className="text-red-600">Questions unavailable. Please reload the assessments and try again.</p>
+                  ) : arrayOrEmpty<any>(activeTest.questions).map((q, idx) => {
                     const selected = arrayOrEmpty<any>(answers[activeTest.id]).find(a => a?.questionId === q.id)?.answer;
                     return (
                       <div key={q.id} className="p-5 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
@@ -474,7 +493,7 @@ export default function AssessmentCenter() {
 
                 <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
                   <p className="text-xs text-slate-400">
-                    {(answers[activeTest.id] || []).length} / {activeTest.questions?.length || 0} answered
+                    {arrayOrEmpty<any>(answers[activeTest.id]).length} / {arrayOrEmpty<any>(activeTest.questions).length} answered
                   </p>
                   <button
                     onClick={() => handleSubmitTest(activeTest)}
@@ -491,10 +510,10 @@ export default function AssessmentCenter() {
               <div className="space-y-4">
                 {isLoading || loadingResults ? (
                   [1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-200 rounded-2xl animate-pulse" />)
-                ) : isError || invalidAssessments ? (
+                ) : isError || invalidAssessments || resultsError ? (
                   <div role="alert" className="rounded-xl border border-red-200 bg-white p-6 text-red-700">
-                    <p>Assessments could not be loaded. Please try again.</p>
-                    <button onClick={() => void refetch()} className="mt-3 font-semibold underline">Retry</button>
+                    <p>{resultsError || "Assessments could not be loaded. Please try again."}</p>
+                    <button onClick={() => { void refetch(); void fetchResults(); }} className="mt-3 font-semibold underline">Retry</button>
                   </div>
                 ) : assessments.length === 0 ? (
                   <p className="rounded-xl border bg-white p-6 text-slate-600">No assessments are available right now.</p>

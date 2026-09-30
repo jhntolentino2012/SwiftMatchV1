@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 import { useAuth } from "@/hooks/useAuth";
 import { useReportAccess } from "@/hooks/useReportAccess";
 import {
@@ -37,8 +38,8 @@ const SCORE_DEFS = [
 
 function mapResultsToScores(results: { assessmentTitle: string; score: number }[]): ScoreItem[] {
   return SCORE_DEFS.map(def => {
-    const match = results.find(r =>
-      def.words.some(w => r.assessmentTitle.toLowerCase().includes(w))
+    const match = arrayOrEmpty(results).find(r =>
+      typeof r?.assessmentTitle === "string" && def.words.some(w => r.assessmentTitle.toLowerCase().includes(w))
     );
     return {
       key: def.key, label: def.label, short: def.short,
@@ -229,9 +230,9 @@ const CAREER_EXPANSION: Record<string, ExpansionEntry[]> = {
 };
 
 function getExpansionSuggestions(scores: ScoreItem[], industry: string) {
-  const entries = CAREER_EXPANSION[industry] ?? CAREER_EXPANSION["Technology / IT"];
+  const entries = arrayOrEmpty(CAREER_EXPANSION[industry] ?? CAREER_EXPANSION["Technology / IT"]);
   const scoreMap: Record<string, number> = {};
-  scores.forEach(s => { scoreMap[s.key] = s.score; });
+  arrayOrEmpty(scores).forEach(s => { scoreMap[s.key] = s.score; });
   return entries
     .map(e => {
       const driverScore = scoreMap[e.scoreDriver] ?? 70;
@@ -333,10 +334,19 @@ function CvMatchAnalysis() {
       if (res.status === 422 && data.errorCode === "cv_missing") { setStatus("cv_missing"); return; }
       if (res.status === 422 && data.errorCode === "no_scores")  { setStatus("no_scores");  return; }
       if (!res.ok) { setErrorMsg(data.error || "Analysis failed."); setStatus("error"); return; }
-      setAnalysis(data as CvAnalysis);
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("Invalid analysis response.");
+      }
+      setAnalysis({
+        ...data,
+        cvProfile: data?.cvProfile && typeof data.cvProfile === "object" ? data.cvProfile : {},
+        confirmedStrengths: arrayOrEmpty<CvStrength>(data?.confirmedStrengths),
+        gapAreas: arrayOrEmpty<CvGap>(data?.gapAreas),
+        recommendations: arrayOrEmpty<string>(data?.recommendations),
+      } as CvAnalysis);
       setStatus("done");
-    } catch {
-      setErrorMsg("Network error. Please try again.");
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "Network error. Please try again.");
       setStatus("error");
     }
   };
@@ -518,11 +528,11 @@ function CvMatchAnalysis() {
                     </p>
                   </div>
                 )}
-                {analysis.cvProfile.topSkills && analysis.cvProfile.topSkills.length > 0 && (
+                {arrayOrEmpty(analysis.cvProfile.topSkills).length > 0 && (
                   <div className="col-span-2 sm:col-span-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Top Skills from CV</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {analysis.cvProfile.topSkills.map(s => (
+                      {arrayOrEmpty(analysis.cvProfile.topSkills).map(s => (
                         <span key={s} className="text-[11px] px-2 py-0.5 bg-primary/8 text-primary rounded-full font-medium">{s}</span>
                       ))}
                     </div>
@@ -532,7 +542,7 @@ function CvMatchAnalysis() {
             )}
 
             {/* Confirmed Strengths */}
-            {analysis.confirmedStrengths.length > 0 && (
+            {arrayOrEmpty(analysis.confirmedStrengths).length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -542,7 +552,7 @@ function CvMatchAnalysis() {
                   </span>
                 </div>
                 <div className="space-y-2.5">
-                  {analysis.confirmedStrengths.map((s, i) => (
+                  {arrayOrEmpty(analysis.confirmedStrengths).map((s, i) => (
                     <div key={i} className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <p className="text-sm font-bold text-emerald-800">{s.skill}</p>
@@ -558,7 +568,7 @@ function CvMatchAnalysis() {
             )}
 
             {/* Gap Areas */}
-            {analysis.gapAreas.length > 0 && (
+            {arrayOrEmpty(analysis.gapAreas).length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="w-4 h-4 text-amber-600" />
@@ -568,7 +578,7 @@ function CvMatchAnalysis() {
                   </span>
                 </div>
                 <div className="space-y-2.5">
-                  {analysis.gapAreas.map((g, i) => (
+                  {arrayOrEmpty(analysis.gapAreas).map((g, i) => (
                     <div key={i} className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5">
                       <p className="text-sm font-bold text-amber-800">{g.area}</p>
                       {g.cvClaim && (
@@ -582,14 +592,14 @@ function CvMatchAnalysis() {
             )}
 
             {/* Recommendations */}
-            {analysis.recommendations.length > 0 && (
+            {arrayOrEmpty(analysis.recommendations).length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Lightbulb className="w-4 h-4 text-accent" />
                   <p className="text-sm font-bold text-slate-700">Recommended Actions</p>
                 </div>
                 <div className="space-y-2">
-                  {analysis.recommendations.map((r, i) => (
+                  {arrayOrEmpty(analysis.recommendations).map((r, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 bg-orange-50 border border-orange-100 rounded-xl">
                       <div className="w-5 h-5 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                         {i + 1}
@@ -643,7 +653,7 @@ function ApplicantReport({
   hasResults: boolean;
 }) {
   const app = applicant ?? SAMPLE_APPLICANT;
-  const displayScores: ScoreItem[] = scores ?? SAMPLE_SCORES.map(s => ({ ...s, taken: true }));
+  const displayScores: ScoreItem[] = scores == null ? SAMPLE_SCORES.map(s => ({ ...s, taken: true })) : arrayOrEmpty(scores);
   const takenScores = displayScores.filter(s => s.taken && s.score > 0);
   const overall = takenScores.length > 0
     ? Math.round(takenScores.reduce((sum, s) => sum + s.score, 0) / takenScores.length)
@@ -984,7 +994,7 @@ function ApplicantReport({
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Roles to explore</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {s.roles.map(r => (
+                      {arrayOrEmpty(s.roles).map(r => (
                         <span key={r} className="text-[11px] px-2.5 py-0.5 bg-primary/8 text-primary rounded-full font-medium">
                           {r}
                         </span>
@@ -1043,7 +1053,7 @@ function computeJobMatch(c: CandidateRow, job: Job): MatchBreakdown {
 
   /* ── 2. Role / keyword match (20%) ── */
   const cRole = c.role.toLowerCase();
-  const reqBlob = (job.requirements ?? []).join(" ").toLowerCase();
+  const reqBlob = arrayOrEmpty(job.requirements).join(" ").toLowerCase();
   const jobBlob = `${job.title} ${reqBlob}`.toLowerCase();
   const cTokens = cRole.split(/[\s,\/\-–|()]+/).filter(t => t.length > 3);
   const jTokenSet = new Set(jobBlob.split(/\W+/).filter(t => t.length > 3));
@@ -1092,9 +1102,10 @@ function computeJobMatch(c: CandidateRow, job: Job): MatchBreakdown {
   } else {
     w = [0.20, 0.20, 0.20, 0.20, 0.20];
   }
-  const takenWeightSum = c.scores.reduce((s, sc, i) => s + (sc.taken ? w[i] : 0), 0);
+  const candidateScores = arrayOrEmpty(c.scores);
+  const takenWeightSum = candidateScores.reduce((s, sc, i) => s + (sc.taken ? w[i] : 0), 0);
   const assessmentScore = takenWeightSum > 0
-    ? Math.round(c.scores.reduce((s, sc, i) => s + (sc.taken ? sc.score * w[i] : 0), 0) / takenWeightSum)
+    ? Math.round(candidateScores.reduce((s, sc, i) => s + (sc.taken ? sc.score * w[i] : 0), 0) / takenWeightSum)
     : 0;
 
   const total = Math.round(
@@ -1186,14 +1197,14 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
       })
       .then(async (applicants: any[]) => {
         const rows: CandidateRow[] = await Promise.all(
-          applicants.map(async (app) => {
+          arrayOrEmpty<any>(applicants).map(async (app) => {
             const results: { assessmentTitle: string; score: number }[] =
               await fetch(`${BASE_URL}/api/assessments/applicant/${app.id}/results`, { headers, signal: controller.signal })
                 .then(r => {
                   if (!r.ok) throw new Error("Candidate scores could not be loaded. Your report access may have expired.");
                   return r.json();
                 });
-            const scores = mapResultsToScores(results);
+            const scores = mapResultsToScores(arrayOrEmpty(results));
             const taken  = scores.filter(s => s.taken && s.score > 0);
             const overall = taken.length > 0
               ? Math.round(taken.reduce((sum, s) => sum + s.score, 0) / taken.length)
@@ -1228,30 +1239,34 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
 
   /* ── Fetch jobs when switching to match mode ── */
   useEffect(() => {
-    if (poolMode !== "match" || jobs.length > 0) return;
+    if (poolMode !== "match" || arrayOrEmpty(jobs).length > 0) return;
     setLoadingJobs(true);
     const token = localStorage.getItem("sm_auth_token");
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
     fetch(`${BASE_URL}/api/jobs`, { headers })
-      .then(r => r.ok ? r.json() : [])
+      .then(r => {
+        if (!r.ok) throw new Error("Job listings could not be loaded.");
+        return r.json();
+      })
       .then((data: any) => {
-        const list: Job[] = Array.isArray(data) ? data : (data.jobs ?? []);
+        const list: Job[] = arrayOrEmpty<Job>(Array.isArray(data) ? data : data?.jobs);
         setJobs(list);
         if (list.length > 0) setSelectedJobId(list[0].id);
         setLoadingJobs(false);
       })
-      .catch(() => setLoadingJobs(false));
+      .catch((error: Error) => { setPoolError(error.message); setLoadingJobs(false); });
   }, [poolMode]);
 
-  const scored   = candidates.filter(c => c.overall > 0);
+  const safeCandidates = arrayOrEmpty(candidates);
+  const scored   = safeCandidates.filter(c => c.overall > 0);
   const avgScore = scored.length > 0
     ? Math.round(scored.reduce((s, c) => s + c.overall, 0) / scored.length)
     : 0;
 
-  const selectedJob = jobs.find(j => j.id === selectedJobId) ?? null;
+  const selectedJob = arrayOrEmpty(jobs).find(j => j.id === selectedJobId) ?? null;
 
   const matchedCandidates: (CandidateRow & { match: MatchBreakdown })[] = selectedJob
-    ? candidates
+    ? safeCandidates
         .map(c => ({ ...c, match: computeJobMatch(c, selectedJob) }))
         .sort((a, b) => b.match.total - a.match.total)
     : [];
@@ -1263,7 +1278,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
     return <div role="alert" className="rounded-xl border border-red-200 bg-white p-6 text-red-700">{poolError}</div>;
   }
   if (selected) {
-    const hasResults = selected.scores.some(s => s.taken);
+    const hasResults = arrayOrEmpty(selected.scores).some(s => s.taken);
     return (
       <div className="space-y-5">
         {/* Back bar */}
@@ -1306,7 +1321,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
         </div>
         <div className="px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-slate-100">
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : candidates.length}</p>
+            <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : safeCandidates.length}</p>
             <p className="text-xs text-slate-500">Total Applicants</p>
           </div>
           <div className="w-px h-10 bg-slate-200 hidden sm:block" />
@@ -1321,7 +1336,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
           </div>
           <div className="w-px h-10 bg-slate-200 hidden sm:block" />
           <div className="text-center">
-            <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : (candidates.length - scored.length)}</p>
+            <p className="text-2xl font-display font-bold text-primary">{loadingPool ? "…" : (safeCandidates.length - scored.length)}</p>
             <p className="text-xs text-slate-500">Pending Assessment</p>
           </div>
 
@@ -1354,7 +1369,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
           <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           Loading candidate pool…
         </div>
-      ) : candidates.length === 0 ? (
+      ) : safeCandidates.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 flex flex-col items-center gap-3 text-center">
           <UserCircle className="w-10 h-10 text-slate-300" />
           <p className="font-semibold text-slate-500">No applicants yet</p>
@@ -1386,9 +1401,9 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {candidates.map((c, idx) => {
+                  {safeCandidates.map((c, idx) => {
                     const rank = idx + 1;
-                    const scoreVals = c.scores.map(s => s.score);
+                    const scoreVals = arrayOrEmpty(c.scores).map(s => s.score);
                     return (
                       <tr
                         key={c.id}
@@ -1418,7 +1433,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                             </div>
                           </div>
                         </td>
-                        {c.scores.map((s, i) => (
+                        {arrayOrEmpty(c.scores).map((s, i) => (
                           <td key={i} className="text-center px-3 py-3.5">
                             {s.taken ? <ScoreBadge score={s.score} size="sm" /> : <span className="text-xs text-slate-300">—</span>}
                           </td>
@@ -1473,7 +1488,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
           {scored.length >= 1 && (() => {
             const top = candidates[0];
             const avgScores = SCORE_DEFS.map((def, i) => {
-              const vals = scored.map(c => c.scores[i]?.score ?? 0).filter(v => v > 0);
+              const vals = scored.map(c => arrayOrEmpty(c.scores)[i]?.score ?? 0).filter(v => v > 0);
               return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
             });
             return (
@@ -1524,7 +1539,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                     <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                     Loading jobs…
                   </div>
-                ) : jobs.length === 0 ? (
+                ) : arrayOrEmpty(jobs).length === 0 ? (
                   <p className="text-xs text-slate-400">No job postings found.</p>
                 ) : (
                   <div className="relative">
@@ -1533,7 +1548,7 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                       onChange={e => setSelectedJobId(Number(e.target.value))}
                       className="appearance-none pl-9 pr-8 py-2 text-sm font-semibold text-primary bg-primary/5 border border-primary/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
                     >
-                      {jobs.map(j => (
+                      {arrayOrEmpty(jobs).map(j => (
                         <option key={j.id} value={j.id}>{j.title} — {j.company}</option>
                       ))}
                     </select>
@@ -1569,18 +1584,18 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
                     </div>
                     <p className="text-xs text-slate-500 mt-3 leading-relaxed line-clamp-2">{selectedJob.description}</p>
                   </div>
-                  {selectedJob.requirements.length > 0 && (
+                  {arrayOrEmpty(selectedJob.requirements).length > 0 && (
                     <div className="w-full sm:w-64 shrink-0">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">Key Requirements</p>
                       <ul className="space-y-1">
-                        {selectedJob.requirements.slice(0, 5).map((r, i) => (
+                        {arrayOrEmpty(selectedJob.requirements).slice(0, 5).map((r, i) => (
                           <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
                             {r}
                           </li>
                         ))}
-                        {selectedJob.requirements.length > 5 && (
-                          <li className="text-[11px] text-slate-400">+{selectedJob.requirements.length - 5} more…</li>
+                        {arrayOrEmpty(selectedJob.requirements).length > 5 && (
+                          <li className="text-[11px] text-slate-400">+{arrayOrEmpty(selectedJob.requirements).length - 5} more…</li>
                         )}
                       </ul>
                     </div>
@@ -1753,7 +1768,7 @@ function MyJobApplications() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => (r.ok ? r.json() : []))
-      .then((data: ApplicationRow[]) => setApps(Array.isArray(data) ? data : []))
+      .then((data: ApplicationRow[]) => setApps(arrayOrEmpty(data)))
       .catch(() => setApps([]))
       .finally(() => setLoading(false));
   }, []);
@@ -1770,7 +1785,7 @@ function MyJobApplications() {
         Your scores per job, including any recruiter-specific custom assessments.
       </p>
       <div className="space-y-3">
-        {apps.map(a => (
+        {arrayOrEmpty(apps).map(a => (
           <div key={a.id} className="border border-slate-200 rounded-xl p-4 flex flex-wrap items-center gap-4">
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-slate-900 truncate">{a.jobTitle}</div>
@@ -1886,9 +1901,9 @@ function ResultsContent({ applicantId, isPremium, canViewCandidatePool }: {
         date: dateStr,
       });
 
-      if (Array.isArray(results) && results.length > 0) {
+       if (arrayOrEmpty(results).length > 0) {
         setHasResults(true);
-        setProfileScores(mapResultsToScores(results));
+         setProfileScores(mapResultsToScores(arrayOrEmpty(results)));
       } else {
         setHasResults(false);
         setProfileScores(null);

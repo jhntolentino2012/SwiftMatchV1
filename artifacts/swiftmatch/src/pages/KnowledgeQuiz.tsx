@@ -5,6 +5,7 @@ import {
   RotateCcw, Loader2, AlertCircle, Briefcase, Keyboard, Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 
 /* ─── Industry list ─── */
 const INDUSTRIES = [
@@ -121,6 +122,15 @@ const TYPING_DURATION = 60; // seconds
 
 function storageKey(type: string, applicantId: number | null | undefined, industry: string) {
   return `sm_ke_${type}_${applicantId ?? "guest"}_${encodeURIComponent(industry)}`;
+}
+
+function attemptedQuestions(key: string): string[] {
+  try {
+    return arrayOrEmpty<unknown>(JSON.parse(localStorage.getItem(key) ?? "[]"))
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+  } catch {
+    return [];
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -448,18 +458,22 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
   const loadQuiz = useCallback(async (ind: string, rl: string) => {
     setLoading(true);
     setError(null);
-    const attemptedIds: string[] = JSON.parse(localStorage.getItem(storageKey("attempted", applicantId, ind)) ?? "[]");
     try {
+      const attemptedIds = attemptedQuestions(storageKey("attempted", applicantId, ind));
       const params = new URLSearchParams({ industry: ind });
       if (rl) params.set("role", rl);
       if (attemptedIds.length) params.set("exclude", attemptedIds.join(","));
       const res = await fetch(`/api/assessments/ke-quiz?${params}`);
       if (!res.ok) throw new Error(await res.text());
       const payload: unknown = await res.json();
-      if (!Array.isArray(payload) || payload.length === 0 || payload.some(q => !q || typeof q !== "object")) {
+      if (!Array.isArray(payload) || payload.length === 0 || payload.some(q =>
+        !q || typeof q !== "object" || typeof q.id !== "string" || !q.id ||
+        typeof q.text !== "string" || !["multiple_choice", "text", "berlitz"].includes(q.type) ||
+        (q.type !== "text" && (!Array.isArray(q.options) || q.options.length < 2 ||
+          q.options.some((opt: unknown) => typeof opt !== "string"))))) {
         throw new Error("Quiz questions could not be loaded. Please try again.");
       }
-      const qs: QuizQuestion[] = payload;
+      const qs: QuizQuestion[] = [...payload];
       // Inject typing test at a random position (not first, not last if 2+ questions)
       const insertAt = qs.length > 1
         ? 1 + Math.floor(Math.random() * (qs.length - 1))
@@ -523,12 +537,17 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
   const q = questions[current];
 
   async function submitQuiz() {
+    if (!questions.length || questions.some(question => !question || typeof question.id !== "string" ||
+      typeof answers[question.id] !== "string" || !answers[question.id].trim())) {
+      setSubmitError("Quiz questions are unavailable or incomplete. Please reload and try again.");
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
 
     const key = storageKey("attempted", applicantId, industry);
-    const existing: string[] = JSON.parse(localStorage.getItem(key) ?? "[]");
-    const fresh = Array.from(new Set([...existing, ...questions.map(q => q.id)]));
+    const existing = attemptedQuestions(key);
+    const fresh = Array.from(new Set([...existing, ...arrayOrEmpty<QuizQuestion>(questions).map(q => q.id)]));
     if (!applicantId) {
       setSubmitError("Sign in and create your profile before submitting this assessment.");
       setSubmitting(false);
@@ -784,7 +803,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
         <div className="grid grid-cols-3 gap-3 text-sm">
           {(["easy", "medium", "hard"] as const).map(d => ({
-            d, count: (Array.isArray(questions) ? questions : []).filter(q => q.difficulty === d).length,
+            d, count: arrayOrEmpty<QuizQuestion>(questions).filter(q => q?.difficulty === d).length,
             label: d === "easy" ? "Easy (×1)" : d === "medium" ? "Medium (×2)" : "Hard (×3)"
           })).map(({ d, count, label }) => (
             <div key={d} className={cn("rounded-lg p-3", DIFFICULTY_COLORS[d])}>
@@ -815,7 +834,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
   }
 
   /* ── QUIZ ── */
-  if (!q) return null;
+  if (!q) return <p role="alert" className="text-red-600">Quiz questions are unavailable. Please reload and try again.</p>;
 
   const progress    = ((current + 1) / questions.length) * 100;
   const allAnswered = questions.every(q2 =>
@@ -936,7 +955,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
             <div className="px-5 pb-5 space-y-2">
               {(q.type === "multiple_choice" || q.type === "berlitz") && q.options ? (
-                q.options.map((opt, i) => {
+                arrayOrEmpty<string>(q.options).map((opt, i) => {
                   const selected = answers[q.id] === opt;
                   return (
                     <button
@@ -979,7 +998,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
         </button>
 
         <div className="flex gap-1.5 flex-wrap justify-center max-w-[200px]">
-          {questions.map((qq, i) => (
+          {arrayOrEmpty<QuizQuestion>(questions).map((qq, i) => (
             <button
               key={qq.id}
               onClick={() => setCurrent(i)}
@@ -1018,7 +1037,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
       {current === questions.length - 1 && !allAnswered && (
         <p className="text-center text-xs text-amber-600">
-          Answer all questions to submit. Unanswered: {(Array.isArray(questions) ? questions : []).filter(q2 => !(answers[q2.id] ?? "").trim()).length}
+          Answer all questions to submit. Unanswered: {arrayOrEmpty<QuizQuestion>(questions).filter(q2 => !(answers[q2.id] ?? "").trim()).length}
         </p>
       )}
 

@@ -6,6 +6,7 @@ import {
   Loader2, AlertCircle, Download, ExternalLink, Copy, Check, FileIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 
 const BASE = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
@@ -41,6 +42,7 @@ export default function CvViewPage() {
   const [data, setData] = useState<CvData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [skillsInvalid, setSkillsInvalid] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"pdf" | "text">("pdf");
 
@@ -51,14 +53,19 @@ export default function CvViewPage() {
     fetch(`${BASE}/api/resume/view/${token}`)
       .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(d.error || "Not found")))
       .then(d => {
-        setData(d);
+        if (!d || typeof d !== "object" || typeof d.name !== "string" || typeof d.cvText !== "string") {
+          throw new Error("Invalid CV data.");
+        }
+        setSkillsInvalid(!Array.isArray(d.skills) || d.skills.some((s: unknown) => typeof s !== "string"));
+        setData({ ...d, skills: arrayOrEmpty<string>(d.skills).filter((s): s is string => typeof s === "string") });
         if (d.hasOriginal && d.cvFileMime === "application/pdf") {
           setActiveTab("pdf");
         } else {
           setActiveTab("text");
         }
       })
-      .catch(err => setError(typeof err === "string" ? err : "CV not found or link has expired."))
+      .catch(err => setError(typeof err === "string" ? err :
+        err instanceof Error && err.message === "Invalid CV data." ? err.message : "CV not found or link has expired."))
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -204,11 +211,12 @@ export default function CvViewPage() {
                     )}
                   </div>
 
-                  {data.skills.length > 0 && (
+                   {arrayOrEmpty<string>(data.skills).length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-3">
-                      {data.skills.map(s => <SkillBadge key={s} label={s} />)}
+                       {arrayOrEmpty<string>(data.skills).filter((s): s is string => typeof s === "string").map(s => <SkillBadge key={s} label={s} />)}
                     </div>
                   )}
+                  {skillsInvalid && <p className="text-xs text-amber-700 mt-3">Some skills could not be displayed because the CV data was invalid.</p>}
                   {data.expertise?.trim() && (
                     <div className="mt-3">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Expertise</p>

@@ -11,6 +11,15 @@ export type AuthTokenGetter = () => Promise<string | null> | string | null;
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
+// Only collection endpoints are normalized. Detail/mutation responses keep their
+// object contracts, and non-2xx responses still throw ApiError below.
+const COLLECTION_PATH = /\/api\/(?:jobs|applicants|assessments|courses|skills\/suggestions|jobs\/applications\/me|jobs\/[^/]+\/applications|applicants\/[^/]+\/assessment-results|assessments\/applicant\/[^/]+\/results)\/?$/;
+
+function isCollectionRequest(method: string, url: string): boolean {
+  if (method !== "GET") return false;
+  return COLLECTION_PATH.test(new URL(url, "http://api.local").pathname);
+}
+
 // ---------------------------------------------------------------------------
 // Module-level configuration
 // ---------------------------------------------------------------------------
@@ -364,5 +373,10 @@ export async function customFetch<T = unknown>(
     throw new ApiError(response, errorData, requestInfo);
   }
 
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  const data = await parseSuccessBody(response, responseType, requestInfo);
+  if (isCollectionRequest(method, requestInfo.url) && !Array.isArray(data)) {
+    console.warn(`Expected an array from ${method} ${new URL(requestInfo.url, "http://api.local").pathname}; using an empty list.`);
+    return [] as T;
+  }
+  return data as T;
 }

@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { Router, type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
 import { eq, inArray } from "drizzle-orm";
-import { db, pool, usersTable, applicantsTable, reportEntitlementsTable, assessmentResultsTable, assessmentsTable } from "@workspace/db";
+import { db, pool, usersTable, applicantsTable, jobsTable, jobApplicationsTable, reportEntitlementsTable, assessmentResultsTable, assessmentsTable } from "@workspace/db";
 import apiRouter from "../routes";
 
 // Route-level integration tests, invoking the real Express router and real development DB.
@@ -228,4 +228,57 @@ test("revocation takes effect immediately without JWT renewal", async () => {
   assert.deepEqual((await request("/auth/report-access", token)).body,
     { canViewReports: false, canViewCandidatePool: false });
   assert.equal((await request(`/applicants/${applicantId}/assessment-results`, token)).status, 403);
+});
+
+test("profile rejects malformed array writes without replacing existing data", async () => {
+  const token = fixtures.free.token;
+  assert.equal((await request("/profile", token, "PUT", { skills: ["Existing"] })).status, 200);
+  for (const body of [
+    { skills: { 0: "Not an array" } },
+    { employmentHistory: null },
+    { certificates: [null] },
+    { references: [{ name: "Incomplete" }] },
+  ]) {
+    assert.equal((await request("/profile", token, "PUT", body)).status, 400);
+  }
+  assert.deepEqual((await request("/profile", token)).body.skills, ["Existing"]);
+});
+
+test("job array writes reject bad payloads and malformed DB questions cannot leak answer keys or crash grading", async () => {
+  const [job] = await db.insert(jobsTable).values({
+    title: prefix, company: prefix, location: "Test", description: "Test",
+    industry: "Test", salaryRange: "Test",
+    customQuestions: [{ id: "q1", text: "Question", type: "text", correctAnswers: ["secret"] }],
+  }).returning();
+  try {
+    for (const body of [
+      { requirements: {} },
+      { customQuestions: { id: "q1" } },
+      { customQuestions: [{ id: "bad", text: "Bad", type: "text", correctAnswers: {} }] },
+    ]) {
+      assert.equal((await request(`/jobs/${job.id}`, fixtures.free.token, "PUT", body)).status, 400);
+    }
+    const unchanged = await db.select().from(jobsTable).where(eq(jobsTable.id, job.id));
+    assert.deepEqual(unchanged[0].customQuestions, job.customQuestions);
+    await db.update(jobsTable).set({ customQuestions: { broken: true } as unknown as typeof job.customQuestions })
+      .where(eq(jobsTable.id, job.id));
+    const publicJob = await request(`/jobs/${job.id}`);
+    assert.equal(publicJob.status, 200);
+    assert.deepEqual(publicJob.body.customQuestions, []);
+    assert.deepEqual((await request(`/jobs/${job.id}/custom-assessment`)).body.questions, []);
+    assert.equal((await request(`/jobs/${job.id}/custom-assessment/submit`,
+      fixtures.free.token, "POST", { answers: {} })).status, 400);
+    await db.update(jobsTable).set({
+      customQuestions: [{ id: "q1", text: "Question", type: "text", correctAnswers: { broken: true } }] as unknown as typeof job.customQuestions,
+    }).where(eq(jobsTable.id, job.id));
+    assert.equal(JSON.stringify((await request(`/jobs/${job.id}`)).body).includes("correctAnswers"), false);
+    const grade = await request(`/jobs/${job.id}/custom-assessment/submit`,
+      fixtures.free.token, "POST", { answers: { q1: "secret" } });
+    assert.equal(grade.status, 200);
+    assert.equal(grade.body.score, 0);
+    assert.deepEqual(grade.body.breakdown[0].correctAnswers, []);
+  } finally {
+    await db.delete(jobApplicationsTable).where(eq(jobApplicationsTable.jobId, job.id));
+    await db.delete(jobsTable).where(eq(jobsTable.id, job.id));
+  }
 });

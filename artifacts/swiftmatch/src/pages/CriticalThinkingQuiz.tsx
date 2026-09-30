@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, ChevronRight, CheckCircle, XCircle, Lightbulb, RotateCcw, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 
 const BASE_URL = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
@@ -67,7 +68,19 @@ export default function CriticalThinkingQuiz({ applicantId, industry, jobId, onC
           : body?.error || `Request failed (${r.status})`);
       }
       const data = await r.json();
-      setQuestions(data.questions || []);
+      if (!data || typeof data !== "object" || !Array.isArray(data.questions)) {
+        throw new Error("Invalid Critical Thinking quiz response. Please try again.");
+      }
+      const batch = arrayOrEmpty<CTQuestion>(data.questions);
+      if (batch.some(q => !q || typeof q !== "object" || typeof q.id !== "string" || !q.id ||
+        typeof q.prompt !== "string" || !Array.isArray(q.options) ||
+        q.options.length < 2 || q.options.some(opt => typeof opt !== "string"))) {
+        throw new Error("Invalid Critical Thinking questions. Please try again.");
+      }
+      if (!batch.length && data.remainingPool !== 0) {
+        throw new Error("No Critical Thinking questions were returned. Please try again.");
+      }
+      setQuestions(batch);
       setPoolMeta({
         remaining: data.remainingPool ?? 0,
         total: data.totalPerIndustry ?? 50,
@@ -76,7 +89,7 @@ export default function CriticalThinkingQuiz({ applicantId, industry, jobId, onC
       setAnswers({});
       setCurrent(0);
       setResult(null);
-      setPhase(data.questions?.length ? "quiz" : "exhausted");
+      setPhase(batch.length ? "quiz" : "exhausted");
     } catch (e: any) {
       setErrorMsg(e?.message || "Failed to load Critical Thinking questions.");
       setPhase("error");
@@ -130,14 +143,21 @@ export default function CriticalThinkingQuiz({ applicantId, industry, jobId, onC
         throw new Error(errBody?.error || `Submit failed (${r.status})`);
       }
       const data = await r.json();
-      const g = data.grading || {};
+      const g = data && typeof data === "object" ? data.grading : null;
+      const grading = g && typeof g === "object" ? g : {};
+      const score = grading.score ?? data?.score;
+      if (typeof score !== "number" || !Number.isFinite(score)) {
+        throw new Error("Invalid grading response. Please check your results before retrying.");
+      }
       const finalResult: CTResult = {
-        score: g.score ?? data.score ?? 0,
-        correctCount: g.correctCount ?? 0,
-        total: g.total ?? questions.length,
-        details: g.details ?? [],
-        remainingPool: data.remainingPool ?? 0,
-        totalPerIndustry: data.totalPerIndustry ?? 50,
+        score,
+        correctCount: grading.correctCount ?? 0,
+        total: grading.total ?? questions.length,
+        details: arrayOrEmpty<CTDetail>(grading.details).filter(d => d && typeof d === "object" &&
+          typeof d.id === "string" && typeof d.prompt === "string" &&
+          typeof d.pickedText === "string" && typeof d.bestText === "string"),
+        remainingPool: data?.remainingPool ?? 0,
+        totalPerIndustry: data?.totalPerIndustry ?? 50,
       };
       setResult(finalResult);
       setPhase("result");
@@ -221,7 +241,7 @@ export default function CriticalThinkingQuiz({ applicantId, industry, jobId, onC
         </div>
 
         <div className="space-y-3 mb-6">
-          {result.details.map((d, i) => (
+          {arrayOrEmpty<CTDetail>(result.details).filter(d => d && typeof d === "object").map((d, i) => (
             <div key={d.id} className={cn(
               "rounded-xl border p-4",
               d.correct ? "border-green-200 bg-green-50/40" : "border-amber-200 bg-amber-50/40"
@@ -298,7 +318,7 @@ export default function CriticalThinkingQuiz({ applicantId, industry, jobId, onC
         <div className="space-y-4">
           <p className="text-base font-semibold text-primary">{currentQ.prompt}</p>
           <div className="space-y-2">
-            {currentQ.options.map((opt, idx) => {
+            {arrayOrEmpty<string>(currentQ.options).map((opt, idx) => {
               const selected = answers[currentQ.id] === idx;
               return (
                 <button

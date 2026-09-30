@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 import {
   Briefcase, CheckCircle2, XCircle, Loader2, AlertCircle,
   ChevronLeft, Send, ClipboardList,
@@ -41,6 +42,21 @@ type SubmitResult = {
   breakdown: GradedItem[];
 };
 
+function validQuestion(value: unknown): value is Question {
+  if (!value || typeof value !== "object") return false;
+  const q = value as Partial<Question>;
+  return typeof q.id === "string" && q.id.trim() !== "" &&
+    typeof q.text === "string" && q.text.trim() !== "" &&
+    (q.type === "text" || (q.type === "multiple_choice" &&
+      arrayOrEmpty<string>(q.options).filter(o => typeof o === "string" && o.trim() !== "").length > 0));
+}
+
+function validBreakdownItem(value: unknown): value is GradedItem {
+  return !!value && typeof value === "object" &&
+    typeof (value as GradedItem).questionId === "string" &&
+    typeof (value as GradedItem).questionText === "string";
+}
+
 export default function CustomAssessment() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -60,6 +76,7 @@ export default function CustomAssessment() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [result, setResult] = useState<SubmitResult | null>(null);
+  const [breakdownInvalid, setBreakdownInvalid] = useState(false);
 
   useEffect(() => {
     if (!params) {
@@ -75,13 +92,16 @@ export default function CustomAssessment() {
           setLoading(false);
           return;
         }
-        const payload: AssessmentPayload = await res.json();
-        if (!payload.questions || payload.questions.length === 0) {
-          setLoadError("This job does not have a custom assessment.");
+         const payload: AssessmentPayload = await res.json();
+         const rawQuestions = arrayOrEmpty<Question>(payload?.questions);
+         if (!rawQuestions.length || rawQuestions.some(q => !validQuestion(q))) {
+           setLoadError(rawQuestions.length ? "This assessment contains invalid questions. Please contact the employer." : "This job does not have a custom assessment.");
           setLoading(false);
           return;
         }
-        setData(payload);
+         setData({ ...payload, questions: rawQuestions.map(q => ({
+           ...q, options: arrayOrEmpty<string>(q.options).filter(o => typeof o === "string" && o.trim() !== ""),
+         })) });
       } catch {
         setLoadError("Network error while loading the assessment.");
       } finally {
@@ -94,10 +114,11 @@ export default function CustomAssessment() {
     setAnswers(prev => ({ ...prev, [qId]: value }));
   }
 
-  const allAnswered = !!data && data.questions.every(q => (answers[q.id] ?? "").trim() !== "");
+   const questions = arrayOrEmpty<Question>(data?.questions);
+   const allAnswered = questions.length > 0 && questions.every(q => validQuestion(q) && (answers[q.id] ?? "").trim() !== "");
 
   async function handleSubmit() {
-    if (!data || !params) return;
+     if (!data || !params || !allAnswered) return;
     if (!user) {
       setLocation(`${BASE}/signin?next=/custom-assessment?jobId=${params.jobId}`);
       return;
@@ -120,8 +141,17 @@ export default function CustomAssessment() {
         setSubmitting(false);
         return;
       }
-      const r: SubmitResult = await res.json();
-      setResult(r);
+       const r: SubmitResult = await res.json();
+       if (!r || typeof r !== "object" || typeof r.score !== "number" ||
+           typeof r.correctCount !== "number" || typeof r.totalCount !== "number") {
+         setSubmitError("The assessment response was invalid. Please check your results later.");
+         return;
+       }
+       setBreakdownInvalid(!Array.isArray(r.breakdown) ||
+         arrayOrEmpty<GradedItem>(r.breakdown).some(b => !validBreakdownItem(b) || !Array.isArray(b.correctAnswers)));
+       setResult({ ...r, breakdown: arrayOrEmpty<GradedItem>(r?.breakdown).filter(validBreakdownItem).map(b => ({
+         ...b, correctAnswers: arrayOrEmpty<string>(b.correctAnswers).filter(a => typeof a === "string"),
+       })) });
     } catch {
       setSubmitError("Network error. Please try again.");
     } finally {
@@ -195,7 +225,10 @@ export default function CustomAssessment() {
 
           <div className="space-y-3">
             <h2 className="font-display text-lg font-bold text-primary">Answer breakdown</h2>
-            {result.breakdown.map((b, i) => (
+             {(breakdownInvalid || arrayOrEmpty<GradedItem>(result.breakdown).filter(validBreakdownItem).length !== result.totalCount) && (
+               <p className="text-sm text-amber-700">Some answer breakdown details are unavailable for this submission.</p>
+             )}
+             {arrayOrEmpty<GradedItem>(result.breakdown).filter(validBreakdownItem).map((b, i) => (
               <div key={b.questionId} className={cn(
                 "bg-white border rounded-xl p-5",
                 b.correct ? "border-emerald-200" : "border-rose-200"
@@ -219,9 +252,9 @@ export default function CustomAssessment() {
                   {!b.correct && (
                     <div>
                       <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                        {b.correctAnswers.length > 1 ? "Accepted answers:" : "Correct answer:"}
+                         {arrayOrEmpty<string>(b.correctAnswers).length > 1 ? "Accepted answers:" : "Correct answer:"}
                       </span>{" "}
-                      <span className="font-medium text-slate-700">{b.correctAnswers.join(", ")}</span>
+                       <span className="font-medium text-slate-700">{arrayOrEmpty<string>(b.correctAnswers).join(", ") || "Unavailable"}</span>
                     </div>
                   )}
                 </div>
@@ -264,12 +297,12 @@ export default function CustomAssessment() {
             <h1 className="font-display text-xl font-bold text-primary">Custom Assessment</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            {data.questions.length} question{data.questions.length === 1 ? "" : "s"} from the recruiter. Answer all to submit.
+             {questions.length} question{questions.length === 1 ? "" : "s"} from the recruiter. Answer all to submit.
           </p>
         </div>
 
         <div className="space-y-4">
-          {data.questions.map((q, i) => (
+           {questions.filter(validQuestion).map((q, i) => (
             <div key={q.id} className="bg-white border border-slate-200 rounded-xl p-5">
               <div className="flex items-start gap-2 mb-3">
                 <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
@@ -280,7 +313,7 @@ export default function CustomAssessment() {
 
               {q.type === "multiple_choice" ? (
                 <div className="space-y-2 ml-8">
-                  {q.options.map((opt, optIdx) => {
+                   {arrayOrEmpty<string>(q.options).filter(o => typeof o === "string").map((opt, optIdx) => {
                     const selected = answers[q.id] === opt;
                     return (
                       <label key={optIdx} className={cn(
@@ -342,7 +375,7 @@ export default function CustomAssessment() {
         </div>
         {!allAnswered && (
           <p className="text-xs text-muted-foreground text-right">
-            Unanswered: {data.questions.filter(q => !(answers[q.id] ?? "").trim()).length}
+             Unanswered: {questions.filter(q => !validQuestion(q) || !(answers[q.id] ?? "").trim()).length}
           </p>
         )}
       </main>

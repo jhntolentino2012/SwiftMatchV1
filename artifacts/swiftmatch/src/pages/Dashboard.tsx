@@ -1,7 +1,11 @@
 import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
-import { useListJobs, useListCourses } from "@workspace/api-client-react";
+import { useListJobs, useListCourses, type Job, type Course } from "@workspace/api-client-react";
 import { Briefcase, Building2, MapPin, ExternalLink, GraduationCap, ChevronRight } from "lucide-react";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
+
+type DashboardJob = Job;
+type DashboardCourse = Course;
 
 export default function ApplicantDashboard() {
   const { data: jobs, isLoading: loadingJobs } = useListJobs();
@@ -36,7 +40,7 @@ export default function ApplicantDashboard() {
               </div>
             ) : (
               <div className="grid gap-4">
-                {jobs?.map((job) => (
+                 {arrayOrEmpty<DashboardJob>(jobs).filter(job => !!job && typeof job === "object" && !Array.isArray(job)).map((job) => (
                   <div key={job.id} className="glass-panel p-6 rounded-2xl hover-card-effect group cursor-pointer">
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -101,7 +105,7 @@ export default function ApplicantDashboard() {
                 <div className="h-48 bg-slate-200 rounded-2xl animate-pulse" />
               ) : (
                 <div className="grid gap-4">
-                  {courses?.map(course => (
+                   {arrayOrEmpty<DashboardCourse>(courses).filter(course => !!course && typeof course === "object" && !Array.isArray(course)).map(course => (
                     <a key={course.id} href={course.url || "#"} target="_blank" className="block bg-white p-5 rounded-2xl border border-border shadow-sm hover:border-accent/30 hover:shadow-md transition-all">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-xs font-semibold text-accent uppercase tracking-wider">{course.provider}</span>
@@ -112,7 +116,7 @@ export default function ApplicantDashboard() {
                       <h3 className="font-bold text-primary mb-2 line-clamp-1">{course.title}</h3>
                       <p className="text-xs text-slate-500 mb-4 line-clamp-2">{course.description}</p>
                       <div className="flex gap-2 flex-wrap">
-                        {course.skillsGained.slice(0, 2).map(s => (
+                         {arrayOrEmpty<string>(course.skillsGained).filter(s => typeof s === "string").slice(0, 2).map(s => (
                           <span key={s} className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">{s}</span>
                         ))}
                       </div>
