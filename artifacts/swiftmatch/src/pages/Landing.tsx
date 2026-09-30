@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { ArrowRight, CheckCircle2, Sparkles, Target, Zap, FileText, ChevronLeft, ChevronRight, Users, Award } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { useState, useEffect, useCallback } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 
 const HERO_SLIDES = [
   {
@@ -78,7 +78,7 @@ const HERO_SLIDES = [
 ];
 
 // Animation variants
-const slideVariants = {
+const slideVariants: Variants = {
   enter: (dir: number) => ({
     x: dir > 0 ? "100%" : "-100%",
     opacity: 0,
@@ -98,13 +98,13 @@ const slideVariants = {
   }),
 };
 
-const overlayVariants = {
+const overlayVariants: Variants = {
   hidden: { opacity: 0, y: 14 },
   visible: { opacity: 1, y: 0, transition: { delay: 0.45, duration: 0.5, ease: "easeOut" } },
   exit: { opacity: 0, y: -8, transition: { duration: 0.25 } },
 };
 
-const badgeVariants = {
+const badgeVariants: Variants = {
   hidden: { opacity: 0, scale: 0.8, y: -12 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { delay: 0.55, duration: 0.45, type: "spring", stiffness: 240 } },
   exit: { opacity: 0, scale: 0.85, transition: { duration: 0.2 } },
