@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import multer from "multer";
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
@@ -12,7 +12,7 @@ function jwtSecret(): string {
   return s;
 }
 
-const router: IRouter = Router();
+const router = Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),

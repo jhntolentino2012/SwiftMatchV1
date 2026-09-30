@@ -1,8 +1,8 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { db, applicantsTable, jobsTable } from "@workspace/db";
 import { count, countDistinct } from "drizzle-orm";
 
-const router: IRouter = Router();
+const router = Router();
 
 router.get("/", async (req, res) => {
   try {

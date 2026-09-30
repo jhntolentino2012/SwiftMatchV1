@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { requireVerifiedUser, applicantAccess } from "../middlewares/report-access.js";
 import { isOwnerEmail } from "../lib/owner.js";
 import { db, assessmentsTable, assessmentResultsTable, applicantsTable, jobApplicationsTable } from "@workspace/db";
@@ -38,7 +38,7 @@ import {
   GetApplicantAssessmentResultsParams,
 } from "@workspace/api-zod";
 
-const router: IRouter = Router();
+const router = Router();
 
 async function isApplicantCooldownBypassed(applicantId: number): Promise<boolean> {
   const [row] = await db

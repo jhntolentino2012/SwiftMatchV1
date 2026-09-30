@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { db, applicantsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireVerifiedUser, verifiedUser, requireCandidatePool, applicantAccess, denyReport } from "../middlewares/report-access.js";
@@ -9,7 +9,7 @@ import {
   UpdateApplicantParams,
 } from "@workspace/api-zod";
 
-const router: IRouter = Router();
+const router = Router();
 
 function formatApplicant(a: typeof applicantsTable.$inferSelect) {
   return {

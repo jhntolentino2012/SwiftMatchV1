@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { db, jobsTable, jobApplicationsTable, applicantsTable } from "@workspace/db";
 import type { CustomQuestion } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
@@ -6,7 +6,7 @@ import { GetJobParams } from "@workspace/api-zod";
 import { requireVerifiedUser as requireAuth, requireReportSubscription, requireCandidatePool } from "../middlewares/report-access.js";
 import { isOwnerEmail } from "../lib/owner.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 /** Strip recruiter answer keys from a job object before sending to public/applicant clients. */
 function readCustomQuestions(value: unknown): CustomQuestion[] {

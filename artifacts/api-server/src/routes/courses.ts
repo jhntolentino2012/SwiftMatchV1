@@ -1,7 +1,7 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import { db, coursesTable } from "@workspace/db";
 
-const router: IRouter = Router();
+const router = Router();
 
 const SEED_COURSES = [
   {
