@@ -46,6 +46,19 @@ function request(path: string, token?: string, method = "GET", body: unknown = {
   });
 }
 
+test("signup returns JSON for invalid input and duplicate accounts", async () => {
+  for (const body of [undefined, {}, { email: 123, password: "password", confirmPassword: "password", phone: "test" }]) {
+    const response = await request("/auth/signup", undefined, "POST", body);
+    assert.equal(response.status, 400);
+    assert.equal(typeof response.body.error, "string");
+  }
+  const response = await request("/auth/signup", undefined, "POST", {
+    email: fixtures.free.email, password: "test-password", confirmPassword: "test-password", phone: "test",
+  });
+  assert.equal(response.status, 409);
+  assert.equal(typeof response.body.error, "string");
+});
+
 before(async () => {
   process.env.SESSION_SECRET = secret;
   process.env.OWNER_EMAILS = `${priorOwners ?? ""},${prefix}-owner@example.invalid`;

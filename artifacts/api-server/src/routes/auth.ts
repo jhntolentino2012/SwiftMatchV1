@@ -36,9 +36,10 @@ router.get("/report-access", requireVerifiedUser, async (_req, res) => {
 
 /* ── POST /auth/signup ─────────────────────────────── */
 router.post("/signup", async (req, res) => {
-  const { email, password, confirmPassword, phone } = req.body as any;
+  try {
+  const { email, password, confirmPassword, phone } = req.body ?? {};
 
-  if (!email || !password || !confirmPassword || !phone) {
+  if ([email, password, confirmPassword, phone].some(value => typeof value !== "string" || !value.trim())) {
     res.status(400).json({ error: "All fields are required." });
     return;
   }
@@ -71,6 +72,7 @@ router.post("/signup", async (req, res) => {
     });
     req.log.info({ email: normalizedEmail }, "Owner account auto-confirmed on signup");
     res.status(201).json({
+      success: true,
       confirmed: true,
       message: "Owner account created and auto-activated. You can sign in immediately.",
     });
@@ -88,12 +90,23 @@ router.post("/signup", async (req, res) => {
     confirmationTokenExpiry,
   });
 
-  await sendConfirmationEmail(normalizedEmail, confirmationToken);
+  try {
+    await sendConfirmationEmail(normalizedEmail, confirmationToken);
+  } catch (error) {
+    req.log.error({ err: error }, "Signup confirmation email failed");
+    res.status(503).json({ error: "Your account was created, but the confirmation email could not be sent. Please contact support for activation." });
+    return;
+  }
 
   res.status(201).json({
+    success: true,
     confirmed: false,
     message: "Account created. Please check your email to confirm your account.",
   });
+  } catch (error) {
+    req.log.error({ err: error }, "Signup failed");
+    res.status(500).json({ error: "Unable to complete signup right now. Please try again later." });
+  }
 });
 
 /* ── GET /auth/confirm-email ───────────────────────── */

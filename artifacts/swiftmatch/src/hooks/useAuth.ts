@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { parseAuthResponse } from "@/lib/auth-response";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -56,7 +57,5 @@ export async function apiPost(path: string, body: unknown) {
     },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Something went wrong");
-  return data;
+  return parseAuthResponse(res);
 }
