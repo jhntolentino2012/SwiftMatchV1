@@ -47,9 +47,9 @@ export function useAuth() {
 }
 
 export async function apiPost(path: string, body: unknown) {
-  const BASE_PATH = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
   const token = getToken();
-  const res = await fetch(`${BASE_PATH}/api/auth${path}`, {
+  const endpoint = path.startsWith("/api/") ? path : `/api/auth${path}`;
+  const res = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

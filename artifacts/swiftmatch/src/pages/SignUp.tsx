@@ -57,7 +57,7 @@ export default function SignUp() {
     }
     try {
       setLoading(true);
-      const resp = await apiPost("/signup", form) as { confirmed?: boolean };
+      const resp = await apiPost("/api/auth/signup", form) as { confirmed?: boolean };
       if (isEmployer) localStorage.setItem("sm_pending_role", "employer");
       setDone(resp?.confirmed ? "owner" : "pending");
     } catch (err: any) {
