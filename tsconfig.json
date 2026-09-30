@@ -2,6 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
+  "exclude": ["artifacts/api-server"],
   "references": [
     {
       "path": "./lib/db"
