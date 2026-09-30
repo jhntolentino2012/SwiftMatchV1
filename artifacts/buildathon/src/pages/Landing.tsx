@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { Link } from "wouter";
 import { 
   ArrowRight, 
@@ -17,12 +17,12 @@ import heroNetwork from "@/assets/images/hero-network.png";
 import manilaSkyline from "@/assets/images/manila-skyline.png";
 import assessmentArt from "@/assets/images/assessment-art.png";
 
-const FADE_UP = {
+const FADE_UP: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
-const STAGGER = {
+const STAGGER: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
@@ -328,7 +328,7 @@ export default function Landing() {
       </footer>
       
       {/* Add Marquee animation if not natively supported by tailwind class */}
-      <style dangerouslySetInlineStyle={{__html: `
+      <style dangerouslySetInnerHTML={{__html: `
         @keyframes marquee {
           0% { transform: translateX(0%); }
           100% { transform: translateX(-50%); }
