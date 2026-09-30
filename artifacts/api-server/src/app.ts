@@ -1,4 +1,4 @@
-import express, { type NextFunction, type Request, type Response } from "express";
+import express from "express";
 import cors from "cors";
 import { pinoHttp } from "pino-http";
 import router from "./routes/index.js";
@@ -32,11 +32,24 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", router);
 
 // Body-parser failures happen before the signup route can return its JSON error.
+type SignupErrorRequest = {
+  path: string;
+  log: {
+    error(bindings: Record<string, unknown>, message: string): void;
+  };
+};
+type SignupErrorResponse = {
+  headersSent: boolean;
+  status(code: number): SignupErrorResponse;
+  json(body: { error: string }): SignupErrorResponse;
+};
+type SignupErrorNext = (error?: unknown) => void;
+
 const signupErrorHandler = (
   error: unknown,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+  req: SignupErrorRequest,
+  res: SignupErrorResponse,
+  next: SignupErrorNext,
 ): void => {
   const parserError = error && typeof error === "object"
     ? error as { type?: string }
