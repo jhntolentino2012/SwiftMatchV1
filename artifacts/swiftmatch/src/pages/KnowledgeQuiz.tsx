@@ -520,56 +520,53 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
   async function submitQuiz() {
     setSubmitting(true);
+    setSubmitError(null);
 
     const key = storageKey("attempted", applicantId, industry);
     const existing: string[] = JSON.parse(localStorage.getItem(key) ?? "[]");
     const fresh = Array.from(new Set([...existing, ...questions.map(q => q.id)]));
-    localStorage.setItem(key, JSON.stringify(fresh));
-
-    let pct = 0;
-
-    if (applicantId) {
-      try {
-        const resp = await fetch("/api/assessments/ke-quiz/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ applicantId, industry, role, answers, attemptedIds: fresh, jobId: jobId ?? null }),
-        });
-        if (resp.status === 429) {
-          const body = await resp.json().catch(() => ({}));
-          const availDate = body.retakeAvailableAt
-            ? new Date(body.retakeAvailableAt).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })
-            : "in 1 month";
-          setSubmitError(`Retake cooldown active — available from ${availDate}.`);
-          setSubmitting(false);
-          return;
-        }
-        if (resp.ok) {
-          const body = await resp.json().catch(() => ({}));
-          // Use the server's authoritative score.
-          pct = typeof body?.grading?.score === "number"
-            ? body.grading.score
-            : (typeof body?.score === "number" ? body.score : 0);
-        }
-      } catch {}
-    } else {
-      // Guest preview — best-effort optimistic estimate (server is source of truth).
-      const weights = { easy: 1, medium: 2, hard: 3 } as const;
-      let raw = 0, max = 0;
-      for (const question of questions) {
-        if (question.id === "__typing__") continue;
-        const w = weights[question.difficulty];
-        max += w;
-        if ((answers[question.id] ?? "").trim().length > 0) raw += w;
-      }
-      pct = max > 0 ? Math.round((raw / max) * 100) : 0;
+    if (!applicantId) {
+      setSubmitError("Sign in and create your profile before submitting this assessment.");
+      setSubmitting(false);
+      return;
     }
-
-    setSubmitError(null);
-    setFinalScore(pct);
-    setPhase("result");
-    setSubmitting(false);
-    onComplete?.(pct);
+    try {
+      const token = localStorage.getItem("sm_auth_token");
+      if (!token) throw new Error("Sign in before submitting this assessment.");
+      let pct = 0;
+      const resp = await fetch("/api/assessments/ke-quiz/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ applicantId, industry, role, answers, attemptedIds: fresh, jobId: jobId ?? null }),
+      });
+      if (resp.status === 429) {
+        const body = await resp.json().catch(() => ({}));
+        const availDate = body.retakeAvailableAt
+          ? new Date(body.retakeAvailableAt).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })
+          : "in 1 month";
+        setSubmitError(`Retake cooldown active — available from ${availDate}.`);
+        return;
+      }
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        throw new Error(resp.status === 401 ? "Your session has expired. Please sign in again."
+          : resp.status === 403 ? "You cannot submit an assessment for this profile."
+          : body.error || `Submission failed (${resp.status}). Please try again.`);
+      }
+      const body = await resp.json();
+      if (typeof body?.grading?.score !== "number" && typeof body?.score !== "number") {
+        throw new Error("The server did not return a score. Please check your results before retrying.");
+      }
+      pct = typeof body?.grading?.score === "number" ? body.grading.score : body.score;
+      localStorage.setItem(key, JSON.stringify(fresh));
+      setFinalScore(pct);
+      setPhase("result");
+      onComplete?.(pct);
+    } catch (error: any) {
+      setSubmitError(error?.message || "Submission failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   /* ── INDUSTRY SELECTION ── */

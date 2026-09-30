@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import jwt from "jsonwebtoken";
 import { eq, desc, and, ne } from "drizzle-orm";
 import { db, usersTable, applicantsTable, assessmentResultsTable, assessmentsTable, jobsTable } from "@workspace/db";
+import { requireVerifiedUser, requireReportSubscription, applicantAccess } from "../middlewares/report-access";
 
 function jwtSecret(): string {
   const s = process.env.SESSION_SECRET;
@@ -118,7 +119,7 @@ Important rules:
 RESUME TEXT:
 `;
 
-router.post("/parse", upload.single("resume"), async (req, res) => {
+router.post("/parse", requireVerifiedUser, upload.single("resume"), async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "No file uploaded." });
     return;
@@ -226,7 +227,7 @@ router.post("/parse", upload.single("resume"), async (req, res) => {
    without parsing it. Used by the Match Analysis page when
    no CV has been uploaded yet.
 ══════════════════════════════════════════════════════ */
-router.post("/store-cv", upload.single("resume"), async (req, res) => {
+router.post("/store-cv", requireVerifiedUser, upload.single("resume"), async (req, res) => {
   const authHeader = req.headers["authorization"];
   if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Authentication required." }); return; }
   let payload: any;
@@ -279,7 +280,7 @@ router.post("/store-cv", upload.single("resume"), async (req, res) => {
    their real assessment scores, and recruiter job requirements
    for their target industry.  No file upload needed.
 ══════════════════════════════════════════════════════ */
-router.get("/match-analysis", async (req, res) => {
+router.get("/match-analysis", requireVerifiedUser, requireReportSubscription, async (req, res) => {
   /* 1 ── Auth */
   const authHeader = req.headers["authorization"];
   if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Authentication required." }); return; }
@@ -540,7 +541,7 @@ router.get("/original/:token", async (req, res) => {
    Returns CV text for a specific applicant.
    Requires auth (any signed-in user — used by recruiters).
 ══════════════════════════════════════════════════════ */
-router.get("/cv/:applicantId", async (req, res) => {
+router.get("/cv/:applicantId", requireVerifiedUser, applicantAccess(req => req.params.applicantId, "profile"), async (req, res) => {
   const authHeader = req.headers["authorization"];
   if (!authHeader?.startsWith("Bearer ")) { res.status(401).json({ error: "Authentication required." }); return; }
   try { jwt.verify(authHeader.slice(7), jwtSecret()); }

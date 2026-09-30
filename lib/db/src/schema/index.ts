@@ -4,3 +4,4 @@ export * from "./jobs";
 export * from "./job-applications";
 export * from "./courses";
 export * from "./users";
+export * from "./report-entitlements";

@@ -21,7 +21,8 @@ router.use("/applicants", (req, res, next) => {
   if (req.path.match(/^\/\d+\/assessment-results$/)) {
     const id = req.path.split("/")[1];
     req.url = `/applicant/${id}/results`;
-    return assessmentsRouter(req, res, next);
+    assessmentsRouter(req, res, next);
+    return;
   }
   next();
 });

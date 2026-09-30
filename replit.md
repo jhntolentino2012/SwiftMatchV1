@@ -5,6 +5,37 @@
 SwiftMatch — a recruitment platform with the tagline "Don't search. Get spotted."
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Server-controlled report access
+
+- Existing JWT authentication remains in place. Protected routes verify HS256, load the user by signed user ID from PostgreSQL, and require a confirmed account. Token/body email claims never authorize access.
+- `GET /api/auth/report-access` returns `{ canViewReports, canViewCandidatePool }` with `Cache-Control: no-store`. Missing/invalid tokens, deleted users and unconfirmed accounts receive 401.
+- The `report_entitlements` table has one row per `users.id`, with scope `applicant` or `employer` and a required future `expires_at`. Missing or expired rows grant nothing. Applicant scope permits own reports only; employer scope permits candidate pool and all reports. Confirmed owner accounts bypass subscription checks through the shared server-only owner helper.
+- Protected data returns 403 with `code` and `error` equal to `SUBSCRIPTION_REQUIRED` or `REPORT_ACCESS_DENIED`. Both results URLs enforce identical authorization. Own basic profiles remain free. Applicant writes and assessment submissions require ownership (owner bypass retained); profile edits cannot change email identity. Quiz completion feedback is still free.
+- Job application score reads and CV match-analysis require report access. CV lookup by applicant ID requires own-profile/employer/owner access. Deliberate token-based CV share links remain public and contain CV/profile content only, not assessment scores.
+- No signup field, profile field, browser storage value, subscription button, or public endpoint can grant an entitlement.
+
+**Trusted grant/revoke procedure:** An authorized operator must first verify the correct confirmed account and purchased scope through their trusted payment/administration process. Use parameterized SQL with a trusted database client; never accept user-supplied authorization claims. The placeholders below are bound values, not literal account IDs:
+
+```sql
+-- Bind $1 to the verified users.id, $2 to applicant or employer,
+-- and $3 to the actual paid-through UTC timestamp (strictly in the future).
+INSERT INTO report_entitlements (user_id, scope, expires_at)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id) DO UPDATE
+SET scope = EXCLUDED.scope, expires_at = EXCLUDED.expires_at;
+
+-- Revoke immediately; no token refresh is needed.
+DELETE FROM report_entitlements WHERE user_id = $1;
+```
+
+Do not grant indefinite access or invent payment status. Expiry is checked on every protected request. There is currently no payment-provider sync or self-service entitlement editor. No existing accounts were granted a subscription as part of this change.
+
+Development schema: the additive entitlement table was applied only to development via the database SQL tool. Drizzle push encountered unrelated pre-existing CV unique-constraint drift, so that unrelated change was not accepted and no existing data was truncated. Production schema changes use Replit Publish; there is no startup/deploy migration script.
+
+Regression command (development database only; temporary fixtures are cleaned up):
+`pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/tests/report-access.test.ts`
+These route-level tests call real Express routers and PostgreSQL without starting a server. They cover JWT failures, confirmed identity, free/expired/applicant/employer/owner permissions, report alias parity, mutation ownership, free completion feedback, grant constraints, and revocation.
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
@@ -137,16 +168,16 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 ## Owner / Admin Accounts
 
 Owner emails are configured in two places (must stay in sync):
-- **Backend**: `artifacts/api-server/src/routes/auth.ts` — `DEFAULT_OWNER_EMAILS` array, also extendable via `OWNER_EMAILS` env var (comma-separated).
+- **Backend**: `artifacts/api-server/src/lib/owner.ts` — `DEFAULT_OWNER_EMAILS` array, also extendable via `OWNER_EMAILS` env var (comma-separated).
 - **Frontend**: `artifacts/swiftmatch/src/lib/owner.ts` — `OWNER_EMAILS` Set used by `isOwnerEmail()`.
 
 Current owner: `jhn.tolentino2012@gmail.com`.
 
 Owner-account bypasses currently in place:
 1. **Email confirmation skipped** — signup endpoint inserts owner with `is_confirmed=true` and never sends a confirmation email.
-2. **Premium subscription bypassed** — Results page treats signed-in owner accounts as premium (full report visible, no lock overlay, no "Subscribe" upsell), even without `localStorage.sm_subscription = "active"`.
+2. **Premium subscription bypassed** — the server grants owner accounts report and candidate-pool access using the verified database identity. Results reads `/api/auth/report-access`; localStorage subscription flags do not grant access.
 
-When adding new bypasses, prefer reading the email via `useAuth()` and checking `isOwnerEmail(user?.email)` rather than localStorage flags so the bypass is tied to the authenticated identity, not the device.
+Authorization and owner bypasses must be enforced on the server using the verified database identity. Frontend owner checks are presentation only, never proof of access.
 
 ## Pending / Deferred
 

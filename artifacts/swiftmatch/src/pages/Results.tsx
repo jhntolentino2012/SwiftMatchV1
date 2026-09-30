@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { isOwnerEmail } from "@/lib/owner";
+import { useReportAccess } from "@/hooks/useReportAccess";
 import {
   Lock, Crown, ChevronLeft, ChevronRight, User, Building2,
   FileText, Award, TrendingUp, Calendar, Download, Compass,
@@ -1172,19 +1172,27 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
   const [jobs, setJobs]                   = useState<Job[]>([]);
   const [loadingJobs, setLoadingJobs]     = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [poolError, setPoolError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     const token = localStorage.getItem("sm_auth_token");
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
-    fetch(`${BASE_URL}/api/applicants`, { headers })
-      .then(r => r.ok ? r.json() : [])
+    fetch(`${BASE_URL}/api/applicants`, { headers, signal: controller.signal })
+      .then(r => {
+        if (!r.ok) throw new Error("Candidate pool access was denied or could not be loaded.");
+        return r.json();
+      })
       .then(async (applicants: any[]) => {
         const rows: CandidateRow[] = await Promise.all(
           applicants.map(async (app) => {
             const results: { assessmentTitle: string; score: number }[] =
-              await fetch(`${BASE_URL}/api/assessments/applicant/${app.id}/results`, { headers })
-                .then(r => r.ok ? r.json() : []).catch(() => []);
+              await fetch(`${BASE_URL}/api/assessments/applicant/${app.id}/results`, { headers, signal: controller.signal })
+                .then(r => {
+                  if (!r.ok) throw new Error("Candidate scores could not be loaded. Your report access may have expired.");
+                  return r.json();
+                });
             const scores = mapResultsToScores(results);
             const taken  = scores.filter(s => s.taken && s.score > 0);
             const overall = taken.length > 0
@@ -1205,10 +1213,17 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
           })
         );
         rows.sort((a, b) => b.overall - a.overall);
+        if (controller.signal.aborted) return;
         setCandidates(rows);
         setLoadingPool(false);
       })
-      .catch(() => setLoadingPool(false));
+      .catch((error: Error) => {
+        if (controller.signal.aborted) return;
+        setCandidates([]);
+        setPoolError(error.message);
+        setLoadingPool(false);
+      });
+    return () => controller.abort();
   }, []);
 
   /* ── Fetch jobs when switching to match mode ── */
@@ -1244,6 +1259,9 @@ function EmployerReport({ locked, isPremium }: { locked: boolean; isPremium: boo
   const COLORS = ["#1d4ed8","#7c3aed","#ea580c","#0891b2","#16a34a"];
 
   /* ── Drill-down: selected applicant's full report ── */
+  if (poolError) {
+    return <div role="alert" className="rounded-xl border border-red-200 bg-white p-6 text-red-700">{poolError}</div>;
+  }
   if (selected) {
     const hasResults = selected.scores.some(s => s.taken);
     return (
@@ -1789,10 +1807,32 @@ function MyJobApplications() {
 }
 
 export default function ResultsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const access = useReportAccess(user?.id);
+
+  if (authLoading || access.loading) {
+    return <div className="min-h-screen bg-slate-50"><Navigation /><main className="pt-28 px-6 text-center">Checking report access…</main></div>;
+  }
+  if (access.error) {
+    return <div className="min-h-screen bg-slate-50"><Navigation /><main className="pt-28 px-6 text-center" role="alert">
+      <p>{access.error}</p>
+      <button onClick={access.refresh} className="mt-4 text-primary underline">Try again</button>
+    </main></div>;
+  }
+  return <ResultsContent
+    key={`${user?.id ?? "guest"}-${access.canViewReports}-${access.canViewCandidatePool}`}
+    applicantId={user?.applicantId ?? null}
+    isPremium={access.canViewReports}
+    canViewCandidatePool={access.canViewCandidatePool}
+  />;
+}
+
+function ResultsContent({ applicantId, isPremium, canViewCandidatePool }: {
+  applicantId: number | null;
+  isPremium: boolean;
+  canViewCandidatePool: boolean;
+}) {
   const [audience, setAudience] = useState<Audience>("applicant");
-  const { user } = useAuth();
-  const hasSubscription = localStorage.getItem("sm_subscription") === "active";
-  const isPremium = hasSubscription || isOwnerEmail(user?.email);
 
   // Real data state
   const [profileData, setProfileData] = useState<ApplicantData | null>(null);
@@ -1800,10 +1840,10 @@ export default function ResultsPage() {
   const [hasProfile, setHasProfile] = useState(false);
   const [hasResults, setHasResults] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   useEffect(() => {
-    const applicantId = localStorage.getItem("sm_applicant_id");
-    if (!applicantId) {
+    if (!applicantId || !isPremium) {
       setHasProfile(false);
       setDataLoading(false);
       return;
@@ -1812,9 +1852,17 @@ export default function ResultsPage() {
     const token = localStorage.getItem("sm_auth_token");
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
+    const controller = new AbortController();
+    const options = { headers, signal: controller.signal };
     Promise.all([
-      fetch(`${BASE_URL}/api/applicants/${applicantId}`, { headers }).then(r => r.ok ? r.json() : null),
-      fetch(`${BASE_URL}/api/assessments/applicant/${applicantId}/results`, { headers }).then(r => r.ok ? r.json() : []),
+      fetch(`${BASE_URL}/api/applicants/${applicantId}`, options).then(r => {
+        if (!r.ok) throw new Error("Unable to load your profile.");
+        return r.json();
+      }),
+      fetch(`${BASE_URL}/api/assessments/applicant/${applicantId}/results`, options).then(r => {
+        if (!r.ok) throw new Error("Report access was denied or the report could not be loaded.");
+        return r.json();
+      }),
     ]).then(([applicant, results]) => {
       if (!applicant) {
         setHasProfile(false);
@@ -1846,11 +1894,14 @@ export default function ResultsPage() {
         setProfileScores(null);
       }
       setDataLoading(false);
-    }).catch(() => {
+    }).catch((error: Error) => {
+      if (controller.signal.aborted) return;
+      setReportError(error.message);
       setHasProfile(false);
       setDataLoading(false);
     });
-  }, []);
+    return () => controller.abort();
+  }, [applicantId, isPremium]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -1896,11 +1947,23 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {dataLoading ? (
+        {reportError ? <div role="alert" className="rounded-xl border border-red-200 bg-white p-6 text-red-700">{reportError}</div> : dataLoading ? (
           <div className="flex items-center justify-center py-24 text-slate-400 text-sm gap-3">
             <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
             Loading your report…
           </div>
+        ) : !(audience === "applicant" ? isPremium : canViewCandidatePool) ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+            <Lock className="mx-auto mb-3 h-8 w-8 text-primary" />
+            <h2 className="text-xl font-bold text-primary">Report access required</h2>
+            <p className="mt-2 text-slate-600">
+              {audience === "employer"
+                ? "An active employer report subscription is required to view the candidate pool."
+                : "Sign in with an account that has active report access to view your scores and analysis."}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">Access is verified securely by SwiftMatch. Browser settings cannot unlock reports.</p>
+            {!applicantId && <Link href="/signin" className="mt-4 inline-block font-semibold text-primary underline">Sign in</Link>}
+          </section>
         ) : audience === "applicant"
           ? <>
               <ApplicantReport
@@ -1912,7 +1975,7 @@ export default function ResultsPage() {
               />
               <MyJobApplications />
             </>
-          : <EmployerReport locked={!isPremium} isPremium={isPremium} />
+          : <EmployerReport locked={!canViewCandidatePool} isPremium={canViewCandidatePool} />
         }
 
         {/* Free tier footer */}

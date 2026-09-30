@@ -58,12 +58,15 @@ export default function CulturalFitQuiz({ applicantId, industry, jobId, onComple
       }
       try {
         const token = localStorage.getItem("sm_auth_token");
-        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+        if (!token) throw new Error("Sign in to load your assessment questions.");
+        const headers: HeadersInit = { Authorization: `Bearer ${token}` };
         const url = `${BASE_URL}/api/assessments/cultural-fit/quiz?applicantId=${applicantId}&industry=${encodeURIComponent(industry)}`;
         const r = await fetch(url, { headers });
         if (!r.ok) {
           const body = await r.json().catch(() => ({}));
-          throw new Error(body?.error || `Request failed (${r.status})`);
+          throw new Error(r.status === 401 ? "Your session has expired. Please sign in again."
+            : r.status === 403 ? "You cannot load questions for this profile."
+            : body?.error || `Request failed (${r.status})`);
         }
         const data = await r.json();
         if (cancelled) return;
@@ -273,10 +276,16 @@ export default function CulturalFitQuiz({ applicantId, industry, jobId, onComple
                 (async () => {
                   try {
                     const token = localStorage.getItem("sm_auth_token");
-                    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+                    if (!token) throw new Error("Sign in to load your assessment questions.");
+                    const headers: HeadersInit = { Authorization: `Bearer ${token}` };
                     const url = `${BASE_URL}/api/assessments/cultural-fit/quiz?applicantId=${applicantId}&industry=${encodeURIComponent(industry)}`;
                     const r = await fetch(url, { headers });
-                    if (!r.ok) throw new Error("refetch failed");
+                    if (!r.ok) {
+                      const body = await r.json().catch(() => ({}));
+                      throw new Error(r.status === 401 ? "Your session has expired. Please sign in again."
+                        : r.status === 403 ? "You cannot load questions for this profile."
+                        : body?.error || `Request failed (${r.status})`);
+                    }
                     const data = await r.json();
                     setQuestions(data.questions || []);
                     setPoolMeta({
@@ -285,9 +294,9 @@ export default function CulturalFitQuiz({ applicantId, industry, jobId, onComple
                       perAttempt: data.perAttempt ?? 8,
                     });
                     setPhase(data.questions?.length ? "quiz" : "exhausted");
-                  } catch {
+                  } catch (error: any) {
                     setPhase("error");
-                    setErrorMsg("Failed to load next batch.");
+                    setErrorMsg(error?.message || "Failed to load next batch.");
                   }
                 })();
               }}

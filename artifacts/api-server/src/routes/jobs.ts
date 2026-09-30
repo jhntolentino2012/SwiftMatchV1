@@ -1,17 +1,12 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { Router, type IRouter } from "express";
 import { db, jobsTable, jobApplicationsTable, applicantsTable } from "@workspace/db";
 import type { CustomQuestion } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { GetJobParams } from "@workspace/api-zod";
-import jwt from "jsonwebtoken";
+import { requireVerifiedUser as requireAuth, requireReportSubscription, requireCandidatePool } from "../middlewares/report-access";
+import { isOwnerEmail } from "../lib/owner";
 
 const router: IRouter = Router();
-
-function jwtSecret(): string {
-  const s = process.env["SESSION_SECRET"];
-  if (!s) throw new Error("SESSION_SECRET is not set");
-  return s;
-}
 
 /** Strip recruiter answer keys from a job object before sending to public/applicant clients. */
 function stripJobAnswerKeys<T extends { customQuestions?: CustomQuestion[] | null }>(job: T): T {
@@ -48,21 +43,6 @@ function sanitizeCustomQuestions(raw: unknown[]): CustomQuestion[] {
     out.push(cq);
   }
   return out;
-}
-
-function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Authentication required." });
-    return;
-  }
-  try {
-    const payload = jwt.verify(auth.slice(7), jwtSecret()) as { userId: number; email: string };
-    (req as any).user = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: "Invalid or expired token." });
-  }
 }
 
 const SEED_JOBS = [
@@ -480,11 +460,6 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-const OWNER_EMAILS_SET = new Set(
-  ["jhn.tolentino2012@gmail.com", ...(process.env["OWNER_EMAILS"]?.split(",") ?? [])]
-    .map(e => e.trim().toLowerCase()).filter(Boolean)
-);
-
 router.delete("/:id", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) {
@@ -492,7 +467,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     return;
   }
   const callerEmail: string = ((req as any).user?.email ?? "").toLowerCase();
-  const isAdmin = OWNER_EMAILS_SET.has(callerEmail);
+  const isAdmin = isOwnerEmail(callerEmail);
   try {
     const [existing] = await db.select({ id: jobsTable.id, isDemo: jobsTable.isDemo })
       .from(jobsTable).where(eq(jobsTable.id, id));
@@ -550,7 +525,7 @@ router.post("/:id/apply", requireAuth, async (req, res) => {
 });
 
 // ── GET /jobs/applications/me  (applicant JWT — own applications with scores) ─
-router.get("/applications/me", requireAuth, async (req, res) => {
+router.get("/applications/me", requireAuth, requireReportSubscription, async (req, res) => {
   const callerEmail: string = ((req as any).user?.email ?? "").toLowerCase();
   try {
     const [applicant] = await db.select({ id: applicantsTable.id })
@@ -580,14 +555,10 @@ router.get("/applications/me", requireAuth, async (req, res) => {
   }
 });
 
-// ── GET /jobs/:id/applications  (admin only) ─────────────────────────────────
-router.get("/:id/applications", requireAuth, async (req, res) => {
+// ── GET /jobs/:id/applications  (employer subscription or owner) ────────────
+router.get("/:id/applications", requireAuth, requireCandidatePool, async (req, res) => {
   const jobId = Number(req.params.id);
   if (!Number.isInteger(jobId) || jobId < 1) { res.status(400).json({ error: "Invalid ID" }); return; }
-  const callerEmail: string = ((req as any).user?.email ?? "").toLowerCase();
-  if (!OWNER_EMAILS_SET.has(callerEmail)) {
-    res.status(403).json({ error: "Admin access required." }); return;
-  }
   try {
     const applications = await db
       .select({

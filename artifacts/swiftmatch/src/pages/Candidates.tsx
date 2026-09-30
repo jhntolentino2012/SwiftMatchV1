@@ -290,13 +290,17 @@ export default function CandidatesPage() {
     if (!loading && !user) { setLocation("/signin?next=/candidates"); return; }
     if (!user) return;
     const token = getToken();
-    if (!token) { setFetchLoading(false); return; }
+    if (!token) { setFetchError("Sign in to view candidates."); setFetchLoading(false); return; }
     fetch(`${BASE}/api/applicants`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(
+        r.status === 401 ? "Your session has expired. Please sign in again."
+          : r.status === 403 ? "An employer account with candidate access is required."
+          : "Could not load candidates. Please try again."
+      )))
       .then(data => setCandidates(data))
-      .catch(() => setFetchError("Could not load candidates. Please try again."))
+      .catch((error: Error) => setFetchError(error.message || "Could not load candidates. Please try again."))
       .finally(() => setFetchLoading(false));
   }, [user, loading]);
 

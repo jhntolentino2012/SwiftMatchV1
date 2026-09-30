@@ -8,6 +8,36 @@
 import * as zod from "zod";
 
 /**
+ * Owner bypass or unexpired trusted database entitlement. No entitlement by default. Does not grant or change access.
+ * @summary Get server-controlled report permissions for the confirmed JWT user
+ */
+export const GetReportAccessResponse = zod.object({
+  canViewReports: zod.boolean(),
+  canViewCandidatePool: zod.boolean(),
+});
+
+/**
+ * @summary Report results (same authorization as applicant assessment-results alias)
+ */
+export const GetApplicantReportResultsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetApplicantReportResultsResponseItem = zod.object({
+  id: zod.number(),
+  applicantId: zod.number(),
+  assessmentId: zod.number(),
+  assessmentTitle: zod.string(),
+  score: zod.number(),
+  passed: zod.boolean(),
+  feedback: zod.string(),
+  completedAt: zod.string(),
+});
+export const GetApplicantReportResultsResponse = zod.array(
+  GetApplicantReportResultsResponseItem,
+);
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -15,7 +45,72 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * @summary List all applicants
+ * @summary Own job applications with scores (active report subscription or owner)
+ */
+export const GetOwnJobApplicationsResponseItem = zod.object({
+  id: zod.number(),
+  jobId: zod.number().optional(),
+  applicantId: zod.number().optional(),
+  jobTitle: zod.string(),
+  company: zod.string(),
+  industry: zod.string().nullish(),
+  status: zod.string(),
+  keScore: zod.number().nullish(),
+  customScore: zod.number().nullish(),
+  customCorrectCount: zod.number().nullish(),
+  customTotalCount: zod.number().nullish(),
+  firstName: zod.string().nullish(),
+  lastName: zod.string().nullish(),
+  email: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetOwnJobApplicationsResponse = zod.array(
+  GetOwnJobApplicationsResponseItem,
+);
+
+/**
+ * @summary Job applicants and scores (employer subscription or owner only)
+ */
+export const GetJobApplicationsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetJobApplicationsResponseItem = zod.object({
+  id: zod.number(),
+  jobId: zod.number().optional(),
+  applicantId: zod.number().optional(),
+  jobTitle: zod.string(),
+  company: zod.string(),
+  industry: zod.string().nullish(),
+  status: zod.string(),
+  keScore: zod.number().nullish(),
+  customScore: zod.number().nullish(),
+  customCorrectCount: zod.number().nullish(),
+  customTotalCount: zod.number().nullish(),
+  firstName: zod.string().nullish(),
+  lastName: zod.string().nullish(),
+  email: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetJobApplicationsResponse = zod.array(
+  GetJobApplicationsResponseItem,
+);
+
+/**
+ * @summary Own CV and assessment match analysis (active report subscription or owner)
+ */
+export const GetResumeMatchAnalysisResponse = zod.object({
+  overallAlignment: zod.number(),
+  summary: zod.string(),
+  confirmedStrengths: zod.array(zod.record(zod.string(), zod.unknown())),
+  gapAreas: zod.array(zod.record(zod.string(), zod.unknown())),
+  recommendations: zod.array(zod.string()),
+  cvProfile: zod.record(zod.string(), zod.unknown()),
+  jobsMatched: zod.number(),
+});
+
+/**
+ * @summary List all applicants (employer subscription or owner only)
  */
 export const ListApplicantsResponseItem = zod.object({
   id: zod.number(),
@@ -69,7 +164,7 @@ export const ListApplicantsResponseItem = zod.object({
 export const ListApplicantsResponse = zod.array(ListApplicantsResponseItem);
 
 /**
- * @summary Create applicant profile
+ * @summary Create own applicant profile using authenticated account email
  */
 export const createApplicantBodySkillsMax = 5;
 
@@ -125,7 +220,7 @@ export const CreateApplicantBody = zod.object({
 });
 
 /**
- * @summary Get applicant by ID
+ * @summary Get own basic profile free; other profiles require employer access
  */
 export const GetApplicantParams = zod.object({
   id: zod.coerce.number(),
@@ -182,6 +277,7 @@ export const GetApplicantResponse = zod.object({
 });
 
 /**
+ * Own profile or owner only. Email identity cannot be changed.
  * @summary Update applicant profile
  */
 export const UpdateApplicantParams = zod.object({
@@ -337,6 +433,7 @@ export const GetAssessmentResponse = zod.object({
 });
 
 /**
+ * Requires authenticated ownership (or owner). Immediate quiz feedback remains free.
  * @summary Submit assessment answers
  */
 export const SubmitAssessmentParams = zod.object({
@@ -365,6 +462,7 @@ export const SubmitAssessmentResponse = zod.object({
 });
 
 /**
+ * Applicant subscription permits own results only; employer subscription or owner permits any applicant.
  * @summary Get all assessment results for an applicant
  */
 export const GetApplicantAssessmentResultsParams = zod.object({

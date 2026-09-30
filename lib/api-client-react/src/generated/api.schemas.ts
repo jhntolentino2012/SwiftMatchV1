@@ -5,6 +5,77 @@
  * SwiftMatch Recruitment Platform API
  * OpenAPI spec version: 0.1.0
  */
+export interface JobApplicationSummary {
+  id: number;
+  jobId?: number;
+  applicantId?: number;
+  jobTitle: string;
+  company: string;
+  /** @nullable */
+  industry?: string | null;
+  status: string;
+  /** @nullable */
+  keScore?: number | null;
+  /** @nullable */
+  customScore?: number | null;
+  /** @nullable */
+  customCorrectCount?: number | null;
+  /** @nullable */
+  customTotalCount?: number | null;
+  /** @nullable */
+  firstName?: string | null;
+  /** @nullable */
+  lastName?: string | null;
+  /** @nullable */
+  email?: string | null;
+  createdAt: string;
+}
+
+export type ResumeMatchAnalysisConfirmedStrengthsItem = {
+  [key: string]: unknown;
+};
+
+export type ResumeMatchAnalysisGapAreasItem = { [key: string]: unknown };
+
+export type ResumeMatchAnalysisCvProfile = { [key: string]: unknown };
+
+export interface ResumeMatchAnalysis {
+  overallAlignment: number;
+  summary: string;
+  confirmedStrengths: ResumeMatchAnalysisConfirmedStrengthsItem[];
+  gapAreas: ResumeMatchAnalysisGapAreasItem[];
+  recommendations: string[];
+  cvProfile: ResumeMatchAnalysisCvProfile;
+  jobsMatched: number;
+}
+
+export interface ReportAccess {
+  canViewReports: boolean;
+  canViewCandidatePool: boolean;
+}
+
+export type ReportAccessErrorError =
+  (typeof ReportAccessErrorError)[keyof typeof ReportAccessErrorError];
+
+export const ReportAccessErrorError = {
+  SUBSCRIPTION_REQUIRED: "SUBSCRIPTION_REQUIRED",
+  REPORT_ACCESS_DENIED: "REPORT_ACCESS_DENIED",
+} as const;
+
+export type ReportAccessErrorCode =
+  (typeof ReportAccessErrorCode)[keyof typeof ReportAccessErrorCode];
+
+export const ReportAccessErrorCode = {
+  SUBSCRIPTION_REQUIRED: "SUBSCRIPTION_REQUIRED",
+  REPORT_ACCESS_DENIED: "REPORT_ACCESS_DENIED",
+} as const;
+
+export interface ReportAccessError {
+  error: ReportAccessErrorError;
+  code: ReportAccessErrorCode;
+  message: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -273,6 +344,16 @@ export interface Course {
   /** @nullable */
   url?: string | null;
 }
+
+/**
+ * Missing, invalid, expired JWT, missing user, or unconfirmed account
+ */
+export type UnauthorizedResponse = ErrorResponse;
+
+/**
+ * Subscription required or applicant access denied
+ */
+export type ReportForbiddenResponse = ReportAccessError;
 
 export type GetDemoJobCount200 = {
   demoCount: number;

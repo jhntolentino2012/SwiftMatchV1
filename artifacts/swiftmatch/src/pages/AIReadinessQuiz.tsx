@@ -56,12 +56,15 @@ export default function AIReadinessQuiz({ applicantId, industry, jobId, onComple
     }
     try {
       const token = localStorage.getItem("sm_auth_token");
-      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      if (!token) throw new Error("Sign in to load your assessment questions.");
+      const headers: HeadersInit = { Authorization: `Bearer ${token}` };
       const url = `${BASE_URL}/api/assessments/ai-readiness/quiz?applicantId=${applicantId}&industry=${encodeURIComponent(industry)}`;
       const r = await fetch(url, { headers });
       if (!r.ok) {
         const body = await r.json().catch(() => ({}));
-        throw new Error(body?.error || `Request failed (${r.status})`);
+        throw new Error(r.status === 401 ? "Your session has expired. Please sign in again."
+          : r.status === 403 ? "You cannot load questions for this profile."
+          : body?.error || `Request failed (${r.status})`);
       }
       const data = await r.json();
       setQuestions(data.questions || []);

@@ -18,6 +18,54 @@ tags:
   - name: courses
     description: Recommended courses and training
 paths:
+  /auth/report-access:
+    get:
+      operationId: getReportAccess
+      tags: [auth]
+      summary: Get server-controlled report permissions for the confirmed JWT user
+      description: Owner bypass or unexpired trusted database entitlement. No entitlement by default. Does not grant or change access.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current permissions
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportAccess"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /assessments/applicant/{id}/results:
+    get:
+      operationId: getApplicantReportResults
+      tags: [assessments]
+      summary: Report results (same authorization as applicant assessment-results alias)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
+        "200":
+          description: Own reports with applicant subscription, any reports with employer subscription or owner
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssessmentResult"
   /healthz:
     get:
       operationId: healthCheck
@@ -31,12 +79,86 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /jobs/applications/me:
+    get:
+      operationId: getOwnJobApplications
+      tags: [jobs]
+      summary: Own job applications with scores (active report subscription or owner)
+      security:
+        - bearerAuth: []
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
+        "200":
+          description: Own applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobApplicationSummary"
+  /jobs/{id}/applications:
+    get:
+      operationId: getJobApplications
+      tags: [jobs]
+      summary: Job applicants and scores (employer subscription or owner only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
+        "200":
+          description: Applications with candidate identity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobApplicationSummary"
+  /resume/match-analysis:
+    get:
+      operationId: getResumeMatchAnalysis
+      tags: [reports]
+      summary: Own CV and assessment match analysis (active report subscription or owner)
+      security:
+        - bearerAuth: []
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
+        "404":
+          description: Applicant profile missing
+        "422":
+          description: Missing CV or assessment scores
+        "200":
+          description: CV and assessment comparison
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResumeMatchAnalysis"
   /applicants:
     get:
       operationId: listApplicants
+      security:
+        - bearerAuth: []
       tags: [applicants]
-      summary: List all applicants
+      summary: List all applicants (employer subscription or owner only)
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
         "200":
           description: List of applicants
           content:
@@ -47,8 +169,10 @@ paths:
                   $ref: "#/components/schemas/Applicant"
     post:
       operationId: createApplicant
+      security:
+        - bearerAuth: []
       tags: [applicants]
-      summary: Create applicant profile
+      summary: Create own applicant profile using authenticated account email
       requestBody:
         required: true
         content:
@@ -56,6 +180,12 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateApplicantRequest"
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
+        "409":
+          description: Profile already exists
         "201":
           description: Applicant created
           content:
@@ -72,8 +202,10 @@ paths:
   /applicants/{id}:
     get:
       operationId: getApplicant
+      security:
+        - bearerAuth: []
       tags: [applicants]
-      summary: Get applicant by ID
+      summary: Get own basic profile free; other profiles require employer access
       parameters:
         - name: id
           in: path
@@ -81,6 +213,10 @@ paths:
           schema:
             type: integer
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
         "200":
           description: Applicant details
           content:
@@ -95,6 +231,9 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
     patch:
       operationId: updateApplicant
+      security:
+        - bearerAuth: []
+      description: Own profile or owner only. Email identity cannot be changed.
       tags: [applicants]
       summary: Update applicant profile
       parameters:
@@ -110,6 +249,10 @@ paths:
             schema:
               $ref: "#/components/schemas/UpdateApplicantRequest"
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
         "200":
           description: Applicant updated
           content:
@@ -160,6 +303,9 @@ paths:
   /assessments/{id}/submit:
     post:
       operationId: submitAssessment
+      security:
+        - bearerAuth: []
+      description: Requires authenticated ownership (or owner). Immediate quiz feedback remains free.
       tags: [assessments]
       summary: Submit assessment answers
       parameters:
@@ -175,6 +321,10 @@ paths:
             schema:
               $ref: "#/components/schemas/AssessmentSubmission"
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
         "200":
           description: Assessment result
           content:
@@ -185,6 +335,9 @@ paths:
   /applicants/{id}/assessment-results:
     get:
       operationId: getApplicantAssessmentResults
+      security:
+        - bearerAuth: []
+      description: Applicant subscription permits own results only; employer subscription or owner permits any applicant.
       tags: [assessments]
       summary: Get all assessment results for an applicant
       parameters:
@@ -194,6 +347,10 @@ paths:
           schema:
             type: integer
       responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ReportForbidden"
         "200":
           description: Assessment results
           content:
@@ -332,7 +489,107 @@ paths:
                   type: string
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Unauthorized:
+      description: Missing, invalid, expired JWT, missing user, or unconfirmed account
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ReportForbidden:
+      description: Subscription required or applicant access denied
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ReportAccessError"
   schemas:
+    JobApplicationSummary:
+      type: object
+      required: [id, jobTitle, company, status, createdAt]
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: integer
+        applicantId:
+          type: integer
+        jobTitle:
+          type: string
+        company:
+          type: string
+        industry:
+          type: [string, "null"]
+        status:
+          type: string
+        keScore:
+          type: [number, "null"]
+        customScore:
+          type: [number, "null"]
+        customCorrectCount:
+          type: [integer, "null"]
+        customTotalCount:
+          type: [integer, "null"]
+        firstName:
+          type: [string, "null"]
+        lastName:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+        createdAt:
+          type: string
+          format: date-time
+    ResumeMatchAnalysis:
+      type: object
+      required: [overallAlignment, summary, confirmedStrengths, gapAreas, recommendations, cvProfile, jobsMatched]
+      properties:
+        overallAlignment:
+          type: integer
+        summary:
+          type: string
+        confirmedStrengths:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        gapAreas:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        recommendations:
+          type: array
+          items:
+            type: string
+        cvProfile:
+          type: object
+          additionalProperties: true
+        jobsMatched:
+          type: integer
+    ReportAccess:
+      type: object
+      required: [canViewReports, canViewCandidatePool]
+      properties:
+        canViewReports:
+          type: boolean
+        canViewCandidatePool:
+          type: boolean
+    ReportAccessError:
+      type: object
+      required: [error, code, message]
+      properties:
+        error:
+          type: string
+          enum: [SUBSCRIPTION_REQUIRED, REPORT_ACCESS_DENIED]
+        code:
+          type: string
+          enum: [SUBSCRIPTION_REQUIRED, REPORT_ACCESS_DENIED]
+        message:
+          type: string
     HealthStatus:
       type: object
       properties:

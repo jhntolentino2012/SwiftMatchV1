@@ -14,9 +14,9 @@ const q = (
   difficulty: QuizQuestion["difficulty"],
   type: QuizQuestion["type"],
   text: string,
-  options?: string[],
+  options?: string[] | "",
   passage?: string,
-): QuizQuestion => ({ id, difficulty, type, text, options, passage });
+): QuizQuestion => ({ id, difficulty, type, text, options: options === "" ? undefined : options, passage });
 
 /* ─── TECHNOLOGY / IT ─── */
 const tech: QuizQuestion[] = [

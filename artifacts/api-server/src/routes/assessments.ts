@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+import { requireVerifiedUser, applicantAccess } from "../middlewares/report-access";
+import { isOwnerEmail } from "../lib/owner";
 import { db, assessmentsTable, assessmentResultsTable, applicantsTable, jobApplicationsTable } from "@workspace/db";
 import { eq, asc, and, desc } from "drizzle-orm";
 import { pickQuiz, gradeQuizAnswers, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";
@@ -38,11 +40,6 @@ import {
 
 const router: IRouter = Router();
 
-// ── Emails that are never subject to the retake cooldown ──
-const BYPASS_COOLDOWN_EMAILS = new Set([
-  "jhn.tolentino2012@gmail.com",
-]);
-
 async function isApplicantCooldownBypassed(applicantId: number): Promise<boolean> {
   const [row] = await db
     .select({ email: applicantsTable.email })
@@ -50,7 +47,7 @@ async function isApplicantCooldownBypassed(applicantId: number): Promise<boolean
     .where(eq(applicantsTable.id, applicantId))
     .limit(1);
   if (!row) return false;
-  return BYPASS_COOLDOWN_EMAILS.has(row.email.trim().toLowerCase());
+  return isOwnerEmail(row.email);
 }
 
 // ── Retake cooldown helpers ──
@@ -188,7 +185,7 @@ router.get("/ke-quiz", (req, res) => {
 });
 
 // Save K&E quiz result — grades server-side from the answers map.
-router.post("/ke-quiz/submit", async (req, res) => {
+router.post("/ke-quiz/submit", requireVerifiedUser, applicantAccess(req => req.body?.applicantId, "write"), async (req, res) => {
   const { applicantId, industry, jobId, answers } = req.body;
   if (!applicantId || !industry || !answers || typeof answers !== "object") {
     res.status(400).json({ error: "Missing required fields (applicantId, industry, answers)" });
@@ -255,7 +252,7 @@ router.post("/ke-quiz/submit", async (req, res) => {
 });
 
 // Personality quiz result
-router.post("/personality/submit", async (req, res) => {
+router.post("/personality/submit", requireVerifiedUser, applicantAccess(req => req.body?.applicantId, "write"), async (req, res) => {
   const { applicantId, positionLabel, tier, framework: clientFramework, result, rationale } = req.body;
   if (!applicantId || !result) {
     res.status(400).json({ error: "Missing required fields" });
@@ -316,7 +313,7 @@ async function getApplicantCFExcludeIds(applicantId: number, industry: string): 
   return Array.from(ids);
 }
 
-router.get("/cultural-fit/quiz", async (req, res) => {
+router.get("/cultural-fit/quiz", requireVerifiedUser, applicantAccess(req => req.query.applicantId, "write"), async (req, res) => {
   const applicantId = Number(req.query.applicantId);
   const industry = String(req.query.industry ?? "");
   if (!applicantId || !industry) {
@@ -345,7 +342,7 @@ router.get("/cultural-fit/quiz", async (req, res) => {
   }
 });
 
-router.post("/cultural-fit/submit", async (req, res) => {
+router.post("/cultural-fit/submit", requireVerifiedUser, applicantAccess(req => req.body?.applicantId, "write"), async (req, res) => {
   const { applicantId, industry, jobId, questionIds, answers } = req.body ?? {};
   if (
     !applicantId ||
@@ -429,7 +426,7 @@ async function getApplicantCTExcludeIds(applicantId: number, industry: string): 
   return Array.from(ids);
 }
 
-router.get("/critical-thinking/quiz", async (req, res) => {
+router.get("/critical-thinking/quiz", requireVerifiedUser, applicantAccess(req => req.query.applicantId, "write"), async (req, res) => {
   const applicantId = Number(req.query.applicantId);
   const industry = String(req.query.industry ?? "");
   if (!applicantId || !industry) {
@@ -458,7 +455,7 @@ router.get("/critical-thinking/quiz", async (req, res) => {
   }
 });
 
-router.post("/critical-thinking/submit", async (req, res) => {
+router.post("/critical-thinking/submit", requireVerifiedUser, applicantAccess(req => req.body?.applicantId, "write"), async (req, res) => {
   const { applicantId, industry, jobId, questionIds, answers } = req.body ?? {};
   if (
     !applicantId ||
@@ -541,7 +538,7 @@ async function getApplicantAIExcludeIds(applicantId: number, industry: string): 
   return Array.from(ids);
 }
 
-router.get("/ai-readiness/quiz", async (req, res) => {
+router.get("/ai-readiness/quiz", requireVerifiedUser, applicantAccess(req => req.query.applicantId, "write"), async (req, res) => {
   const applicantId = Number(req.query.applicantId);
   const industry = String(req.query.industry ?? "");
   if (!applicantId || !industry) {
@@ -570,7 +567,7 @@ router.get("/ai-readiness/quiz", async (req, res) => {
   }
 });
 
-router.post("/ai-readiness/submit", async (req, res) => {
+router.post("/ai-readiness/submit", requireVerifiedUser, applicantAccess(req => req.body?.applicantId, "write"), async (req, res) => {
   const { applicantId, industry, jobId, questionIds, answers } = req.body ?? {};
   if (
     !applicantId ||
@@ -654,7 +651,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/submit", async (req, res) => {
+router.post("/:id/submit", requireVerifiedUser, applicantAccess(req => req.body?.applicantId, "write"), async (req, res) => {
   const params = SubmitAssessmentParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: "Invalid ID" });
@@ -722,7 +719,7 @@ router.post("/:id/submit", async (req, res) => {
   }
 });
 
-router.get("/applicant/:id/results", async (req, res) => {
+router.get("/applicant/:id/results", requireVerifiedUser, applicantAccess(req => req.params.id, "report"), async (req, res) => {
   const params = GetApplicantAssessmentResultsParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: "Invalid ID" });

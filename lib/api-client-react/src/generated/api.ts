@@ -29,6 +29,11 @@ import type {
   GetSkillSuggestionsParams,
   HealthStatus,
   Job,
+  JobApplicationSummary,
+  ReportAccess,
+  ReportForbiddenResponse,
+  ResumeMatchAnalysis,
+  UnauthorizedResponse,
   UpdateApplicantRequest,
 } from "./api.schemas";
 
@@ -40,6 +45,173 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * Owner bypass or unexpired trusted database entitlement. No entitlement by default. Does not grant or change access.
+ * @summary Get server-controlled report permissions for the confirmed JWT user
+ */
+export const getGetReportAccessUrl = () => {
+  return `/api/auth/report-access`;
+};
+
+export const getReportAccess = async (
+  options?: RequestInit,
+): Promise<ReportAccess> => {
+  return customFetch<ReportAccess>(getGetReportAccessUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetReportAccessQueryKey = () => {
+  return [`/api/auth/report-access`] as const;
+};
+
+export const getGetReportAccessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReportAccess>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getReportAccess>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReportAccessQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReportAccess>>> = ({
+    signal,
+  }) => getReportAccess({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReportAccess>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetReportAccessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReportAccess>>
+>;
+export type GetReportAccessQueryError = ErrorType<UnauthorizedResponse>;
+
+/**
+ * @summary Get server-controlled report permissions for the confirmed JWT user
+ */
+
+export function useGetReportAccess<
+  TData = Awaited<ReturnType<typeof getReportAccess>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getReportAccess>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetReportAccessQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Report results (same authorization as applicant assessment-results alias)
+ */
+export const getGetApplicantReportResultsUrl = (id: number) => {
+  return `/api/assessments/applicant/${id}/results`;
+};
+
+export const getApplicantReportResults = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AssessmentResult[]> => {
+  return customFetch<AssessmentResult[]>(getGetApplicantReportResultsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetApplicantReportResultsQueryKey = (id: number) => {
+  return [`/api/assessments/applicant/${id}/results`] as const;
+};
+
+export const getGetApplicantReportResultsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getApplicantReportResults>>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getApplicantReportResults>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetApplicantReportResultsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getApplicantReportResults>>
+  > = ({ signal }) =>
+    getApplicantReportResults(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getApplicantReportResults>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetApplicantReportResultsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getApplicantReportResults>>
+>;
+export type GetApplicantReportResultsQueryError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse
+>;
+
+/**
+ * @summary Report results (same authorization as applicant assessment-results alias)
+ */
+
+export function useGetApplicantReportResults<
+  TData = Awaited<ReturnType<typeof getApplicantReportResults>>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getApplicantReportResults>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetApplicantReportResultsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Health check
@@ -117,7 +289,251 @@ export function useHealthCheck<
 }
 
 /**
- * @summary List all applicants
+ * @summary Own job applications with scores (active report subscription or owner)
+ */
+export const getGetOwnJobApplicationsUrl = () => {
+  return `/api/jobs/applications/me`;
+};
+
+export const getOwnJobApplications = async (
+  options?: RequestInit,
+): Promise<JobApplicationSummary[]> => {
+  return customFetch<JobApplicationSummary[]>(getGetOwnJobApplicationsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOwnJobApplicationsQueryKey = () => {
+  return [`/api/jobs/applications/me`] as const;
+};
+
+export const getGetOwnJobApplicationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOwnJobApplications>>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOwnJobApplications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOwnJobApplicationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOwnJobApplications>>
+  > = ({ signal }) => getOwnJobApplications({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOwnJobApplications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOwnJobApplicationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOwnJobApplications>>
+>;
+export type GetOwnJobApplicationsQueryError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse
+>;
+
+/**
+ * @summary Own job applications with scores (active report subscription or owner)
+ */
+
+export function useGetOwnJobApplications<
+  TData = Awaited<ReturnType<typeof getOwnJobApplications>>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getOwnJobApplications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOwnJobApplicationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Job applicants and scores (employer subscription or owner only)
+ */
+export const getGetJobApplicationsUrl = (id: number) => {
+  return `/api/jobs/${id}/applications`;
+};
+
+export const getJobApplications = async (
+  id: number,
+  options?: RequestInit,
+): Promise<JobApplicationSummary[]> => {
+  return customFetch<JobApplicationSummary[]>(getGetJobApplicationsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetJobApplicationsQueryKey = (id: number) => {
+  return [`/api/jobs/${id}/applications`] as const;
+};
+
+export const getGetJobApplicationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getJobApplications>>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getJobApplications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetJobApplicationsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getJobApplications>>
+  > = ({ signal }) => getJobApplications(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getJobApplications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetJobApplicationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getJobApplications>>
+>;
+export type GetJobApplicationsQueryError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse
+>;
+
+/**
+ * @summary Job applicants and scores (employer subscription or owner only)
+ */
+
+export function useGetJobApplications<
+  TData = Awaited<ReturnType<typeof getJobApplications>>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getJobApplications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetJobApplicationsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Own CV and assessment match analysis (active report subscription or owner)
+ */
+export const getGetResumeMatchAnalysisUrl = () => {
+  return `/api/resume/match-analysis`;
+};
+
+export const getResumeMatchAnalysis = async (
+  options?: RequestInit,
+): Promise<ResumeMatchAnalysis> => {
+  return customFetch<ResumeMatchAnalysis>(getGetResumeMatchAnalysisUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetResumeMatchAnalysisQueryKey = () => {
+  return [`/api/resume/match-analysis`] as const;
+};
+
+export const getGetResumeMatchAnalysisQueryOptions = <
+  TData = Awaited<ReturnType<typeof getResumeMatchAnalysis>>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse | void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getResumeMatchAnalysis>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetResumeMatchAnalysisQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getResumeMatchAnalysis>>
+  > = ({ signal }) => getResumeMatchAnalysis({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getResumeMatchAnalysis>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetResumeMatchAnalysisQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getResumeMatchAnalysis>>
+>;
+export type GetResumeMatchAnalysisQueryError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse | void
+>;
+
+/**
+ * @summary Own CV and assessment match analysis (active report subscription or owner)
+ */
+
+export function useGetResumeMatchAnalysis<
+  TData = Awaited<ReturnType<typeof getResumeMatchAnalysis>>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse | void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getResumeMatchAnalysis>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetResumeMatchAnalysisQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all applicants (employer subscription or owner only)
  */
 export const getListApplicantsUrl = () => {
   return `/api/applicants`;
@@ -138,7 +554,7 @@ export const getListApplicantsQueryKey = () => {
 
 export const getListApplicantsQueryOptions = <
   TData = Awaited<ReturnType<typeof listApplicants>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
 >(options?: {
   query?: UseQueryOptions<
     Awaited<ReturnType<typeof listApplicants>>,
@@ -165,15 +581,17 @@ export const getListApplicantsQueryOptions = <
 export type ListApplicantsQueryResult = NonNullable<
   Awaited<ReturnType<typeof listApplicants>>
 >;
-export type ListApplicantsQueryError = ErrorType<unknown>;
+export type ListApplicantsQueryError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse
+>;
 
 /**
- * @summary List all applicants
+ * @summary List all applicants (employer subscription or owner only)
  */
 
 export function useListApplicants<
   TData = Awaited<ReturnType<typeof listApplicants>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
 >(options?: {
   query?: UseQueryOptions<
     Awaited<ReturnType<typeof listApplicants>>,
@@ -192,7 +610,7 @@ export function useListApplicants<
 }
 
 /**
- * @summary Create applicant profile
+ * @summary Create own applicant profile using authenticated account email
  */
 export const getCreateApplicantUrl = () => {
   return `/api/applicants`;
@@ -211,7 +629,9 @@ export const createApplicant = async (
 };
 
 export const getCreateApplicantMutationOptions = <
-  TError = ErrorType<ErrorResponse>,
+  TError = ErrorType<
+    ErrorResponse | UnauthorizedResponse | ReportForbiddenResponse | void
+  >,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -252,13 +672,17 @@ export type CreateApplicantMutationResult = NonNullable<
   Awaited<ReturnType<typeof createApplicant>>
 >;
 export type CreateApplicantMutationBody = BodyType<CreateApplicantRequest>;
-export type CreateApplicantMutationError = ErrorType<ErrorResponse>;
+export type CreateApplicantMutationError = ErrorType<
+  ErrorResponse | UnauthorizedResponse | ReportForbiddenResponse | void
+>;
 
 /**
- * @summary Create applicant profile
+ * @summary Create own applicant profile using authenticated account email
  */
 export const useCreateApplicant = <
-  TError = ErrorType<ErrorResponse>,
+  TError = ErrorType<
+    ErrorResponse | UnauthorizedResponse | ReportForbiddenResponse | void
+  >,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -278,7 +702,7 @@ export const useCreateApplicant = <
 };
 
 /**
- * @summary Get applicant by ID
+ * @summary Get own basic profile free; other profiles require employer access
  */
 export const getGetApplicantUrl = (id: number) => {
   return `/api/applicants/${id}`;
@@ -300,7 +724,9 @@ export const getGetApplicantQueryKey = (id: number) => {
 
 export const getGetApplicantQueryOptions = <
   TData = Awaited<ReturnType<typeof getApplicant>>,
-  TError = ErrorType<ErrorResponse>,
+  TError = ErrorType<
+    UnauthorizedResponse | ReportForbiddenResponse | ErrorResponse
+  >,
 >(
   id: number,
   options?: {
@@ -335,15 +761,19 @@ export const getGetApplicantQueryOptions = <
 export type GetApplicantQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApplicant>>
 >;
-export type GetApplicantQueryError = ErrorType<ErrorResponse>;
+export type GetApplicantQueryError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse | ErrorResponse
+>;
 
 /**
- * @summary Get applicant by ID
+ * @summary Get own basic profile free; other profiles require employer access
  */
 
 export function useGetApplicant<
   TData = Awaited<ReturnType<typeof getApplicant>>,
-  TError = ErrorType<ErrorResponse>,
+  TError = ErrorType<
+    UnauthorizedResponse | ReportForbiddenResponse | ErrorResponse
+  >,
 >(
   id: number,
   options?: {
@@ -365,6 +795,7 @@ export function useGetApplicant<
 }
 
 /**
+ * Own profile or owner only. Email identity cannot be changed.
  * @summary Update applicant profile
  */
 export const getUpdateApplicantUrl = (id: number) => {
@@ -385,7 +816,9 @@ export const updateApplicant = async (
 };
 
 export const getUpdateApplicantMutationOptions = <
-  TError = ErrorType<ErrorResponse>,
+  TError = ErrorType<
+    UnauthorizedResponse | ReportForbiddenResponse | ErrorResponse
+  >,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -426,13 +859,17 @@ export type UpdateApplicantMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateApplicant>>
 >;
 export type UpdateApplicantMutationBody = BodyType<UpdateApplicantRequest>;
-export type UpdateApplicantMutationError = ErrorType<ErrorResponse>;
+export type UpdateApplicantMutationError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse | ErrorResponse
+>;
 
 /**
  * @summary Update applicant profile
  */
 export const useUpdateApplicant = <
-  TError = ErrorType<ErrorResponse>,
+  TError = ErrorType<
+    UnauthorizedResponse | ReportForbiddenResponse | ErrorResponse
+  >,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -614,6 +1051,7 @@ export function useGetAssessment<
 }
 
 /**
+ * Requires authenticated ownership (or owner). Immediate quiz feedback remains free.
  * @summary Submit assessment answers
  */
 export const getSubmitAssessmentUrl = (id: number) => {
@@ -634,7 +1072,7 @@ export const submitAssessment = async (
 };
 
 export const getSubmitAssessmentMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -675,13 +1113,15 @@ export type SubmitAssessmentMutationResult = NonNullable<
   Awaited<ReturnType<typeof submitAssessment>>
 >;
 export type SubmitAssessmentMutationBody = BodyType<AssessmentSubmission>;
-export type SubmitAssessmentMutationError = ErrorType<unknown>;
+export type SubmitAssessmentMutationError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse
+>;
 
 /**
  * @summary Submit assessment answers
  */
 export const useSubmitAssessment = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -701,6 +1141,7 @@ export const useSubmitAssessment = <
 };
 
 /**
+ * Applicant subscription permits own results only; employer subscription or owner permits any applicant.
  * @summary Get all assessment results for an applicant
  */
 export const getGetApplicantAssessmentResultsUrl = (id: number) => {
@@ -726,7 +1167,7 @@ export const getGetApplicantAssessmentResultsQueryKey = (id: number) => {
 
 export const getGetApplicantAssessmentResultsQueryOptions = <
   TData = Awaited<ReturnType<typeof getApplicantAssessmentResults>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
 >(
   id: number,
   options?: {
@@ -763,7 +1204,9 @@ export const getGetApplicantAssessmentResultsQueryOptions = <
 export type GetApplicantAssessmentResultsQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApplicantAssessmentResults>>
 >;
-export type GetApplicantAssessmentResultsQueryError = ErrorType<unknown>;
+export type GetApplicantAssessmentResultsQueryError = ErrorType<
+  UnauthorizedResponse | ReportForbiddenResponse
+>;
 
 /**
  * @summary Get all assessment results for an applicant
@@ -771,7 +1214,7 @@ export type GetApplicantAssessmentResultsQueryError = ErrorType<unknown>;
 
 export function useGetApplicantAssessmentResults<
   TData = Awaited<ReturnType<typeof getApplicantAssessmentResults>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<UnauthorizedResponse | ReportForbiddenResponse>,
 >(
   id: number,
   options?: {

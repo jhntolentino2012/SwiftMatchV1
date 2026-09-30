@@ -191,8 +191,12 @@ export default function AssessmentCenter() {
           ? `${test.title}: ${score}% — ${passed ? "Passed" : "Try again to improve your score"}`
           : `${test.title} results saved.`,
       });
-    } catch {
-      toast({ title: "Submission failed", description: "Please try again.", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Submission failed", description: error?.response?.status === 401
+        ? "Your session has expired. Please sign in again."
+        : error?.response?.status === 403
+          ? "You cannot submit an assessment for this profile."
+          : "Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(null);
     }

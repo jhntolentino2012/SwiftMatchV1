@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, applicantsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { requireVerifiedUser, verifiedUser, requireCandidatePool, applicantAccess, denyReport } from "../middlewares/report-access";
 import {
   CreateApplicantBody,
   UpdateApplicantBody,
@@ -18,7 +19,7 @@ function formatApplicant(a: typeof applicantsTable.$inferSelect) {
   };
 }
 
-router.get("/", async (req, res) => {
+router.get("/", requireVerifiedUser, requireCandidatePool, async (req, res) => {
   try {
     const applicants = await db.select().from(applicantsTable).orderBy(applicantsTable.createdAt);
     res.json(applicants.map(formatApplicant));
@@ -28,7 +29,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireVerifiedUser, async (req, res) => {
   const parsed = CreateApplicantBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -36,6 +37,12 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    if (parsed.data.email.toLowerCase() !== verifiedUser(res).email.toLowerCase()) {
+      denyReport(res, "REPORT_ACCESS_DENIED"); return;
+    }
+    const [existing] = await db.select({ id: applicantsTable.id }).from(applicantsTable)
+      .where(eq(applicantsTable.email, verifiedUser(res).email)).limit(1);
+    if (existing) { res.status(409).json({ error: "Applicant profile already exists." }); return; }
     const [applicant] = await db
       .insert(applicantsTable)
       .values({
@@ -50,7 +57,7 @@ router.post("/", async (req, res) => {
         phoneAreaCode: parsed.data.phoneAreaCode,
         phoneNumber: parsed.data.phoneNumber,
         homePhone: parsed.data.homePhone ?? null,
-        email: parsed.data.email,
+        email: verifiedUser(res).email,
         skills: parsed.data.skills as string[],
         employmentHistory: parsed.data.employmentHistory,
         certificates: parsed.data.certificates,
@@ -73,7 +80,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireVerifiedUser, applicantAccess(req => req.params.id, "profile"), async (req, res) => {
   const params = GetApplicantParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: "Invalid ID" });
@@ -93,7 +100,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", requireVerifiedUser, applicantAccess(req => req.params.id, "write"), async (req, res) => {
   const params = UpdateApplicantParams.safeParse({ id: Number(req.params.id) });
   if (!params.success) {
     res.status(400).json({ error: "Invalid ID" });
@@ -125,7 +132,6 @@ router.patch("/:id", async (req, res) => {
     if (parsed.data.phoneAreaCode !== undefined) updateData.phoneAreaCode = parsed.data.phoneAreaCode;
     if (parsed.data.phoneNumber !== undefined) updateData.phoneNumber = parsed.data.phoneNumber;
     if (parsed.data.homePhone !== undefined) updateData.homePhone = parsed.data.homePhone ?? null;
-    if (parsed.data.email !== undefined) updateData.email = parsed.data.email;
     if (parsed.data.skills !== undefined) updateData.skills = parsed.data.skills as string[];
     if (parsed.data.employmentHistory !== undefined) updateData.employmentHistory = parsed.data.employmentHistory;
     if (parsed.data.certificates !== undefined) updateData.certificates = parsed.data.certificates;

@@ -6,6 +6,8 @@ import { db } from "@workspace/db";
 import { usersTable, applicantsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { sendConfirmationEmail, sendPasswordResetEmail } from "../lib/email";
+import { isOwnerEmail } from "../lib/owner";
+import { requireVerifiedUser, reportAccess } from "../middlewares/report-access";
 
 const router = Router();
 
@@ -28,19 +30,9 @@ function tokenExpiry(hours: number) {
  * immediately without waiting for a confirmation email. Configure additional
  * owners by setting the OWNER_EMAILS env var (comma-separated).
  */
-const DEFAULT_OWNER_EMAILS = ["jhn.tolentino2012@gmail.com"];
-const OWNER_EMAILS = new Set(
-  [
-    ...DEFAULT_OWNER_EMAILS,
-    ...(process.env["OWNER_EMAILS"]?.split(",") ?? []),
-  ]
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean),
-);
-
-function isOwnerEmail(email: string): boolean {
-  return OWNER_EMAILS.has(email.toLowerCase());
-}
+router.get("/report-access", requireVerifiedUser, async (_req, res) => {
+  res.json(await reportAccess(res));
+});
 
 /* ── POST /auth/signup ─────────────────────────────── */
 router.post("/signup", async (req, res) => {
@@ -215,7 +207,7 @@ router.post("/reset-password", async (req, res) => {
 });
 
 /* ── GET /auth/me ──────────────────────────────────── */
-router.get("/me", async (req, res) => {
+router.get("/me", requireVerifiedUser, async (req, res) => {
   const authHeader = req.headers["authorization"];
   if (!authHeader?.startsWith("Bearer ")) {
     res.status(401).json({ error: "Not authenticated." });
@@ -245,7 +237,7 @@ router.get("/me", async (req, res) => {
         phoneNumber: user.phone || "0000000000",
         email: user.email,
         availabilityDate: "Immediate",
-      }).returning({ id: applicantsTable.id });
+      }).returning({ id: applicantsTable.id, targetIndustry: applicantsTable.targetIndustry, targetRole: applicantsTable.targetRole, careerLevel: applicantsTable.careerLevel });
       applicant = created;
       req.log.info({ email: user.email, applicantId: applicant?.id }, "Auto-created stub applicant for owner");
     }

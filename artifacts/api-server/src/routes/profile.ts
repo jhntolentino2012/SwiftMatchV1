@@ -3,8 +3,10 @@ import jwt from "jsonwebtoken";
 import { db } from "@workspace/db";
 import { usersTable, applicantsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
+import { requireVerifiedUser } from "../middlewares/report-access";
 
 const router = Router();
+router.use(requireVerifiedUser);
 
 function jwtSecret(): string {
   const s = process.env["SESSION_SECRET"];

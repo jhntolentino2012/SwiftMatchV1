@@ -344,11 +344,17 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
       setMbtiResult({ type, scores: dimScores });
     }
 
-    if (applicantId) {
-      try {
+    if (!applicantId) {
+      setSubmitError("Sign in and create your profile before submitting this assessment.");
+      setSubmitting(false);
+      return;
+    }
+    try {
+        const token = localStorage.getItem("sm_auth_token");
+        if (!token) throw new Error("Sign in before submitting this assessment.");
         const resp = await fetch("/api/assessments/personality/submit", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ applicantId, positionLabel, tier, framework, result: resultLabel, manual: true, rationale: recommendation?.rationale }),
         });
         if (resp.status === 429) {
@@ -360,7 +366,16 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
           setSubmitting(false);
           return;
         }
-      } catch {}
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          throw new Error(resp.status === 401 ? "Your session has expired. Please sign in again."
+            : resp.status === 403 ? "You cannot submit an assessment for this profile."
+            : body.error || `Submission failed (${resp.status}). Please try again.`);
+        }
+    } catch (error: any) {
+      setSubmitError(error?.message || "Submission failed. Please try again.");
+      setSubmitting(false);
+      return;
     }
 
     setSubmitError(null);
@@ -411,11 +426,17 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
     }
 
     // Persist to API
-    if (applicantId) {
-      try {
+    if (!applicantId) {
+      setSubmitError("Sign in and create your profile before submitting this assessment.");
+      setSubmitting(false);
+      return;
+    }
+    try {
+        const token = localStorage.getItem("sm_auth_token");
+        if (!token) throw new Error("Sign in before submitting this assessment.");
         const resp = await fetch("/api/assessments/personality/submit", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ applicantId, positionLabel, tier, framework, result: resultLabel, answers: framework === "DOPE" ? dopeAnswers : mbtiAnswers, rationale: recommendation?.rationale }),
         });
         if (resp.status === 429) {
@@ -427,7 +448,16 @@ export default function PersonalityQuiz({ applicantId, recommendedLevel, industr
           setSubmitting(false);
           return;
         }
-      } catch {}
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          throw new Error(resp.status === 401 ? "Your session has expired. Please sign in again."
+            : resp.status === 403 ? "You cannot submit an assessment for this profile."
+            : body.error || `Submission failed (${resp.status}). Please try again.`);
+        }
+    } catch (error: any) {
+      setSubmitError(error?.message || "Submission failed. Please try again.");
+      setSubmitting(false);
+      return;
     }
     setSubmitError(null);
     setPhase("result");

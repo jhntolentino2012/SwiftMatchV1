@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useCreateApplicant } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const APPLICANT_DPA_KEY = "sm_dpa_consent_applicant";
 
@@ -29,6 +30,7 @@ const STEPS = [
 export default function ApplicationFlow() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [consented, setConsented] = useState<boolean>(() => hasPrivacyConsent(APPLICANT_DPA_KEY));
@@ -50,6 +52,10 @@ export default function ApplicationFlow() {
     expectedSalary: "", salaryNegotiable: true, availabilityDate: "",
     status: "pending" as const
   });
+
+  useEffect(() => {
+    if (user?.email) setFormData(prev => prev.email ? prev : { ...prev, email: user.email });
+  }, [user?.email]);
 
   const [resumeUploaderOpen, setResumeUploaderOpen] = useState(true);
   const [resumeParsed, setResumeParsed] = useState(false);
@@ -99,6 +105,14 @@ export default function ApplicationFlow() {
   };
 
   const handleSubmit = async () => {
+    if (!localStorage.getItem("sm_auth_token") || !user) {
+      toast({ title: "Sign in required", description: "Sign in before creating your profile.", variant: "destructive" });
+      return;
+    }
+    if (formData.email.trim().toLowerCase() !== user.email.trim().toLowerCase()) {
+      toast({ title: "Email mismatch", description: "Use the email address of your signed-in account.", variant: "destructive" });
+      return;
+    }
     try {
       setIsSubmitting(true);
       const apiPayload = {
@@ -124,7 +138,11 @@ export default function ApplicationFlow() {
 
     } catch (error: any) {
       console.error(error);
-      toast({ title: "Submission Failed", description: error.message || "Please check required fields.", variant: "destructive" });
+      toast({ title: "Submission Failed", description: error?.response?.status === 401
+        ? "Your session has expired. Please sign in again."
+        : error?.response?.status === 403
+          ? "You can only create a profile for your own account."
+          : error.message || "Please check required fields.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -295,11 +313,20 @@ function ResumeUploader({ onData, onDismiss }: { onData: (d: Record<string, any>
     setError(null);
     setIsParsing(true);
     try {
+      const token = localStorage.getItem("sm_auth_token");
+      if (!token) throw new Error("Sign in before uploading your resume.");
       const form = new FormData();
       form.append("resume", file);
-      const res = await fetch("/api/resume/parse", { method: "POST", body: form });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || "Parsing failed");
+      const res = await fetch("/api/resume/parse", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(res.status === 401 ? "Your session has expired. Please sign in again."
+        : res.status === 403 ? "You are not allowed to parse this resume."
+        : json.error || "Parsing failed");
+      if (!json.success) throw new Error(json.error || "Parsing failed");
       onData(json.data);
     } catch (err: any) {
       setError(err.message || "Could not parse the file. Please try again.");
