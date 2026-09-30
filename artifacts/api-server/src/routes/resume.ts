@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import jwt from "jsonwebtoken";
 import { eq, desc, and, ne } from "drizzle-orm";
 import { db, usersTable, applicantsTable, assessmentResultsTable, assessmentsTable, jobsTable } from "@workspace/db";
-import { requireVerifiedUser, requireReportSubscription, applicantAccess } from "../middlewares/report-access";
+import { requireVerifiedUser, requireReportSubscription, applicantAccess } from "../middlewares/report-access.js";
 
 function jwtSecret(): string {
   const s = process.env.SESSION_SECRET;

@@ -5,9 +5,9 @@ import crypto from "node:crypto";
 import { db } from "@workspace/db";
 import { usersTable, applicantsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
-import { sendConfirmationEmail, sendPasswordResetEmail } from "../lib/email";
-import { isOwnerEmail } from "../lib/owner";
-import { requireVerifiedUser, reportAccess } from "../middlewares/report-access";
+import { sendConfirmationEmail, sendPasswordResetEmail } from "../lib/email.js";
+import { isOwnerEmail } from "../lib/owner.js";
+import { requireVerifiedUser, reportAccess } from "../middlewares/report-access.js";
 
 const router = Router();
 

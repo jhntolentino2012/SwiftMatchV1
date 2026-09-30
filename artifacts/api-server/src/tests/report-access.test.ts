@@ -5,7 +5,7 @@ import { Router, type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
 import { eq, inArray } from "drizzle-orm";
 import { db, pool, usersTable, applicantsTable, jobsTable, jobApplicationsTable, reportEntitlementsTable, assessmentResultsTable, assessmentsTable } from "@workspace/db";
-import apiRouter from "../routes";
+import apiRouter from "../routes/index.js";
 
 // Route-level integration tests, invoking the real Express router and real development DB.
 // No listening server, external AI calls, live account changes, or credential output.

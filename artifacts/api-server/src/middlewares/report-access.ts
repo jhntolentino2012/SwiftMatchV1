@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import { db, usersTable, applicantsTable, reportEntitlementsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { isOwnerEmail } from "../lib/owner";
+import { isOwnerEmail } from "../lib/owner.js";
 
 type VerifiedUser = Pick<typeof usersTable.$inferSelect, "id" | "email">;
 

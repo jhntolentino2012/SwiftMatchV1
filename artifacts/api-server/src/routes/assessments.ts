@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { requireVerifiedUser, applicantAccess } from "../middlewares/report-access";
-import { isOwnerEmail } from "../lib/owner";
+import { requireVerifiedUser, applicantAccess } from "../middlewares/report-access.js";
+import { isOwnerEmail } from "../lib/owner.js";
 import { db, assessmentsTable, assessmentResultsTable, applicantsTable, jobApplicationsTable } from "@workspace/db";
 import { eq, asc, and, desc } from "drizzle-orm";
 import { pickQuiz, gradeQuizAnswers, INDUSTRY_QUESTIONS, INDUSTRY_ROLES } from "../lib/industry-questions.js";

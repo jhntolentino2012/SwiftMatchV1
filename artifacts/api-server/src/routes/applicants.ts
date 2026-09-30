@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, applicantsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireVerifiedUser, verifiedUser, requireCandidatePool, applicantAccess, denyReport } from "../middlewares/report-access";
+import { requireVerifiedUser, verifiedUser, requireCandidatePool, applicantAccess, denyReport } from "../middlewares/report-access.js";
 import {
   CreateApplicantBody,
   UpdateApplicantBody,

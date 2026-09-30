@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { db } from "@workspace/db";
 import { usersTable, applicantsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
-import { requireVerifiedUser } from "../middlewares/report-access";
+import { requireVerifiedUser } from "../middlewares/report-access.js";
 import { UpdateApplicantBody } from "@workspace/api-zod";
 
 const router = Router();

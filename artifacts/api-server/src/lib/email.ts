@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { logger } from "./logger";
+import { logger } from "./logger.js";
 
 function getBaseUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
