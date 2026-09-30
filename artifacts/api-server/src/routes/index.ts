@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import healthRouter from "./health.js";
 import applicantsRouter from "./applicants.js";
 import assessmentsRouter from "./assessments.js";
@@ -17,7 +17,7 @@ router.use("/auth", authRouter);
 router.use("/profile", profileRouter);
 router.use("/applicants", applicantsRouter);
 router.use("/assessments", assessmentsRouter);
-router.use("/applicants", (req, res, next) => {
+router.use("/applicants", (req: Request, res: Response, next: NextFunction) => {
   if (req.path.match(/^\/\d+\/assessment-results$/)) {
     const id = req.path.split("/")[1];
     req.url = `/applicant/${id}/results`;
