@@ -455,7 +455,11 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
       if (attemptedIds.length) params.set("exclude", attemptedIds.join(","));
       const res = await fetch(`/api/assessments/ke-quiz?${params}`);
       if (!res.ok) throw new Error(await res.text());
-      const qs: QuizQuestion[] = await res.json();
+      const payload: unknown = await res.json();
+      if (!Array.isArray(payload) || payload.length === 0 || payload.some(q => !q || typeof q !== "object")) {
+        throw new Error("Quiz questions could not be loaded. Please try again.");
+      }
+      const qs: QuizQuestion[] = payload;
       // Inject typing test at a random position (not first, not last if 2+ questions)
       const insertAt = qs.length > 1
         ? 1 + Math.floor(Math.random() * (qs.length - 1))
@@ -780,7 +784,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
         <div className="grid grid-cols-3 gap-3 text-sm">
           {(["easy", "medium", "hard"] as const).map(d => ({
-            d, count: questions.filter(q => q.difficulty === d).length,
+            d, count: (Array.isArray(questions) ? questions : []).filter(q => q.difficulty === d).length,
             label: d === "easy" ? "Easy (×1)" : d === "medium" ? "Medium (×2)" : "Hard (×3)"
           })).map(({ d, count, label }) => (
             <div key={d} className={cn("rounded-lg p-3", DIFFICULTY_COLORS[d])}>
@@ -1014,7 +1018,7 @@ export default function KnowledgeQuiz({ applicantId, initialIndustry, initialRol
 
       {current === questions.length - 1 && !allAnswered && (
         <p className="text-center text-xs text-amber-600">
-          Answer all questions to submit. Unanswered: {questions.filter(q2 => !(answers[q2.id] ?? "").trim()).length}
+          Answer all questions to submit. Unanswered: {(Array.isArray(questions) ? questions : []).filter(q2 => !(answers[q2.id] ?? "").trim()).length}
         </p>
       )}
 

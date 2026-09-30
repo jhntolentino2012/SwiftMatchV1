@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { isOwnerEmail } from "@/lib/owner";
 import { cn } from "@/lib/utils";
+import { arrayOrEmpty } from "@/lib/array-or-empty";
 import {
   CheckCircle, ChevronRight, Video, ClipboardList, Brain,
   Heart, Users, Lightbulb, Bot, ArrowLeft, Upload, Lock,
@@ -88,7 +89,11 @@ export default function AssessmentCenter() {
   // Fall back to the profile's target industry/role when nothing is stored in localStorage yet
   const effectiveIndustry = storedIndustry || user?.targetIndustry || "";
   const effectiveRole = storedRole || (storedIndustry ? "" : user?.targetRole || "");
-  const { data: assessments = [], isLoading } = useListAssessments();
+  const { data: assessmentData, isLoading, isError, refetch } = useListAssessments();
+  const assessments = arrayOrEmpty<any>(assessmentData).filter(
+    test => test && typeof test === "object" && typeof test.id === "number",
+  );
+  const invalidAssessments = assessmentData !== undefined && !Array.isArray(assessmentData);
   const { mutateAsync: submitAssessment } = useSubmitAssessment();
   const { toast } = useToast();
 
@@ -138,13 +143,14 @@ export default function AssessmentCenter() {
     try {
       const res = await fetch(`${BASE_URL}/api/assessments/applicant/${applicantId}/results`, { headers });
       if (!res.ok) return;
-      const results: AssessmentResult[] = await res.json();
+      const results = arrayOrEmpty<AssessmentResult>(await res.json());
       const map: Record<number, AssessmentResult> = {};
       let ke: AssessmentResult | null = null;
       let personality: AssessmentResult | null = null;
       results.forEach(r => {
+        if (!r || typeof r !== "object") return;
         if (r.assessmentId) map[r.assessmentId] = r;
-        const title = r.assessmentTitle?.toLowerCase() ?? "";
+        const title = typeof r.assessmentTitle === "string" ? r.assessmentTitle.toLowerCase() : "";
         if (title.includes("knowledge")) ke = r;
         if (title.includes("personality")) personality = r;
       });
@@ -162,7 +168,7 @@ export default function AssessmentCenter() {
     setAnswers(prev => ({
       ...prev,
       [testId]: [
-        ...(prev[testId] || []).filter((a: any) => a.questionId !== questionId),
+        ...arrayOrEmpty<any>(prev[testId]).filter(a => a && a.questionId !== questionId),
         { questionId, answer }
       ]
     }));
@@ -173,8 +179,13 @@ export default function AssessmentCenter() {
       toast({ title: "No profile found", description: "Please create your profile first.", variant: "destructive" });
       return;
     }
-    const testAnswers = answers[test.id] || [];
-    if (testAnswers.length < test.questions?.length) {
+    const testAnswers = arrayOrEmpty<any>(answers[test.id]);
+    const questions = arrayOrEmpty<any>(test.questions).filter(q => q && typeof q === "object");
+    if (questions.length === 0) {
+      toast({ title: "Questions unavailable", description: "Please reload the assessments and try again.", variant: "destructive" });
+      return;
+    }
+    if (testAnswers.length < questions.length) {
       toast({ title: "Incomplete", description: "Please answer all questions before submitting.", variant: "destructive" });
       return;
     }
@@ -203,7 +214,7 @@ export default function AssessmentCenter() {
   };
 
   // Completion counts (de-duplicated)
-  const genericCompleted = (assessments as any[]).filter(a =>
+  const genericCompleted = assessments.filter(a =>
     a.category !== "knowledge" && a.category !== "personality" && completedResults[a.id]
   ).length;
   const completedCount = (keResult ? 1 : 0) + (personalityResult ? 1 : 0) + genericCompleted;
@@ -418,14 +429,14 @@ export default function AssessmentCenter() {
                 <div className="p-6 space-y-5">
                   <p className="text-slate-600 text-sm">{activeTest.description}</p>
 
-                  {activeTest.questions?.map((q: any, idx: number) => {
-                    const selected = (answers[activeTest.id] || []).find((a: any) => a.questionId === q.id)?.answer;
+                  {arrayOrEmpty<any>(activeTest.questions).filter(q => q && typeof q === "object").map((q, idx) => {
+                    const selected = arrayOrEmpty<any>(answers[activeTest.id]).find(a => a?.questionId === q.id)?.answer;
                     return (
                       <div key={q.id} className="p-5 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
                         <p className="font-semibold text-slate-800 text-sm">{idx + 1}. {q.text}</p>
                         {q.type === "multiple_choice" ? (
                           <div className="space-y-2">
-                            {q.options?.map((opt: string) => (
+                            {arrayOrEmpty<string>(q.options).filter(opt => typeof opt === "string").map((opt) => (
                               <label
                                 key={opt}
                                 className={cn(
@@ -480,7 +491,14 @@ export default function AssessmentCenter() {
               <div className="space-y-4">
                 {isLoading || loadingResults ? (
                   [1,2,3,4].map(i => <div key={i} className="h-24 bg-slate-200 rounded-2xl animate-pulse" />)
-                ) : (assessments as any[]).map((test: any) => {
+                ) : isError || invalidAssessments ? (
+                  <div role="alert" className="rounded-xl border border-red-200 bg-white p-6 text-red-700">
+                    <p>Assessments could not be loaded. Please try again.</p>
+                    <button onClick={() => void refetch()} className="mt-3 font-semibold underline">Retry</button>
+                  </div>
+                ) : assessments.length === 0 ? (
+                  <p className="rounded-xl border bg-white p-6 text-slate-600">No assessments are available right now.</p>
+                ) : assessments.map((test: any) => {
                   const meta        = CATEGORY_META[test.category] || CATEGORY_META.knowledge;
                   const Icon        = meta.icon;
                   const isKE        = test.category === "knowledge";
