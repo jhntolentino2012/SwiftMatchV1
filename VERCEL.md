@@ -18,13 +18,14 @@ deployment cannot process signup requests.
 
 ## Routing
 
-Both configurations send `/api/:path*` to the Node function at `api/index.ts`.
-That function exports the existing Express app without opening a listening
-server. Express retains its `/api` mount and method handlers, including
-`POST /api/auth/signup`. The SPA rewrite explicitly excludes `/api` paths.
+Both configurations exclude `/api/*` from the SPA rewrite. Vercel's
+`api/[...path].ts` catch-all function exports the existing Express app without
+opening a listening server, while `api/index.ts` handles the exact `/api` path.
+The catch-all preserves the original URL, so Express retains its `/api` mount
+and method handlers, including `POST /api/auth/signup`.
 
 Redeploy after committing these files. Check the deployment's Functions list for
-`api/index`, then send `POST /api/auth/signup` with `{}` and
+`api/[...path]`, then send `POST /api/auth/signup` with `{}` and
 `Content-Type: application/json`. Expect HTTP 400 and
 `{"error":"All fields are required."}`, not HTTP 405 or an HTML page.
 Also check `GET /api/healthz` and opening `/signup` directly.
