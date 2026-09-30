@@ -1,9 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "vite",
-  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/swiftmatch run build",
-  "outputDirectory": "artifacts/swiftmatch/dist/public",
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
-}
