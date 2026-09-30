@@ -26,7 +26,8 @@ router.use("/applicants", (req: Request, res: Response, next: NextFunction) => {
     assessmentsRouter(req, res, next);
     return;
   }
-  next();
+  const continueRouting = next as unknown as () => void;
+  continueRouting();
 });
 router.use("/jobs", jobsRouter);
 router.use("/courses", coursesRouter);
