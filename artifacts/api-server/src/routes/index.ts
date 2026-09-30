@@ -18,10 +18,11 @@ router.use("/profile", profileRouter);
 router.use("/applicants", applicantsRouter);
 router.use("/assessments", assessmentsRouter);
 router.use("/applicants", (req: Request, res: Response, next: NextFunction) => {
-  const assessmentResultsMatch = req.url?.match(/^\/(\d+)\/assessment-results(?:\?|$)/);
+  const requestWithUrl = req as Request & { url?: string };
+  const assessmentResultsMatch = requestWithUrl.url?.match(/^\/(\d+)\/assessment-results(?:\?|$)/);
   if (assessmentResultsMatch) {
     const id = assessmentResultsMatch[1];
-    req.url = `/applicant/${id}/results`;
+    requestWithUrl.url = `/applicant/${id}/results`;
     assessmentsRouter(req, res, next);
     return;
   }
