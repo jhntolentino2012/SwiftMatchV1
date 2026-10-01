@@ -11,6 +11,8 @@ export const useGetApplicants = () => ({ data: [], isLoading: false });
 export const useUpdateApplicant = () => ({ mutate: () => {}, isPending: false });
 export const useListJobs = () => ({ data: [], isLoading: false });
 export const useListCourses = () => ({ data: [], isLoading: false });
+export const useListAssessments = () => ({ data: [], isLoading: false });
+export const useSubmitAssessment = () => ({ mutate: () => {}, isPending: false });
 
 export type Job = any;
 export type Course = any;
