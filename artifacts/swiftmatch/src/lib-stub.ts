@@ -10,6 +10,8 @@ const proxyModule = new Proxy({}, {
 
 export default proxyModule;
 
+// Explicit exports for hooks, types, and analytics component
+export const Analytics = () => null;
 export const setAuthTokenGetter = (fn: any) => {};
 export const useCreateApplicant = () => ({ mutate: () => {}, mutateAsync: async () => {}, isPending: false, isLoading: false });
 export const useGetApplicants = () => ({ data: [], isLoading: false });
