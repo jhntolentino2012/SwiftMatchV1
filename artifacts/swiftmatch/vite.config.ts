@@ -8,7 +8,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@workspace/api-client-react': path.resolve(__dirname, './src/lib-stub.ts'),
-      '@workspace/analytics': path.resolve(__dirname, './src/lib-stub.ts')
+      '@workspace/analytics': path.resolve(__dirname, './src/lib-stub.ts'),
+      '@vercel/analytics/react': path.resolve(__dirname, './src/lib-stub.ts')
     }
   },
   build: {
