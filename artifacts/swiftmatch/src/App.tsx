@@ -1,32 +1,30 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import LandingPage from "./pages/Landing";
 import ApplicationFlow from "./pages/ApplicationFlow";
-import ApplicantDashboard from "./pages/Dashboard";
+import ApplicantDashboard from "./pages/ApplicantDashboard";
 import EmployerPortal from "./pages/EmployerPortal";
-import AssessmentCenter from "./pages/Assessment";
+import AssessmentCenter from "./pages/AssessmentCenter";
 import CustomAssessment from "./pages/CustomAssessment";
 import ResultsPage from "./pages/Results";
 import JobsPage from "./pages/Jobs";
-import SignUp from "./pages/SignUp";
-import SignIn from "./pages/SignIn";
+import SignUp from "./pages/Signup";
+import SignIn from "./pages/Signin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import EmailConfirmed from "./pages/EmailConfirmed";
 import ProfilePage from "./pages/Profile";
 import EmployerOnboarding from "./pages/EmployerOnboarding";
-import CandidatesPage from "./pages/Candidates";
-import CvViewPage from "./pages/CvView";
+import CandidatePage from "./pages/Candidate";
+import CVFlow from "./pages/CVFlow";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
       refetchOnWindowFocus: false,
     },
   },
@@ -50,8 +48,8 @@ function Router() {
       <Route path="/email-confirmed" component={EmailConfirmed} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/employer/onboarding" component={EmployerOnboarding} />
-      <Route path="/candidates" component={CandidatesPage} />
-      <Route path="/cv/:token" component={CvViewPage} />
+      <Route path="/candidate/:id" component={CandidatePage} />
+      <Route path="/cv" component={CVFlow} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -61,11 +59,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        <Router />
         <Toaster />
-        <Analytics />
       </TooltipProvider>
     </QueryClientProvider>
   );
