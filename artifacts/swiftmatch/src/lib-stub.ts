@@ -1,20 +1,15 @@
+// Universal Proxy Stub for missing workspace modules
 export const api = {};
-export default api;
 
-export class Analytics {
-  track() {}
-}
-
-// Universal Proxy to handle any remaining or future imports
-export const __esModule = true;
-export default new Proxy({}, {
+const proxyModule = new Proxy({}, {
   get: (_, prop) => {
     if (prop === 'default') return api;
     return () => ({ data: [], mutate: () => {}, mutateAsync: async () => {}, isPending: false, isLoading: false });
   }
 });
 
-// Explicit exports including setAuthTokenGetter
+export default proxyModule;
+
 export const setAuthTokenGetter = (fn: any) => {};
 export const useCreateApplicant = () => ({ mutate: () => {}, mutateAsync: async () => {}, isPending: false, isLoading: false });
 export const useGetApplicants = () => ({ data: [], isLoading: false });
