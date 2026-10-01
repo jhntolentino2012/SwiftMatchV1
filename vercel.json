@@ -1,4 +1,4 @@
 {
-  "outputDirectory": "artifacts/swiftmatch/dist",
+  "outputDirectory": "dist",
   "framework": "vite"
 }
