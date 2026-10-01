@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "buildCommand": "cd artifacts/swiftmatch && npm install && npm run build",
+  "outputDirectory": "artifacts/swiftmatch/dist",
   "installCommand": "npm install",
   "framework": "vite"
 }
