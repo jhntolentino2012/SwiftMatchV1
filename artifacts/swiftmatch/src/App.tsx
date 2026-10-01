@@ -5,21 +5,21 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import LandingPage from "./pages/Landing";
 import ApplicationFlow from "./pages/ApplicationFlow";
-import ApplicantDashboard from "./pages/ApplicantDashboard";
+import ApplicantDashboard from "./pages/Dashboard";
 import EmployerPortal from "./pages/EmployerPortal";
-import AssessmentCenter from "./pages/AssessmentCenter";
+import AssessmentCenter from "./pages/Assessment";
 import CustomAssessment from "./pages/CustomAssessment";
 import ResultsPage from "./pages/Results";
 import JobsPage from "./pages/Jobs";
-import SignUp from "./pages/Signup";
-import SignIn from "./pages/Signin";
+import SignUp from "./pages/SignUp";
+import SignIn from "./pages/SignIn";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import EmailConfirmed from "./pages/EmailConfirmed";
 import ProfilePage from "./pages/Profile";
 import EmployerOnboarding from "./pages/EmployerOnboarding";
-import CandidatePage from "./pages/Candidate";
-import CVFlow from "./pages/CVFlow";
+import CandidatePage from "./pages/Candidates";
+import CVFlow from "./pages/CvView";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
