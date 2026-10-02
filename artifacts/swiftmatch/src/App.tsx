@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-// Remove: import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import LandingPage from "./pages/landing";
@@ -21,7 +21,13 @@ import CandidatePage from "./pages/candidates";
 import CVFlow from "./pages/cvflow";
 import NotFound from "./pages/not-found";
 
-// Remove: const queryClient = new QueryClient({...});
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function Router() {
   return (
@@ -50,8 +56,10 @@ function Router() {
 
 export default function App() {
   return (
-    <TooltipProvider>
-      <Router />
-    </TooltipProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Router />
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
