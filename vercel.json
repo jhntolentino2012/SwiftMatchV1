@@ -1,6 +1,14 @@
 {
-  "installCommand": "cd artifacts/swiftmatch && npm install && cd ../.. && ln -sf artifacts/swiftmatch/node_modules node_modules",
-  "buildCommand": "cd artifacts/swiftmatch && npm run build",
-  "outputDirectory": "artifacts/swiftmatch/dist",
-  "framework": "vite"
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "artifacts/api-server",
+    "api"
+  ]
 }
