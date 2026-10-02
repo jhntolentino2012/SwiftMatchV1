@@ -59,10 +59,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base="/">
-          <Router />
-        </WouterRouter>
-        <Toaster />
+        <Router />
       </TooltipProvider>
     </QueryClientProvider>
   );
