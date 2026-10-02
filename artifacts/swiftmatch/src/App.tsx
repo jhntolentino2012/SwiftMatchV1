@@ -11,8 +11,8 @@ import AssessmentCenter from "./pages/Assessment";
 import CustomAssessment from "./pages/CustomAssessment";
 import ResultsPage from "./pages/Results";
 import JobsPage from "./pages/Jobs";
-import SignUp from "./pages/SignUp";
-import SignIn from "./pages/SignIn";
+import SignUp from "./pages/signup";
+import SignIn from "./pages/signin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import EmailConfirmed from "./pages/EmailConfirmed";
@@ -55,11 +55,11 @@ function Router() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <WouterRouter base="/">
           <Router />
         </WouterRouter>
         <Toaster />
@@ -67,5 +67,3 @@ function App() {
     </QueryClientProvider>
   );
 }
-
-export default App;
