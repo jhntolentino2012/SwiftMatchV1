@@ -1,34 +1,27 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
+import { Switch, Route } from "wouter";
+// Remove: import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-import LandingPage from "./pages/Landing";
-import ApplicationFlow from "./pages/ApplicationFlow";
-import ApplicantDashboard from "./pages/Dashboard";
-import EmployerPortal from "./pages/EmployerPortal";
-import AssessmentCenter from "./pages/Assessment";
-import CustomAssessment from "./pages/CustomAssessment";
-import ResultsPage from "./pages/Results";
-import JobsPage from "./pages/Jobs";
-import SignUp from "./pages/SignUp";
-import SignIn from "./pages/SignIn";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import EmailConfirmed from "./pages/EmailConfirmed";
-import ProfilePage from "./pages/Profile";
-import EmployerOnboarding from "./pages/EmployerOnboarding";
-import CandidatePage from "./pages/Candidates";
-import CVFlow from "./pages/CvView";
+import LandingPage from "./pages/landing";
+import ApplicationFlow from "./pages/application-flow";
+import ApplicantDashboard from "./pages/dashboard";
+import EmployerPortal from "./pages/employerportal";
+import AssessmentCenter from "./pages/assessment-center";
+import CustomAssessment from "./pages/customassessment";
+import ResultsPage from "./pages/results";
+import JobsPage from "./pages/jobs";
+import SignupPage from "./pages/signup";
+import SigninPage from "./pages/signin";
+import ForgotPassword from "./pages/forgotpassword";
+import ResetPassword from "./pages/resetpassword";
+import ResetConfirmed from "./pages/resetconfirmed";
+import ProfilePage from "./pages/profile";
+import EmployerOnboarding from "./pages/employer-onboarding";
+import CandidatePage from "./pages/candidates";
+import CVFlow from "./pages/cvflow";
 import NotFound from "./pages/not-found";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// Remove: const queryClient = new QueryClient({...});
 
 function Router() {
   return (
@@ -36,20 +29,20 @@ function Router() {
       <Route path="/" component={LandingPage} />
       <Route path="/apply" component={ApplicationFlow} />
       <Route path="/dashboard" component={ApplicantDashboard} />
-      <Route path="/employer" component={EmployerPortal} />
+      <Route path="/employerportal" component={EmployerPortal} />
       <Route path="/jobs" component={JobsPage} />
-      <Route path="/assessment" component={AssessmentCenter} />
-      <Route path="/custom-assessment" component={CustomAssessment} />
+      <Route path="/assessment-center" component={AssessmentCenter} />
+      <Route path="/customassessment" component={CustomAssessment} />
       <Route path="/results" component={ResultsPage} />
-      <Route path="/signup" component={SignUp} />
-      <Route path="/signin" component={SignIn} />
+      <Route path="/signup" component={SignupPage} />
+      <Route path="/signin" component={SigninPage} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/email-confirmed" component={EmailConfirmed} />
+      <Route path="/email-confirmed" component={ResetConfirmed} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/employer/onboarding" component={EmployerOnboarding} />
-      <Route path="/candidate/:id" component={CandidatePage} />
-      <Route path="/cv" component={CVFlow} />
+      <Route path="/candidates/:id" component={CandidatePage} />
+      <Route path="/cvflow" component={CVFlow} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -57,10 +50,8 @@ function Router() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <TooltipProvider>
+      <Router />
+    </TooltipProvider>
   );
 }
