@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd artifacts/swiftmatch && npm install",
+  "installCommand": "cd artifacts/swiftmatch && npm install && cd ../.. && ln -sf artifacts/swiftmatch/node_modules node_modules",
   "buildCommand": "cd artifacts/swiftmatch && npm run build",
   "outputDirectory": "artifacts/swiftmatch/dist",
   "framework": "vite"
