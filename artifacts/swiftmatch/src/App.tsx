@@ -11,7 +11,7 @@ import CustomAssessment from "./pages/CustomAssessment";
 import ResultPage from "./pages/Results";
 import JobsPage from "./pages/Jobs";
 import SignupPage from "./pages/SignUp";
-import SigninPage from "./pages/Signin";
+import SignIn from "./pages/SignIn";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ResetConfirmed from "./pages/EmailConfirmed";
