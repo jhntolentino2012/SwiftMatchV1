@@ -2,7 +2,7 @@ import { Switch, Route } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-import LandingPage from "@/pages/landing";
+import LandingPage from "./pages/landing";
 import ApplicationFlow from "@/pages/application-flow";
 import ApplicantDashboard from "@/pages/dashboard";
 import EmployerPortal from "@/pages/employerportal";
