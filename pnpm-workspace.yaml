@@ -10,3 +10,4 @@ catalog:
   "@replit/vite-plugin-dev-banner": "*"
   "@replit/vite-plugin-shadcn-theme-json": "*"
   "@replit/vite-plugin-runtime-error-modal": "*"
+  "@tailwindcss/vite": "*"
