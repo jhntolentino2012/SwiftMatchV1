@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm --filter swiftmatch build",
-  "installCommand": "pnpm install --recursive",
+  "installCommand": "pnpm install",
   "outputDirectory": "artifacts/swiftmatch/dist/public",
   "framework": "vite",
   "rewrites": [
