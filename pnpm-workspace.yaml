@@ -2,3 +2,6 @@ packages:
   - "artifacts/*"
   - "api"
   - "."
+
+catalog:
+  "@types/node": "^20.0.0"
