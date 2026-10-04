@@ -11,3 +11,4 @@ catalog:
   "@replit/vite-plugin-shadcn-theme-json": "*"
   "@replit/vite-plugin-runtime-error-modal": "*"
   "@tailwindcss/vite": "*"
+  "@tanstack/react-query": "*"
