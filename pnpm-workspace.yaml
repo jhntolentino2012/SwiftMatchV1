@@ -15,3 +15,6 @@ catalog:
   "@types/react": "*"
   "@types/react-dom": "*"
   "@vitejs/plugin-react": "*"
+  "class-variance-authority": "*"
+  "clsx": "*"
+  "tailwind-merge": "*"
