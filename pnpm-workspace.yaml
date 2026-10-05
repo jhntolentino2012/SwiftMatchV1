@@ -24,3 +24,5 @@ catalog:
   "date-fns": "*"
   "react-hook-form": "*"
   "wouter": "*"
+  "react": "*"
+  "react-dom": "*"
