@@ -13,3 +13,4 @@ catalog:
   "@tailwindcss/vite": "*"
   "@tanstack/react-query": "*"
   "@types/react": "*"
+  "@types/react-dom": "*"
