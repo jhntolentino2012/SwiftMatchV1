@@ -27,3 +27,4 @@ catalog:
   "react": "*"
   "react-dom": "*"
   "tailwindcss": "*"
+  "vite": "*"
