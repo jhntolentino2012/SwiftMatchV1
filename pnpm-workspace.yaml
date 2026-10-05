@@ -12,3 +12,4 @@ catalog:
   "@replit/vite-plugin-runtime-error-modal": "*"
   "@tailwindcss/vite": "*"
   "@tanstack/react-query": "*"
+  "@types/react": "*"
