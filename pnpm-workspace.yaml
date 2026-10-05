@@ -26,3 +26,4 @@ catalog:
   "wouter": "*"
   "react": "*"
   "react-dom": "*"
+  "tailwindcss": "*"
