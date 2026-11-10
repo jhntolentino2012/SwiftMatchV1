@@ -41,7 +41,7 @@
     "@tailwindcss/typography": "0.5.19",
     "@tailwindcss/vite": "4.2.1",
     "@tanstack/react-query": "5.90.21",
-    "@workspace/api-client-react": "file:../../lib/api-client-react",
+"@workspace/api-client-react": "workspace:*",
   
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
