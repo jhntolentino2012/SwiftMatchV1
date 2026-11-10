@@ -1,7 +1,7 @@
 {
   "buildCommand": "pnpm --filter @workspace/swiftmatch build",
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "outputDirectory": "artifacts/swiftmatch/dist",
+  "outputDirectory": "public",
   "framework": "vite",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
